@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ScanLine, 
   Search, 
@@ -11,17 +12,20 @@ import {
   ArrowUpRight, 
   ArrowDownLeft,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  LogOut // Importamos el icono de salida
 } from 'lucide-react';
+import { Dialog, Transition } from '@headlessui/react'; // Importamos para el modal
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-// IMPORTAMOS EL ESCÁNER
 import { Scanner } from '@yudiel/react-qr-scanner';
 
 export default function OperatorPage() {
+  const router = useRouter();
   const [manualSku, setManualSku] = useState('');
   const [isScanning, setIsScanning] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false); // Estado para el modal
   
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [myActivity, setMyActivity] = useState<any[]>([]);
@@ -31,6 +35,11 @@ export default function OperatorPage() {
   useEffect(() => {
     fetchMyActivity();
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const fetchMyActivity = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -42,7 +51,7 @@ export default function OperatorPage() {
         id, tipo, timestamp, sku,
         hardware (modelo)
       `)
-      .eq('operador_id', user.id) // Ojo: asegúrate de que esta columna en base de datos sea usuario_id u operador_id según como la tengas
+      .eq('operador_id', user.id)
       .order('timestamp', { ascending: false })
       .limit(5);
     
@@ -102,6 +111,7 @@ export default function OperatorPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 pb-24">
+      {/* Header Operador con Cerrar Sesión */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200">
@@ -109,28 +119,30 @@ export default function OperatorPage() {
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Escáner de Bodega</h1>
         </div>
+        
+        {/* Botón de Cerrar Sesión (Icono) */}
+        <button 
+          onClick={() => setShowLogoutModal(true)}
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-red-500 border border-slate-200 shadow-sm hover:bg-red-50 transition-colors cursor-pointer"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="mx-auto max-w-lg space-y-6">
         
+        {/* ÁREA DE ESCÁNER (Se mantiene igual) */}
         <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-200/60 border border-slate-100">
           {isScanning ? (
             <div className="relative aspect-square bg-slate-900">
-              
-              {/* COMPONENTE DE CÁMARA REAL */}
               <Scanner
                 onScan={(result) => {
                   if (result && result.length > 0) {
-                    // Cuando detecta el código, llama a tu función processSku
                     processSku(result[0].rawValue);
                   }
                 }}
-                components={{
-                  finder: false // Quitamos el cuadro verde por defecto para dejar el tuyo
-                }}
+                components={{ finder: false }}
               />
-
-              {/* TU DISEÑO SUPERPUESTO (pointer-events-none para que no bloquee el click en la cámara) */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 pointer-events-none">
                 <div className="h-48 w-48 border-2 border-dashed border-blue-500 rounded-3xl animate-pulse flex items-center justify-center bg-black/10">
                    <ScanLine className="h-10 w-10 text-blue-500 drop-shadow-md" />
@@ -139,7 +151,6 @@ export default function OperatorPage() {
                   Enfoca el código QR o Barra
                 </p>
               </div>
-
             </div>
           ) : selectedItem && (
             <div className="p-6 animate-in fade-in zoom-in-95 duration-200">
@@ -178,7 +189,6 @@ export default function OperatorPage() {
             </div>
           )}
 
-          {/* Buscador Manual */}
           <div className="border-t border-slate-50 p-4 bg-slate-50/50 relative z-10">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -195,7 +205,6 @@ export default function OperatorPage() {
           </div>
         </div>
 
-        {/* Feedback de estado */}
         {statusMsg && (
           <div className={`flex items-center gap-3 rounded-2xl p-4 border animate-in slide-in-from-top-2 ${
             statusMsg.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'
@@ -205,7 +214,6 @@ export default function OperatorPage() {
           </div>
         )}
 
-        {/* Historial */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-2">
             <History className="h-4 w-4 text-slate-400" />
@@ -230,6 +238,42 @@ export default function OperatorPage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DE LOGOUT (Idéntico al de Admin) */}
+      <Transition show={showLogoutModal} as={Fragment}>
+        <Dialog as="div" className="relative z-100" onClose={() => setShowLogoutModal(false)}>
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enterTo="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 translate-y-0 sm:scale-100" leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
+                  <div className="absolute right-5 top-5">
+                    <button type="button" className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors" onClick={() => setShowLogoutModal(false)}>
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100">
+                      <AlertCircle className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">¿Cerrar sesión ahora?</Dialog.Title>
+                      <p className="mt-2.5 text-sm text-slate-500 font-medium">Tendrás que ingresar tus credenciales nuevamente para acceder.</p>
+                    </div>
+                  </div>
+                  <div className="mt-8 flex flex-col gap-3">
+                    <button type="button" onClick={handleLogout} className="w-full rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 cursor-pointer shadow-lg shadow-red-200 transition-all">Sí, salir</button>
+                    <button type="button" onClick={() => setShowLogoutModal(false)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">Cancelar</button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </main>
   );
 }

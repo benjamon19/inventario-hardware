@@ -6,7 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
 import { 
   LayoutDashboard, Box, History, Users, LogOut, 
-  Package, AlertCircle, X, Settings, QrCode 
+  Package, AlertCircle, X, Settings, QrCode,
+  Menu, ScanLine 
 } from 'lucide-react';
 import { currentTheme } from '@/config/theme';
 import { supabase } from '@/lib/supabase';
@@ -15,18 +16,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const menuItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Inventario', href: '/admin/inventario', icon: Box },
+    { name: 'Generar QR', href: '/admin/generar-qr', icon: QrCode },
+    { name: 'Escáner', href: '/admin/escaner', icon: ScanLine },
     { name: 'Actividad', href: '/admin/actividad', icon: History },
     { name: 'Usuarios', href: '/admin/usuarios', icon: Users },
-  ];
-
-  // Nuevas opciones solicitadas
-  const toolItems = [
-    { name: 'Generar QR', href: '/admin/generar-qr', icon: QrCode },
-    { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
   ];
 
   const handleLogout = async () => {
@@ -34,18 +32,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/login');
   };
 
-  return (
-    <div className={`flex min-h-screen ${currentTheme.background}`}>
-      {/* Sidebar Desktop */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r ${currentTheme.border} ${currentTheme.card} hidden md:flex flex-col`}>
-        <div className="flex h-16 items-center gap-2 border-b px-6">
-          <Package className="h-6 w-6 text-blue-600" />
-          <span className="font-bold tracking-tight text-slate-900 text-lg">TI Bodega</span>
+  const SidebarContent = () => (
+    <div className="flex h-full flex-col bg-white">
+      {/* HEADER DEL MENÚ - Sin línea negra y con logo mejorado */}
+      <div className="flex h-24 shrink-0 items-center gap-3 px-6 pt-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200">
+          <Package className="h-5 w-5" />
         </div>
-        
-        {/* Navegación Principal */}
-        <nav className="flex-1 space-y-1 px-3 py-6">
-          <p className="px-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menú</p>
+        <span className="font-extrabold tracking-tight text-slate-900 text-xl">TI Bodega</span>
+      </div>
+      
+      <div className="flex flex-1 flex-col justify-between overflow-y-auto">
+        <nav className="space-y-1.5 px-4 py-4">
+          <p className="px-3 pb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menú Principal</p>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -53,71 +52,129 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 ${
                   isActive 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1' 
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
                 }`}
               >
-                <Icon className="h-4.5 w-4.5" />
+                <Icon className="h-5 w-5" />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        {/* Sección de Herramientas y Ajustes (Arriba de cerrar sesión) */}
-        <div className="px-3 py-4 border-t border-slate-100 space-y-1">
-          <p className="px-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Ajustes</p>
-          {toolItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer'
-                }`}
-              >
-                <Icon className="h-4.5 w-4.5" />
-                {item.name}
-              </Link>
-            );
-          })}
-          
-          <button 
-            onClick={() => setShowLogoutModal(true)}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 cursor-pointer transition-colors group mt-2"
+        <div className="px-4 pb-6">
+          <Link
+            href="/admin/configuracion"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 mb-3 ${
+              pathname === '/admin/configuracion'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
+            }`}
           >
-            <LogOut className="h-4.5 w-4.5 group-hover:-translate-x-1 transition-transform" />
-            Cerrar Sesión
-          </button>
+            <Settings className="h-5 w-5" />
+            Configuración
+          </Link>
+          
+          <div className="border-t border-slate-100 pt-3">
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setShowLogoutModal(true);
+              }}
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-red-500 hover:bg-red-50 cursor-pointer transition-colors group"
+            >
+              <LogOut className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`flex min-h-screen ${currentTheme.background}`}>
+      
+      {/* 📱 SIDEBAR MÓVIL REDISEÑADO PREMIUM */}
+      <Transition show={isMobileMenuOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50 md:hidden" onClose={setIsMobileMenuOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="transition-opacity ease-linear duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="transition-opacity ease-linear duration-300"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            {/* Fondo con desenfoque estilo cristal */}
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex">
+            <Transition.Child
+              as={Fragment}
+              enter="transition ease-in-out duration-300 transform"
+              enterFrom="-translate-x-full"
+              enterTo="translate-x-0"
+              leave="transition ease-in-out duration-300 transform"
+              leaveFrom="translate-x-0"
+              leaveTo="-translate-x-full"
+            >
+              {/* Panel con bordes muy redondeados a la derecha */}
+              <Dialog.Panel className="relative flex w-70 flex-col bg-white shadow-2x1 overflow-hidden">
+                <SidebarContent />
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* 💻 SIDEBAR DESKTOP */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r ${currentTheme.border} ${currentTheme.card} hidden md:flex flex-col`}>
+        <SidebarContent />
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col md:pl-64">
-        <header className={`sticky top-0 z-40 flex h-16 items-center justify-between border-b ${currentTheme.border} ${currentTheme.card} px-8`}>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">
-            {[...menuItems, ...toolItems].find(i => i.href === pathname)?.name || 'Administración'}
-          </h2>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200">
-            B
+      {/* ÁREA DE CONTENIDO PRINCIPAL */}
+      <div className="flex flex-1 flex-col md:pl-72">
+        
+        {/* HEADER SUPERIOR */}
+        <header className={`sticky top-0 z-40 flex h-20 items-center gap-x-4 border-b ${currentTheme.border} ${currentTheme.card} px-4 shadow-sm sm:gap-x-6 sm:px-8`}>
+          <button
+            type="button"
+            className="-m-2.5 p-2.5 text-slate-700 md:hidden hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <span className="sr-only">Abrir menú</span>
+            <Menu className="h-6 w-6" aria-hidden="true" />
+          </button>
+
+          <div className="flex flex-1 items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">
+              {pathname === '/admin/configuracion' 
+                ? 'Configuración' 
+                : menuItems.find(i => i.href === pathname)?.name || 'Administración'}
+            </h2>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-sm border border-blue-200 shadow-sm cursor-pointer hover:bg-blue-200 transition-colors">
+              B
+            </div>
           </div>
         </header>
 
-        <main className="p-8">
+        {/* CONTENIDO DE LA PÁGINA */}
+        <main className="p-4 sm:p-8">
           {children}
         </main>
       </div>
 
-      {/* MODAL DE LOGOUT (Tu base original pulida) */}
+      {/* MODAL DE LOGOUT */}
       <Transition show={showLogoutModal} as={Fragment}>
         <Dialog as="div" className="relative z-100" onClose={() => setShowLogoutModal(false)}>
-          
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -132,7 +189,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <div className="fixed inset-0 z-10 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-              
               <Transition.Child
                 as={Fragment}
                 enter="ease-out duration-300"
@@ -143,7 +199,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
                 <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
-                  
                   <div className="absolute right-5 top-5">
                     <button
                       type="button"
