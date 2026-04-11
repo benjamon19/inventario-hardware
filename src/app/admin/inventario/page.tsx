@@ -525,10 +525,22 @@ export default function InventarioPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (menuOpenId === item.id) { setMenuOpenId(null); return; }
+                          
                           const btn = btnRefs.current[item.id];
                           if (btn) {
                             const r = btn.getBoundingClientRect();
-                            setMenuPos({ top: r.bottom + window.scrollY + 4, right: window.innerWidth - r.right });
+                            const menuHeight = 110; // Altura estimada de tu menú
+                            const spaceBelow = window.innerHeight - r.bottom;
+                            
+                            // Si queda poco espacio abajo (menos de 130px), lo tiramos hacia arriba
+                            const shouldOpenUp = spaceBelow < (menuHeight + 20);
+                            
+                            setMenuPos({ 
+                              top: shouldOpenUp 
+                                ? r.top + window.scrollY - menuHeight - 8  // Posición para abrir hacia arriba
+                                : r.bottom + window.scrollY + 4,           // Posición normal hacia abajo
+                              right: window.innerWidth - r.right 
+                            });
                           }
                           setMenuOpenId(item.id);
                         }}
@@ -612,20 +624,36 @@ export default function InventarioPage() {
       {/* Dropdown portal */}
       {menuOpenId && typeof document !== 'undefined' && createPortal(
         <>
+          {/* Overlay para cerrar al hacer click fuera */}
           <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
+          
           <div
-            className="fixed z-50 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl py-1.5 overflow-hidden"
-            style={{ top: menuPos.top, right: menuPos.right }}
+            className="fixed z-50 w-44 rounded-2xl border border-slate-200 bg-white shadow-2xl py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+            style={{ 
+              top: menuPos.top, 
+              right: menuPos.right,
+              // Evita que se salga en pantallas ultra pequeñas
+              maxWidth: 'calc(100vw - 2rem)' 
+            }}
           >
             <button
-              onClick={() => { const item = items.find(i => i.id === menuOpenId); if (item) openEdit(item); setMenuOpenId(null); }}
+              onClick={() => { 
+                const item = items.find(i => i.id === menuOpenId); 
+                if (item) openEdit(item); 
+                setMenuOpenId(null); 
+              }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
             >
               <Edit2 className="h-4 w-4 text-slate-400" /> Editar equipo
             </button>
+            
             <div className="my-1 border-t border-slate-100" />
+            
             <button
-              onClick={() => { const item = items.find(i => i.id === menuOpenId); if (item) { setDeleteItem(item); setMenuOpenId(null); } }}
+              onClick={() => { 
+                const item = items.find(i => i.id === menuOpenId); 
+                if (item) { setDeleteItem(item); setMenuOpenId(null); } 
+              }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
             >
               <Trash2 className="h-4 w-4" /> Eliminar
