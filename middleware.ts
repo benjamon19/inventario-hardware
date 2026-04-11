@@ -1,3 +1,4 @@
+// middleware.ts
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
@@ -28,16 +29,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. PROTECCIÓN DE ROL: Si intenta entrar a /admin
+  // 2. PROTECCIÓN DE ROL USANDO EL TOKEN
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('rol')
-      .eq('id', user?.id)
-      .single();
+    // Leemos el rol inyectado por nuestro Hook sin hacer peticiones extra a la BD
+    const rol = user?.app_metadata?.user_role;
 
-    if (perfil?.rol !== 'ADMIN') {
-      // Si no es admin, lo mandamos a la vista de operador
+    if (rol !== 'ADMIN') {
       return NextResponse.redirect(new URL('/operador', request.url));
     }
   }
