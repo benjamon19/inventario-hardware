@@ -171,8 +171,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </div>
                   </div>
                   <div className="mt-8 flex flex-col gap-3">
-                    <button type="button" onClick={handleLogout} className="w-full rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all">Sí, salir</button>
-                    <button type="button" onClick={() => setShowLogoutModal(false)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
+                    <button type="button" onClick={handleLogout} className="w-full rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer">Sí, salir</button>
+                    <button type="button" onClick={() => setShowLogoutModal(false)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
                   </div>
                 </Dialog.Panel>
               </Transition.Child>
