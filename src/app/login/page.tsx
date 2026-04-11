@@ -78,7 +78,7 @@ export default function LoginPage() {
             <Package className="h-7 w-7 text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Control de Inventario</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Sistema Control de Inventario</h1>
             <p className="mt-1 text-sm font-medium uppercase tracking-widest text-slate-500">Bodega Área Informática</p>
           </div>
         </div>

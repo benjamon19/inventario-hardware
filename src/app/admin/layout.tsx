@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
@@ -18,9 +18,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Estado para el avatar dinámico
+  const [userAvatar, setUserAvatar] = useState({ 
+    initial: 'B', 
+    styles: 'bg-blue-100 text-blue-700 border-blue-200' 
+  });
 
   // Emitimos presencia en tiempo real
   usePresence();
+
+  // Lógica para detectar inicial y "género" por el nombre
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        const namePart = user.email.split('@')[0].split('.')[0]; // saca el nombre limpio
+        const initial = namePart.charAt(0).toUpperCase();
+        
+        // Si el nombre termina en 'a', tiramos a rosado, si no, azul
+        const isFemale = namePart.toLowerCase().endsWith('a');
+        const styles = isFemale 
+          ? 'bg-pink-100 text-pink-700 border-pink-200' 
+          : 'bg-blue-100 text-blue-700 border-blue-200';
+          
+        setUserAvatar({ initial, styles });
+      }
+    };
+    fetchUser();
+  }, []);
   
   const menuItems = [
     { name: 'Panel Principal', href: '/admin', icon: LayoutDashboard },
@@ -42,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200">
           <Package className="h-5 w-5" />
         </div>
-        <span className="font-extrabold tracking-tight text-slate-900 text-xl">TI Bodega</span>
+        <span className="font-extrabold tracking-tight text-slate-900 text-xl">Bodega Área Informática</span>
       </div>
       
       <div className="flex flex-1 flex-col justify-between overflow-y-auto">
@@ -139,8 +165,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </h2>
             
             <div className="flex shrink-0 items-center">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-sm border border-blue-200 shadow-sm hover:bg-blue-200 transition-colors cursor-pointer">
-                B
+              {/* Avatar Dinámico: Sin clics, sin hover, solo info visual */}
+              <div className={`flex h-9 w-9 items-center justify-center rounded-full font-bold text-sm border shadow-sm select-none ${userAvatar.styles}`}>
+                {userAvatar.initial}
               </div>
             </div>
           </div>
