@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   usePresence();
   
   const menuItems = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Panel Principal', href: '/admin', icon: LayoutDashboard },
     { name: 'Inventario', href: '/admin/inventario', icon: Box },
     { name: 'Generar QR', href: '/admin/generar-qr', icon: QrCode },
     { name: 'Escáner', href: '/admin/escaner', icon: ScanLine },

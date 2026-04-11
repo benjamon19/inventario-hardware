@@ -3,19 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
-/**
- * usePresence
- * 
- * Hook para emitir la presencia del usuario activo en el canal 'app_presence'.
- * queda cualquier usuario con "sesión activa".
- * 
- * Uso:
- *   import { usePresence } from '@/hooks/usePresence';
- *   export default function AdminLayout({ children }) {
- *     usePresence();
- *     ...
- *   }
- */
 export function usePresence() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -26,10 +13,26 @@ export function usePresence() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !mounted) return;
 
+      // 1. Se Crea la instancia del canal
       const channel = supabase.channel('app_presence', {
         config: { presence: { key: user.id } }
       });
 
+      // 2. SE AÑADEN LOS EVENTOS ANTES DE SUSCRIBIRNOS (Fix del error)
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          if (mounted) {
+            console.log('Sincronizando presencia', channel.presenceState());
+          }
+        })
+        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+          console.log('Usuario entró:', newPresences);
+        })
+        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+          console.log('Usuario salió:', leftPresences);
+        });
+
+      // 3. FINALMENTE NOS SUSCRIBIMOS
       channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED' && mounted) {
           await channel.track({
@@ -44,6 +47,7 @@ export function usePresence() {
 
     init();
 
+    // 4. Limpieza para que el Fast Refresh de Next.js no rompa el WebSocket
     return () => {
       mounted = false;
       if (channelRef.current) {
