@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabase';
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Estado = { id: string; nombre: string; color: string };
 
-// Duplicamos los helpers visuales aquí para mantener el componente aislado
 const colorClasses: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
   blue: 'bg-blue-50 text-blue-700 border-blue-100',
@@ -65,7 +64,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }:
           </button>
         </div>
       ))}
-      
+
       <div className="border-t border-slate-100 pt-2 space-y-2">
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
         <input
@@ -134,15 +133,21 @@ type Props = {
 };
 
 export default function NuevoEquipoModal({
-  isOpen, onClose, onSuccess, categorias, estados, 
+  isOpen, onClose, onSuccess, categorias, estados,
   addCategoria, deleteCategoria, addEstado, deleteEstado
 }: Props) {
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdSku, setCreatedSku] = useState('');
-  const [formData, setFormData] = useState({ sku: '', categoria: '', modelo: '', estado: '' });
+  const [formData, setFormData] = useState({
+    sku: '',
+    categoria: '',
+    modelo: '',
+    estado: '',
+    descripcion: '',
+  });
 
   const [showCatEditor, setShowCatEditor] = useState(false);
   const [showEstEditor, setShowEstEditor] = useState(false);
@@ -156,6 +161,7 @@ export default function NuevoEquipoModal({
         categoria: categorias[0]?.nombre ?? '',
         modelo: '',
         estado: estados[0]?.nombre ?? '',
+        descripcion: '',
       });
       setShowCatEditor(false);
       setShowEstEditor(false);
@@ -173,18 +179,20 @@ export default function NuevoEquipoModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Agregamos esta validación silenciosa para que no guarde equipos sin modelo
-    if (!formData.modelo.trim()) {
-      return; 
-    }
+    if (!formData.modelo.trim()) return;
 
     setLoading(true);
-    const { error } = await supabase.from('hardware').insert([formData]);
+    const { error } = await supabase.from('hardware').insert([{
+      sku: formData.sku,
+      categoria: formData.categoria,
+      modelo: formData.modelo,
+      estado: formData.estado,
+      descripcion: formData.descripcion.trim() || null,
+    }]);
     if (!error) {
       setCreatedSku(formData.sku);
       setShowSuccess(true);
-      onSuccess(); // Avisamos al padre que recargue la tabla
+      onSuccess();
     } else {
       alert('Error al guardar: ' + error.message);
     }
@@ -223,25 +231,32 @@ export default function NuevoEquipoModal({
                             El equipo <span className="text-slate-900 font-bold">{formData.modelo}</span> ya está registrado en el inventario oficial.
                           </p>
                           <div className="mt-10 flex w-full flex-col gap-3">
-                            <button onClick={() => router.push(`/admin/generar-qr?sku=${createdSku}`)} className="flex items-center justify-center gap-2 w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                            <button
+                              onClick={() => router.push(`/admin/generar-qr?sku=${createdSku}`)}
+                              className="flex items-center justify-center gap-2 w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+                            >
                               <QrCode className="h-5 w-5" /> Generar e Imprimir QR
                             </button>
-                            <button onClick={() => {
-                              setShowSuccess(false);
-                              setFormData(prev => ({ ...prev, sku: '', modelo: '' }));
-                              // Forzar re-trigger de SKU
-                              setFormData(prev => ({ ...prev, categoria: categorias[0]?.nombre ?? '' }));
-                            }} className="w-full rounded-2xl border border-slate-200 bg-white py-4 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                            <button
+                              onClick={() => {
+                                setShowSuccess(false);
+                                setFormData({ sku: '', modelo: '', descripcion: '', categoria: categorias[0]?.nombre ?? '', estado: estados[0]?.nombre ?? '' });
+                              }}
+                              className="w-full rounded-2xl border border-slate-200 bg-white py-4 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                            >
                               Registrar otro equipo
                             </button>
                           </div>
                         </div>
                       ) : (
                         <form onSubmit={handleSubmit} className="space-y-6 pb-12">
-                          {/* Categoría con editor inline */}
+
+                          {/* Categoría */}
                           <div className="space-y-1.5 relative">
                             <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría</label>
+                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Categoría <span className="text-red-500">*</span>
+                              </label>
                               <button
                                 type="button"
                                 onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); }}
@@ -271,10 +286,12 @@ export default function NuevoEquipoModal({
                             )}
                           </div>
 
-                          {/* Estado con editor inline */}
+                          {/* Estado */}
                           <div className="space-y-1.5 relative">
                             <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
+                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Estado <span className="text-red-500">*</span>
+                              </label>
                               <button
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
@@ -307,7 +324,9 @@ export default function NuevoEquipoModal({
 
                           {/* Modelo */}
                           <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo del Equipo</label>
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                              Modelo del Equipo <span className="text-red-500">*</span>
+                            </label>
                             <input
                               type="text"
                               placeholder="Ej: Lenovo ThinkPad T14"
@@ -320,7 +339,9 @@ export default function NuevoEquipoModal({
                           {/* SKU */}
                           <div className="space-y-1.5">
                             <div className="flex justify-between items-end mb-1">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU</label>
+                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Código SKU <span className="text-red-500">*</span>
+                              </label>
                               <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                             </div>
                             <input
@@ -330,6 +351,21 @@ export default function NuevoEquipoModal({
                               onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
                               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono text-slate-700 font-bold tracking-wider"
                             />
+                          </div>
+
+                          {/* Descripción (no obligatoria) */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                              Descripción / Notas
+                            </label>
+                            <textarea
+                              value={formData.descripcion}
+                              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                              placeholder="Ej: En mantención por falla en pantalla. Motivo de ingreso a bodega..."
+                              rows={3}
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all resize-none text-slate-700"
+                            />
+                            <p className="text-[11px] text-slate-400 px-1">Opcional — detalla el motivo de ingreso, estado de mantención, etc.</p>
                           </div>
 
                           <div className="pt-6">

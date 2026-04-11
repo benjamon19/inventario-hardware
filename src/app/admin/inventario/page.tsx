@@ -6,7 +6,8 @@ import { Dialog, Transition } from '@headlessui/react';
 import { 
   Plus, Search, MoreVertical, 
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
-  X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle
+  X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle,
+  ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import NuevoEquipoModal from './NuevoEquipoModal';
@@ -14,6 +15,16 @@ import NuevoEquipoModal from './NuevoEquipoModal';
 // --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Estado = { id: string; nombre: string; color: string };
+type HardwareItem = {
+  id: string;
+  sku: string;
+  modelo: string;
+  categoria: string;
+  estado: string;
+  descripcion?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 // --- Helpers de color para badges de estado ---
 const colorClasses: Record<string, string> = {
@@ -25,22 +36,179 @@ const colorClasses: Record<string, string> = {
   slate: 'bg-slate-50 text-slate-700 border-slate-100',
 };
 
-// --- Icono por categoría (fallback) ---
-const getIconoCategoria = (nombre: string) => {
-  const n = nombre.toLowerCase();
-  if (n.includes('laptop') || n.includes('notebook')) return <Laptop className="h-4 w-4" />;
-  if (n.includes('monitor') || n.includes('pantalla')) return <Monitor className="h-4 w-4" />;
-  if (n.includes('tablet')) return <Tablet className="h-4 w-4" />;
-  if (n.includes('periferico') || n.includes('periférico') || n.includes('teclado') || n.includes('mouse')) return <Keyboard className="h-4 w-4" />;
-  if (n.includes('componente') || n.includes('cpu') || n.includes('ram')) return <Cpu className="h-4 w-4" />;
-  if (n.includes('pc') || n.includes('escritorio')) return <HardDrive className="h-4 w-4" />;
-  return <Package className="h-4 w-4" />;
+const colorDotClasses: Record<string, string> = {
+  emerald: 'bg-emerald-500',
+  blue: 'bg-blue-500',
+  amber: 'bg-amber-500',
+  red: 'bg-red-500',
+  violet: 'bg-violet-500',
+  slate: 'bg-slate-400',
 };
 
+// --- Icono por categoría ---
+const getIconoCategoria = (nombre: string, size: 'sm' | 'lg' = 'sm') => {
+  const cls = size === 'lg' ? 'h-12 w-12' : 'h-4 w-4';
+  const n = nombre.toLowerCase();
+  if (n.includes('laptop') || n.includes('notebook')) return <Laptop className={cls} />;
+  if (n.includes('monitor') || n.includes('pantalla')) return <Monitor className={cls} />;
+  if (n.includes('tablet')) return <Tablet className={cls} />;
+  if (n.includes('periferico') || n.includes('periférico') || n.includes('teclado') || n.includes('mouse')) return <Keyboard className={cls} />;
+  if (n.includes('componente') || n.includes('cpu') || n.includes('ram')) return <Cpu className={cls} />;
+  if (n.includes('pc') || n.includes('escritorio')) return <HardDrive className={cls} />;
+  return <Package className={cls} />;
+};
+
+const ITEMS_PER_PAGE = 15;
+
+// =============================================
+// Sub-componente: Vista detalle estilo producto
+// =============================================
+type DetalleViewProps = {
+  item: HardwareItem;
+  estados: Estado[];
+  categorias: Categoria[];
+  onBack: () => void;
+  onEdit: (item: HardwareItem) => void;
+  onDelete: (item: HardwareItem) => void;
+  getBadgeClass: (estado: string) => string;
+};
+
+function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getBadgeClass }: DetalleViewProps) {
+  const est = estados.find(e => e.nombre === item.estado);
+  const dotClass = colorDotClasses[est?.color ?? 'slate'] ?? 'bg-slate-400';
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('es-CL', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer group"
+      >
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Volver al inventario
+      </button>
+
+      {/* Tarjeta principal estilo producto */}
+      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        {/* Banner superior con color según estado */}
+        <div className={`h-2 w-full ${dotClass}`} />
+
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row gap-8">
+            {/* Lado izquierdo — icono grande */}
+            <div className="flex flex-col items-center gap-4 shrink-0">
+              <div className="flex h-36 w-36 items-center justify-center rounded-3xl bg-slate-100 border-2 border-slate-200 text-slate-500 shadow-inner">
+                {getIconoCategoria(item.categoria, 'lg')}
+              </div>
+              <span className={`rounded-full px-3 py-1.5 text-xs font-bold border flex items-center gap-1.5 ${getBadgeClass(item.estado)}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+                {item.estado}
+              </span>
+            </div>
+
+            {/* Lado derecho — detalles */}
+            <div className="flex-1 space-y-6">
+              {/* Nombre y SKU */}
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight">
+                  {item.modelo}
+                </h2>
+                <p className="mt-1.5 font-mono text-sm text-slate-400 font-bold tracking-widest">
+                  {item.sku}
+                </p>
+              </div>
+
+              {/* Grid de atributos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <Layers className="h-3 w-3" /> Categoría
+                  </div>
+                  <p className="font-bold text-slate-800">{item.categoria}</p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <Hash className="h-3 w-3" /> Código SKU
+                  </div>
+                  <p className="font-bold font-mono text-slate-800">{item.sku}</p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <Tag className="h-3 w-3" /> Estado actual
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold border ${getBadgeClass(item.estado)}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+                    {item.estado}
+                  </span>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <FileText className="h-3 w-3" /> Registrado
+                  </div>
+                  <p className="font-bold text-slate-800 text-sm">{formatDate(item.created_at)}</p>
+                </div>
+              </div>
+
+              {/* Descripción */}
+              <div className="rounded-2xl border border-slate-100 p-4 space-y-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <FileText className="h-3 w-3" /> Notas / Descripción
+                </div>
+                {item.descripcion ? (
+                  <p className="text-sm text-slate-700 font-medium leading-relaxed">{item.descripcion}</p>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">Sin descripción registrada.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer con acciones */}
+        <div className="border-t border-slate-100 px-6 sm:px-8 py-4 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
+          <p className="text-[11px] text-slate-400 font-mono">
+            Última actualización: {formatDate(item.updated_at)}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onDelete(item)}
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Eliminar
+            </button>
+            <button
+              onClick={() => onEdit(item)}
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer shadow-sm shadow-blue-200"
+            >
+              <Edit2 className="h-3.5 w-3.5" /> Editar equipo
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// Página principal
+// =============================================
 export default function InventarioPage() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<HardwareItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategoria, setFilterCategoria] = useState<string>('');
+  const [filterEstado, setFilterEstado] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Categorías y estados dinámicos
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -49,23 +217,27 @@ export default function InventarioPage() {
   // Modal de Nuevo Equipo
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Menú de acciones (3 puntos)
+  // Vista detalle
+  const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
+
+  // Menú de acciones
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Modal de edición
-  const [editItem, setEditItem] = useState<any | null>(null);
-  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '' });
+  const [editItem, setEditItem] = useState<HardwareItem | null>(null);
+  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '', descripcion: '' });
   const [editLoading, setEditLoading] = useState(false);
 
-  // Modal de confirmación de borrado
-  const [deleteItem, setDeleteItem] = useState<any | null>(null);
+  // Modal de borrado
+  const [deleteItem, setDeleteItem] = useState<HardwareItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
+
+  // Reset página al filtrar
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -99,10 +271,17 @@ export default function InventarioPage() {
     setEstados(prev => prev.filter(e => e.id !== id));
   };
 
-  const openEdit = (item: any) => {
+  const openEdit = (item: HardwareItem) => {
     setEditItem(item);
-    setEditFormData({ modelo: item.modelo, categoria: item.categoria, estado: item.estado, sku: item.sku });
+    setEditFormData({
+      modelo: item.modelo,
+      categoria: item.categoria,
+      estado: item.estado,
+      sku: item.sku,
+      descripcion: item.descripcion ?? '',
+    });
     setMenuOpenId(null);
+    setDetalleItem(null);
   };
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -110,7 +289,7 @@ export default function InventarioPage() {
     if (!editItem) return;
     setEditLoading(true);
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
-    if (!error) { fetchAll(); setEditItem(null); }
+    if (!error) { await fetchAll(); setEditItem(null); }
     else alert('Error al editar: ' + error.message);
     setEditLoading(false);
   };
@@ -119,20 +298,83 @@ export default function InventarioPage() {
     if (!deleteItem) return;
     setDeleteLoading(true);
     await supabase.from('hardware').delete().eq('id', deleteItem.id);
-    fetchAll();
+    await fetchAll();
     setDeleteItem(null);
+    setDetalleItem(null);
     setDeleteLoading(false);
   };
-
-  const filteredItems = items.filter(item =>
-    item.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const getBadgeClass = (estadoNombre: string) => {
     const est = estados.find(e => e.nombre === estadoNombre);
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
+
+  // Filtrado
+  const filteredItems = items.filter(item => {
+    const matchSearch =
+      item.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCat = !filterCategoria || item.categoria === filterCategoria;
+    const matchEst = !filterEstado || item.estado === filterEstado;
+    return matchSearch && matchCat && matchEst;
+  });
+
+  // Paginación
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Si hay detalle activo, mostrar vista detalle
+  if (detalleItem) {
+    return (
+      <div className="space-y-6">
+        <DetalleView
+          item={detalleItem}
+          estados={estados}
+          categorias={categorias}
+          onBack={() => setDetalleItem(null)}
+          onEdit={openEdit}
+          onDelete={(item) => { setDeleteItem(item); }}
+          getBadgeClass={getBadgeClass}
+        />
+
+        {/* Modal borrado (puede abrirse desde el detalle) */}
+        <Transition show={!!deleteItem} as={Fragment}>
+          <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
+            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+              <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+            </Transition.Child>
+            <div className="fixed inset-0 z-10 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4">
+                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                  <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
+                    <div className="absolute right-5 top-5">
+                      <button type="button" onClick={() => setDeleteItem(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 cursor-pointer transition-colors"><X className="h-5 w-5" /></button>
+                    </div>
+                    <div className="flex flex-col items-center text-center gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100"><AlertTriangle className="h-7 w-7" /></div>
+                      <div>
+                        <Dialog.Title as="h3" className="text-xl font-bold text-slate-950">¿Eliminar equipo?</Dialog.Title>
+                        <p className="mt-2.5 text-sm text-slate-500 font-medium">Estás a punto de eliminar <span className="font-bold text-slate-800">{deleteItem?.modelo}</span> ({deleteItem?.sku}). Esta acción no se puede deshacer.</p>
+                      </div>
+                    </div>
+                    <div className="mt-8 flex flex-col gap-3">
+                      <button type="button" onClick={handleDelete} disabled={deleteLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50">
+                        {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
+                      </button>
+                      <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
+                    </div>
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -150,17 +392,75 @@ export default function InventarioPage() {
         </button>
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative flex-1 max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Buscar por SKU o Modelo..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-        />
+      {/* Búsqueda + Filtros */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar por SKU o Modelo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+          />
+        </div>
+
+        {/* Filtro categoría */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setFilterCategoria('')}
+            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
+              !filterCategoria
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            Todas
+          </button>
+          {categorias.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
+              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
+                filterCategoria === cat.nombre
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
+              }`}
+            >
+              {cat.nombre}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Filtros de estado */}
+      {estados.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap -mt-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
+          {estados.map(est => {
+            const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
+            const badge = colorClasses[est.color] ?? colorClasses.slate;
+            const active = filterEstado === est.nombre;
+            return (
+              <button
+                key={est.id}
+                onClick={() => setFilterEstado(active ? '' : est.nombre)}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
+                  active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                {est.nombre}
+              </button>
+            );
+          })}
+          {filterEstado && (
+            <button onClick={() => setFilterEstado('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
+              Limpiar
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tabla */}
       <div className="max-w-[calc(100vw-2rem)] sm:max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -183,21 +483,32 @@ export default function InventarioPage() {
                     Cargando inventario...
                   </td>
                 </tr>
-              ) : filteredItems.length === 0 ? (
+              ) : paginatedItems.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-20 text-center text-slate-400">No se encontraron equipos</td>
                 </tr>
               ) : (
-                filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                paginatedItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                    onClick={(e) => {
+                      // No abrir detalle si se hizo click en el botón de acciones
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      setDetalleItem(item);
+                    }}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
                           {getIconoCategoria(item.categoria)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-900">{item.modelo}</span>
+                          <span className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{item.modelo}</span>
                           <span className="text-[10px] font-mono text-slate-400 sm:hidden">{item.sku}</span>
+                          {item.descripcion && (
+                            <span className="text-[11px] text-slate-400 truncate max-w-200px hidden sm:block">{item.descripcion}</span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -211,7 +522,8 @@ export default function InventarioPage() {
                     <td className="px-6 py-4 text-right">
                       <button
                         ref={el => { btnRefs.current[item.id] = el; }}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (menuOpenId === item.id) { setMenuOpenId(null); return; }
                           const btn = btnRefs.current[item.id];
                           if (btn) {
@@ -231,10 +543,61 @@ export default function InventarioPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        {!loading && filteredItems.length > ITEMS_PER_PAGE && (
+          <div className="border-t border-slate-100 px-6 py-4 flex items-center justify-between bg-slate-50/50">
+            <p className="text-xs text-slate-500 font-medium">
+              Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> equipos
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p as number)}
+                      className={`min-w-2rem h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        currentPage === p
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* --- MODAL NUEVO EQUIPO --- */}
-      <NuevoEquipoModal 
+      {/* Modal Nuevo Equipo */}
+      <NuevoEquipoModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchAll}
@@ -246,7 +609,7 @@ export default function InventarioPage() {
         deleteEstado={deleteEstado}
       />
 
-      {/* --- DROPDOWN PORTAL --- */}
+      {/* Dropdown portal */}
       {menuOpenId && typeof document !== 'undefined' && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
@@ -272,124 +635,72 @@ export default function InventarioPage() {
         document.body
       )}
 
-      {/* --- MODAL EDITAR EQUIPO --- */}
+      {/* Modal Editar */}
       <Transition show={!!editItem} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setEditItem(null)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
           </Transition.Child>
-
           <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
-
-                  {/* Botón X */}
+            <div className="flex min-h-full items-center justify-center p-4 sm:p-0">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 translate-y-4 sm:scale-95" enterTo="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 translate-y-0 sm:scale-100" leaveTo="opacity-0 translate-y-4 sm:scale-95">
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
                   <div className="absolute right-5 top-5">
-                    <button
-                      type="button"
-                      onClick={() => setEditItem(null)}
-                      className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
+                    <button type="button" onClick={() => setEditItem(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors"><X className="h-5 w-5" /></button>
                   </div>
-
-                  {/* Header */}
                   <div className="flex flex-col items-center text-center gap-4 mb-8">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
-                      <Edit2 className="h-7 w-7" />
-                    </div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100"><Edit2 className="h-7 w-7" /></div>
                     <div>
-                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">
-                        Editar Equipo
-                      </Dialog.Title>
-                      <p className="mt-2.5 text-sm text-slate-500 font-medium">
-                        Modifica los datos del activo registrado.
-                      </p>
+                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">Editar Equipo</Dialog.Title>
+                      <p className="mt-2.5 text-sm text-slate-500 font-medium">Modifica los datos del activo registrado.</p>
                     </div>
                   </div>
-
-                  {/* Formulario */}
                   <form onSubmit={handleEdit} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo</label>
-                      <input
-                        required
-                        type="text"
-                        value={editFormData.modelo}
-                        onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold"
-                      />
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Modelo <span className="text-red-500">*</span>
+                      </label>
+                      <input required type="text" value={editFormData.modelo} onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría</label>
-                        <select
-                          value={editFormData.categoria}
-                          onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                        >
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Categoría <span className="text-red-500">*</span>
+                        </label>
+                        <select value={editFormData.categoria} onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
                           {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
-                        <select
-                          value={editFormData.estado}
-                          onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                        >
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Estado <span className="text-red-500">*</span>
+                        </label>
+                        <select value={editFormData.estado} onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
                           {estados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
                         </select>
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU</label>
-                      <input
-                        required
-                        type="text"
-                        value={editFormData.sku}
-                        onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider"
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        SKU <span className="text-red-500">*</span>
+                      </label>
+                      <input required type="text" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción</label>
+                      <textarea
+                        value={editFormData.descripcion}
+                        onChange={e => setEditFormData({ ...editFormData, descripcion: e.target.value })}
+                        placeholder="Ej: En mantención por falla en batería. Entregado el 10/01..."
+                        rows={3}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all resize-none text-slate-700"
                       />
                     </div>
-
-                    {/* Botones */}
                     <div className="mt-8 flex flex-col gap-3 pt-2">
-                      <button
-                        type="submit"
-                        disabled={editLoading}
-                        className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {editLoading
-                          ? <Loader2 className="h-4 w-4 animate-spin" />
-                          : <><Check className="h-4 w-4" /> Guardar cambios</>
-                        }
+                      <button type="submit" disabled={editLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50">
+                        {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4" /> Guardar cambios</>}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditItem(null)}
-                        className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
+                      <button type="button" onClick={() => setEditItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
                     </div>
                   </form>
                 </Dialog.Panel>
@@ -399,82 +710,31 @@ export default function InventarioPage() {
         </Dialog>
       </Transition>
 
-      {/* --- MODAL CONFIRMAR BORRADO --- */}
+      {/* Modal Borrado */}
       <Transition show={!!deleteItem} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
           </Transition.Child>
-
           <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
-
-                  {/* Botón X */}
+            <div className="flex min-h-full items-center justify-center p-4 sm:p-0">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
                   <div className="absolute right-5 top-5">
-                    <button
-                      type="button"
-                      onClick={() => setDeleteItem(null)}
-                      className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
+                    <button type="button" onClick={() => setDeleteItem(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 cursor-pointer transition-colors"><X className="h-5 w-5" /></button>
                   </div>
-
-                  {/* Contenido */}
                   <div className="flex flex-col items-center text-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100">
-                      <AlertTriangle className="h-7 w-7" />
-                    </div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100"><AlertTriangle className="h-7 w-7" /></div>
                     <div>
-                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">
-                        ¿Eliminar equipo?
-                      </Dialog.Title>
-                      <p className="mt-2.5 text-sm text-slate-500 font-medium">
-                        Estás a punto de eliminar{' '}
-                        <span className="font-bold text-slate-800">{deleteItem?.modelo}</span>{' '}
-                        ({deleteItem?.sku}). Esta acción no se puede deshacer.
-                      </p>
+                      <Dialog.Title as="h3" className="text-xl font-bold text-slate-950">¿Eliminar equipo?</Dialog.Title>
+                      <p className="mt-2.5 text-sm text-slate-500 font-medium">Estás a punto de eliminar <span className="font-bold text-slate-800">{deleteItem?.modelo}</span> ({deleteItem?.sku}). Esta acción no se puede deshacer.</p>
                     </div>
                   </div>
-
-                  {/* Botones */}
                   <div className="mt-8 flex flex-col gap-3">
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleteLoading}
-                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {deleteLoading
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>
-                      }
+                    <button type="button" onClick={handleDelete} disabled={deleteLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50">
+                      {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteItem(null)}
-                      className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
+                    <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
                   </div>
                 </Dialog.Panel>
               </Transition.Child>
