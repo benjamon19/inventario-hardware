@@ -17,7 +17,7 @@ export default function ActividadPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filtros
-  const [filterTipo, setFilterTipo] = useState<'TODOS' | 'SALIDA' | 'ENTRADA'>('TODOS');
+  const [filterTipo, setFilterTipo] = useState<'TODOS' | 'SALIDA' | 'INGRESO'>('TODOS');
   const [filterUsuario, setFilterUsuario] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -115,7 +115,7 @@ export default function ActividadPage() {
 
           {/* Tipo */}
           <div className="flex items-center gap-2">
-            {(['TODOS', 'SALIDA', 'ENTRADA'] as const).map(tipo => (
+            {(['TODOS', 'SALIDA', 'INGRESO'] as const).map(tipo => (
               <button
                 key={tipo}
                 onClick={() => setFilterTipo(tipo)}
@@ -123,12 +123,12 @@ export default function ActividadPage() {
                   filterTipo === tipo
                     ? tipo === 'SALIDA'
                       ? 'bg-amber-500 text-white border-amber-500'
-                      : tipo === 'ENTRADA'
+                      : tipo === 'INGRESO'
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : 'bg-slate-900 text-white border-slate-900'
                     : tipo === 'SALIDA'
                       ? 'bg-white text-amber-600 border-amber-200 hover:bg-amber-50'
-                      : tipo === 'ENTRADA'
+                      : tipo === 'INGRESO'
                         ? 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                 }`}
@@ -202,7 +202,7 @@ export default function ActividadPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-bold text-slate-900">
-                      {mov.tipo === 'SALIDA' ? 'Retiro de equipo' : 'Devolución de equipo'}
+                      {mov.tipo === 'SALIDA' ? 'Retiro de equipo' : 'Ingreso de equipo'}
                     </span>
                     <span className="text-xs font-bold text-slate-300">•</span>
                     <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">

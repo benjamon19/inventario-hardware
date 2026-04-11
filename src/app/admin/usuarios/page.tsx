@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Users, Shield, User, 
+  Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -20,13 +20,16 @@ export default function UsuariosPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
-  
+
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRol, setFilterRol] = useState<'TODOS' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
+
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
     fetchUsuarios();
     setupPresence();
-
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -38,7 +41,6 @@ export default function UsuariosPage() {
   const setupPresence = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    
     if (channelRef.current) return;
 
     const channel = supabase.channel('app_presence', {
@@ -49,9 +51,7 @@ export default function UsuariosPage() {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<PresenceState>();
         const online: Record<string, boolean> = {};
-        Object.keys(state).forEach((key) => {
-          online[key] = true;
-        });
+        Object.keys(state).forEach((key) => { online[key] = true; });
         setOnlineUsers(online);
       })
       .on('presence', { event: 'join' }, ({ key }) => {
@@ -66,13 +66,9 @@ export default function UsuariosPage() {
       });
 
     channelRef.current = channel;
-
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({
-          user_id: user.id,
-          online_at: new Date().toISOString(),
-        });
+        await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
       }
     });
   };
@@ -86,9 +82,9 @@ export default function UsuariosPage() {
       .from('perfiles')
       .select('*')
       .order('rol', { ascending: true });
-    
+
     if (perfilesError) {
-      console.error("Error al cargar perfiles:", perfilesError);
+      console.error('Error al cargar perfiles:', perfilesError);
       setLoading(false);
       return;
     }
@@ -99,7 +95,7 @@ export default function UsuariosPage() {
 
     const perfilesConStats = perfilesData?.map(perfil => {
       const misMovimientos = transaccionesData?.filter(t => t.operador_id === perfil.id) || [];
-      const ordenados = misMovimientos.sort((a, b) => 
+      const ordenados = [...misMovimientos].sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       return {
@@ -115,23 +111,33 @@ export default function UsuariosPage() {
 
   const cambiarRol = async (userId: string, nuevoRol: string) => {
     setUpdatingId(userId);
-    const { error } = await supabase
-      .from('perfiles')
-      .update({ rol: nuevoRol })
-      .eq('id', userId);
-
-    if (!error) {
-      await fetchUsuarios();
-    } else {
-      alert("No se pudo actualizar el rol: " + error.message);
-    }
+    const { error } = await supabase.from('perfiles').update({ rol: nuevoRol }).eq('id', userId);
+    if (!error) await fetchUsuarios();
+    else alert('No se pudo actualizar el rol: ' + error.message);
     setUpdatingId(null);
+  };
+
+  // Filtrado
+  const filteredUsuarios = usuarios.filter(perfil => {
+    const matchSearch = perfil.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchRol = filterRol === 'TODOS' || perfil.rol === filterRol;
+    return matchSearch && matchRol;
+  });
+
+  const roles = ['TODOS', 'ADMIN', 'OPERADOR', 'PENDIENTE'] as const;
+
+  const rolChipClass = (rol: typeof roles[number], active: boolean) => {
+    if (!active) return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300';
+    if (rol === 'ADMIN') return 'bg-blue-600 text-white border-blue-600';
+    if (rol === 'OPERADOR') return 'bg-emerald-600 text-white border-emerald-600';
+    if (rol === 'PENDIENTE') return 'bg-amber-500 text-white border-amber-500';
+    return 'bg-slate-900 text-white border-slate-900';
   };
 
   return (
     <div className="space-y-6">
-      {/* Header sin botón de actualizar */}
-      <div className="mb-8 px-1">
+      {/* Header */}
+      <div className="mb-2 px-1">
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           Gestión de Usuarios
         </h1>
@@ -140,19 +146,64 @@ export default function UsuariosPage() {
         </p>
       </div>
 
+      {/* Búsqueda + Filtros */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+        {/* Buscador */}
+        <div className="relative max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar por correo..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
+          />
+        </div>
+
+        {/* Filtro por rol */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {roles.map(rol => (
+            <button
+              key={rol}
+              onClick={() => setFilterRol(rol)}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${rolChipClass(rol, filterRol === rol)}`}
+            >
+              {rol === 'ADMIN' && <ShieldCheck className="h-3 w-3" />}
+              {rol === 'OPERADOR' && <CheckCircle2 className="h-3 w-3" />}
+              {rol === 'PENDIENTE' && <Clock className="h-3 w-3" />}
+              {rol === 'TODOS' ? 'Todos' : rol}
+            </button>
+          ))}
+        </div>
+
+        {/* Contador */}
+        {!loading && (
+          <span className="ml-auto text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-1.5 rounded-full">
+            {filteredUsuarios.length}
+            {filteredUsuarios.length !== usuarios.length && ` de ${usuarios.length}`} usuario{filteredUsuarios.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Grid de usuarios */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {loading ? (
           <div className="col-span-full py-20 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
             <p className="text-slate-500 font-medium">Cargando personal...</p>
           </div>
+        ) : filteredUsuarios.length === 0 ? (
+          <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-dashed border-slate-300">
+            <Users className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+            <p className="text-slate-500 font-medium">No se encontraron usuarios.</p>
+          </div>
         ) : (
-          usuarios.map((perfil) => {
+          filteredUsuarios.map((perfil) => {
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
 
             return (
-              <div 
-                key={perfil.id} 
+              <div
+                key={perfil.id}
                 className={`flex flex-col rounded-3xl border bg-white p-6 shadow-sm transition-all hover:shadow-lg group ${
                   isOnline ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-slate-200 hover:border-blue-100'
                 }`}
@@ -169,17 +220,17 @@ export default function UsuariosPage() {
                         isOnline ? 'bg-emerald-500' : 'bg-slate-300'
                       }`}>
                         {isOnline && (
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                         )}
                       </span>
                     </div>
 
                     <div>
-                      <h3 className="font-bold text-slate-900 text-lg truncate max-w-50 sm:max-w-xs">{perfil.email}</h3>
+                      <h3 className="font-bold text-slate-900 text-lg truncate max-w-200px sm:max-w-xs">{perfil.email}</h3>
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                         <span className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border ${
-                          perfil.rol === 'ADMIN' 
-                            ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                          perfil.rol === 'ADMIN'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
                             : perfil.rol === 'OPERADOR'
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : 'bg-amber-50 text-amber-700 border-amber-200'
@@ -189,10 +240,9 @@ export default function UsuariosPage() {
                           {perfil.rol === 'PENDIENTE' && <Clock className="h-3.5 w-3.5" />}
                           {perfil.rol}
                         </span>
-
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          isOnline 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          isOnline
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-slate-50 text-slate-400 border border-slate-200'
                         }`}>
                           {isOnline ? '● En línea' : '○ Desconectado'}
@@ -209,14 +259,14 @@ export default function UsuariosPage() {
                     </span>
                     <span className="font-bold text-slate-900 text-base">{perfil.totalMovimientos}</span>
                   </div>
-                  <div className="h-10 w-px bg-slate-200"></div>
+                  <div className="h-10 w-px bg-slate-200" />
                   <div className="flex flex-1 flex-col gap-1">
                     <span className="text-slate-500 font-medium flex items-center gap-1.5">
                       <Activity className="h-3.5 w-3.5" /> Último escaneo
                     </span>
                     <span className="font-bold text-slate-900">
-                      {perfil.ultimaActividad 
-                        ? format(new Date(perfil.ultimaActividad), "d MMM, HH:mm", { locale: es }) 
+                      {perfil.ultimaActividad
+                        ? format(new Date(perfil.ultimaActividad), "d MMM, HH:mm", { locale: es })
                         : 'Sin actividad'}
                     </span>
                   </div>
@@ -226,7 +276,6 @@ export default function UsuariosPage() {
                   <p className="mr-auto text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 hidden sm:block">
                     ID: {perfil.id.substring(0, 8)}...
                   </p>
-                  
                   {perfil.id === currentUserId ? (
                     <span className="rounded-xl px-4 py-2 text-xs font-bold text-slate-400 bg-slate-50 border border-slate-100">
                       Tu cuenta
@@ -260,6 +309,7 @@ export default function UsuariosPage() {
         )}
       </div>
 
+      {/* Info niveles */}
       <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-5 mt-8">
         <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
