@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     // --- BLOQUE DE DEBUG: MIRA TU TERMINAL (donde corre npm run dev) ---
     console.log("=== DEBUG MIDDLEWARE ===");
     console.log("Email:", user?.email);
-    console.log("Metadata completa:", user?.app_metadata);
+    console.log("USER OBJECT COMPLETO:", JSON.stringify(user, null, 2));
     console.log("Rol detectado:", rol);
     console.log("========================");
 
