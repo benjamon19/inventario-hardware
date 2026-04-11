@@ -78,7 +78,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }:
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
+            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -439,7 +439,7 @@ export default function InventarioPage() {
                                 <button
                                   type="button"
                                   onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); }}
-                                  className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                  className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all"
                                 >
                                   <Pencil className="h-3 w-3" /> Personalizar
                                 </button>
@@ -471,8 +471,9 @@ export default function InventarioPage() {
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
                                 <button
                                   type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
                                   onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); }}
-                                  className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all"
+                                  className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
                                 >
                                   <Pencil className="h-3 w-3" /> Personalizar
                                 </button>
