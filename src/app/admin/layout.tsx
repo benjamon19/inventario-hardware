@@ -11,12 +11,16 @@ import {
 } from 'lucide-react';
 import { currentTheme } from '@/config/theme';
 import { supabase } from '@/lib/supabase';
+import { usePresence } from '@/hooks/usePresence';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Emitimos presencia en tiempo real
+  usePresence();
   
   const menuItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },

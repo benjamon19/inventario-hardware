@@ -13,24 +13,28 @@ import {
   ArrowDownLeft,
   AlertCircle,
   CheckCircle2,
-  LogOut // Importamos el icono de salida
+  LogOut
 } from 'lucide-react';
-import { Dialog, Transition } from '@headlessui/react'; // Importamos para el modal
+import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { usePresence } from '@/hooks/usePresence';
 
 export default function OperatorPage() {
   const router = useRouter();
   const [manualSku, setManualSku] = useState('');
   const [isScanning, setIsScanning] = useState(true);
-  const [showLogoutModal, setShowLogoutModal] = useState(false); // Estado para el modal
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [myActivity, setMyActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
+  // Emitimos presencia en tiempo real
+  usePresence();
 
   useEffect(() => {
     fetchMyActivity();
@@ -120,7 +124,6 @@ export default function OperatorPage() {
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Escáner de Bodega</h1>
         </div>
         
-        {/* Botón de Cerrar Sesión (Icono) */}
         <button 
           onClick={() => setShowLogoutModal(true)}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-red-500 border border-slate-200 shadow-sm hover:bg-red-50 transition-colors cursor-pointer"
@@ -131,7 +134,7 @@ export default function OperatorPage() {
 
       <div className="mx-auto max-w-lg space-y-6">
         
-        {/* ÁREA DE ESCÁNER (Se mantiene igual) */}
+        {/* ÁREA DE ESCÁNER */}
         <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-200/60 border border-slate-100">
           {isScanning ? (
             <div className="relative aspect-square bg-slate-900">
@@ -214,6 +217,7 @@ export default function OperatorPage() {
           </div>
         )}
 
+        {/* Últimos movimientos */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-2">
             <History className="h-4 w-4 text-slate-400" />
@@ -239,7 +243,7 @@ export default function OperatorPage() {
         </div>
       </div>
 
-      {/* MODAL DE LOGOUT (Idéntico al de Admin) */}
+      {/* MODAL DE LOGOUT */}
       <Transition show={showLogoutModal} as={Fragment}>
         <Dialog as="div" className="relative z-100" onClose={() => setShowLogoutModal(false)}>
           <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
