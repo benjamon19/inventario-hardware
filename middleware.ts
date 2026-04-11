@@ -1,4 +1,3 @@
-// middleware.ts
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
@@ -33,6 +32,13 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Leemos el rol inyectado por nuestro Hook sin hacer peticiones extra a la BD
     const rol = user?.app_metadata?.user_role;
+
+    // --- BLOQUE DE DEBUG: MIRA TU TERMINAL (donde corre npm run dev) ---
+    console.log("=== DEBUG MIDDLEWARE ===");
+    console.log("Email:", user?.email);
+    console.log("Metadata completa:", user?.app_metadata);
+    console.log("Rol detectado:", rol);
+    console.log("========================");
 
     if (rol !== 'ADMIN') {
       return NextResponse.redirect(new URL('/operador', request.url));

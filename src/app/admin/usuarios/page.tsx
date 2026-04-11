@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package
@@ -8,70 +8,25 @@ import {
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-type PresenceState = {
-  user_id: string;
-  online_at: string;
-};
+// IMPORTAMOS TU NUEVO HOOK PODEROSO
+import { usePresence } from '@/hooks/usePresence';
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
+
+  // MÁGIA AQUÍ: Obtenemos los usuarios online en 1 sola línea, sin chocar con el Layout
+  const onlineUsers = usePresence();
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState<'TODOS' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
 
-  const channelRef = useRef<any>(null);
-
   useEffect(() => {
     fetchUsuarios();
-    setupPresence();
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
   }, []);
-
-  const setupPresence = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    if (channelRef.current) return;
-
-    const channel = supabase.channel('app_presence', {
-      config: { presence: { key: user.id } }
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<PresenceState>();
-        const online: Record<string, boolean> = {};
-        Object.keys(state).forEach((key) => { online[key] = true; });
-        setOnlineUsers(online);
-      })
-      .on('presence', { event: 'join' }, ({ key }) => {
-        setOnlineUsers(prev => ({ ...prev, [key]: true }));
-      })
-      .on('presence', { event: 'leave' }, ({ key }) => {
-        setOnlineUsers(prev => {
-          const updated = { ...prev };
-          delete updated[key];
-          return updated;
-        });
-      });
-
-    channelRef.current = channel;
-    channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
-      }
-    });
-  };
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -199,6 +154,7 @@ export default function UsuariosPage() {
           </div>
         ) : (
           filteredUsuarios.map((perfil) => {
+            // Evaluamos si el usuario está en línea
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
 
             return (
