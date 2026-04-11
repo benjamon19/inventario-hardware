@@ -1,112 +1,297 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
 import { 
   Plus, Search, MoreVertical, 
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
-  X, Loader2, CheckCircle2, QrCode, Keyboard
+  X, Loader2, CheckCircle2, QrCode, Keyboard,
+  Pencil, Check, Trash2, Edit2, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+// --- Tipos ---
+type Categoria = { id: string; nombre: string; prefijo: string };
+type Estado = { id: string; nombre: string; color: string };
+
+// --- Helpers de color para badges de estado ---
+const colorClasses: Record<string, string> = {
+  emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  blue: 'bg-blue-50 text-blue-700 border-blue-100',
+  amber: 'bg-amber-50 text-amber-700 border-amber-100',
+  red: 'bg-red-50 text-red-700 border-red-100',
+  violet: 'bg-violet-50 text-violet-700 border-violet-100',
+  slate: 'bg-slate-50 text-slate-700 border-slate-100',
+};
+
+const colorOptions = ['emerald', 'blue', 'amber', 'red', 'violet', 'slate'];
+
+// --- Icono por categoría (fallback) ---
+const getIconoCategoria = (nombre: string) => {
+  const n = nombre.toLowerCase();
+  if (n.includes('laptop') || n.includes('notebook')) return <Laptop className="h-4 w-4" />;
+  if (n.includes('monitor') || n.includes('pantalla')) return <Monitor className="h-4 w-4" />;
+  if (n.includes('tablet')) return <Tablet className="h-4 w-4" />;
+  if (n.includes('periferico') || n.includes('periférico') || n.includes('teclado') || n.includes('mouse')) return <Keyboard className="h-4 w-4" />;
+  if (n.includes('componente') || n.includes('cpu') || n.includes('ram')) return <Cpu className="h-4 w-4" />;
+  if (n.includes('pc') || n.includes('escritorio')) return <HardDrive className="h-4 w-4" />;
+  return <Package className="h-4 w-4" />;
+};
+
+// =============================================
+// Sub-componente: Editor inline para dropdown
+// =============================================
+type InlineEditorProps = {
+  items: { id: string; nombre: string; [key: string]: any }[];
+  onAdd: (nombre: string, extra: Record<string, string>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onSelect?: (nombre: string) => void;
+  extraField?: { key: string; label: string; type: 'text' | 'color-pick'; options?: string[] };
+  onClose: () => void;
+};
+
+function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }: InlineEditorProps) {
+  const [newNombre, setNewNombre] = useState('');
+  const [newExtra, setNewExtra] = useState(extraField?.options?.[0] ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    if (!newNombre.trim()) return;
+    setSaving(true);
+    await onAdd(newNombre.trim(), extraField ? { [extraField.key]: newExtra } : {});
+    setNewNombre('');
+    setSaving(false);
+  };
+
+  return (
+    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Opciones actuales</p>
+      {items.map(item => (
+        <div key={item.id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer" onClick={() => { onSelect?.(item.nombre); onClose(); }}>
+          <div className="flex items-center gap-2">
+            {extraField?.type === 'color-pick' && (
+              <span className={`w-2.5 h-2.5 rounded-full border ${colorClasses[item[extraField.key]] ?? 'bg-slate-200'}`} />
+            )}
+            <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      
+      <div className="border-t border-slate-100 pt-2 space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
+        <input
+          type="text"
+          placeholder="Nombre..."
+          value={newNombre}
+          onChange={e => setNewNombre(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
+          autoFocus
+        />
+        {extraField?.type === 'text' && (
+          <input
+            type="text"
+            placeholder={`${extraField.label} (ej: LAP)`}
+            value={newExtra}
+            onChange={e => setNewExtra(e.target.value.toUpperCase())}
+            maxLength={5}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500 focus:bg-white transition-all"
+          />
+        )}
+        {extraField?.type === 'color-pick' && (
+          <div className="flex gap-2 px-1">
+            {colorOptions.map(c => (
+              <button
+                key={c}
+                onClick={() => setNewExtra(c)}
+                className={`w-5 h-5 rounded-full border-2 transition-all ${
+                  newExtra === c ? 'border-slate-500 scale-110' : 'border-transparent'
+                } ${colorClasses[c]}`}
+              />
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={handleAdd}
+            disabled={saving || !newNombre.trim()}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
+          </button>
+          <button onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer">
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// Componente principal
+// =============================================
 export default function InventarioPage() {
   const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Estados del Panel Lateral
+
+  // Categorías y estados dinámicos
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
+
+  // Editores inline
+  const [showCatEditor, setShowCatEditor] = useState(false);
+  const [showEstEditor, setShowEstEditor] = useState(false);
+
+  // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdSku, setCreatedSku] = useState('');
-  
-  // Estado para el formulario
   const [formData, setFormData] = useState({
-    sku: '',
-    categoria: 'Laptop',
-    modelo: '',
-    estado: 'DISPONIBLE'
+    sku: '', categoria: '', modelo: '', estado: ''
   });
 
-  // Lógica para auto-generar el SKU
-  const [isManualSku, setIsManualSku] = useState(false);
-  const [randomSuffix, setRandomSuffix] = useState('');
+  // Menú de acciones (3 puntos)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // Modal de edición
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '' });
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Modal de confirmación de borrado
+  const [deleteItem, setDeleteItem] = useState<any | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    fetchInventory();
+    fetchAll();
   }, []);
 
+  // Auto-SKU: usa el prefijo de la categoría seleccionada + 4 números random
   useEffect(() => {
-    if (!isManualSku && formData.modelo.length > 0) {
-      const prefix = formData.categoria.substring(0, 3).toUpperCase();
-      const modelWord = formData.modelo.trim().split(' ')[0].substring(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, '');
-      
-      if (modelWord) {
-        setFormData(prev => ({ ...prev, sku: `${prefix}-${modelWord}-${randomSuffix}` }));
-      }
-    } else if (!isManualSku && formData.modelo.length === 0) {
-      setFormData(prev => ({ ...prev, sku: '' }));
+    const cat = categorias.find(c => c.nombre === formData.categoria);
+    if (cat) {
+      const suffix = Math.floor(1000 + Math.random() * 9000).toString();
+      setFormData(prev => ({ ...prev, sku: `${cat.prefijo}-${suffix}` }));
     }
-  }, [formData.modelo, formData.categoria, randomSuffix, isManualSku]);
+  }, [formData.categoria]);
 
-  const fetchInventory = async () => {
+  const fetchAll = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('hardware')
-      .select('*')
-      .order('updated_at', { ascending: false });
-    
-    if (!error) setItems(data);
+    const [{ data: hw }, { data: cats }, { data: ests }] = await Promise.all([
+      supabase.from('hardware').select('*').order('updated_at', { ascending: false }),
+      supabase.from('categorias').select('*').order('nombre'),
+      supabase.from('estados').select('*').order('nombre'),
+    ]);
+    if (hw) setItems(hw);
+    if (cats) {
+      setCategorias(cats);
+      setFormData(prev => ({ ...prev, categoria: cats[0]?.nombre ?? '', estado: '' }));
+    }
+    if (ests) {
+      setEstados(ests);
+      setFormData(prev => ({ ...prev, estado: ests[0]?.nombre ?? '' }));
+    }
     setLoading(false);
   };
 
+  // CRUD Categorías
+  const addCategoria = async (nombre: string, extra: Record<string, string>) => {
+    const prefijo = (extra.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
+    const { data } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
+    if (data) setCategorias(prev => [...prev, data]);
+  };
+  const deleteCategoria = async (id: string) => {
+    await supabase.from('categorias').delete().eq('id', id);
+    setCategorias(prev => prev.filter(c => c.id !== id));
+  };
+
+  // CRUD Estados
+  const addEstado = async (nombre: string, extra: Record<string, string>) => {
+    const color = extra.color ?? 'slate';
+    const { data } = await supabase.from('estados').insert([{ nombre: nombre.toUpperCase(), color }]).select().single();
+    if (data) setEstados(prev => [...prev, data]);
+  };
+  const deleteEstado = async (id: string) => {
+    await supabase.from('estados').delete().eq('id', id);
+    setEstados(prev => prev.filter(e => e.id !== id));
+  };
+
   const openModal = () => {
-    setRandomSuffix(Math.floor(1000 + Math.random() * 9000).toString());
-    setIsManualSku(false);
     setShowSuccess(false);
-    setFormData({ sku: '', categoria: 'Laptop', modelo: '', estado: 'DISPONIBLE' });
+    setFormData({
+      sku: '',
+      categoria: categorias[0]?.nombre ?? '',
+      modelo: '',
+      estado: estados[0]?.nombre ?? '',
+    });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    const { error } = await supabase
-      .from('hardware')
-      .insert([formData]);
-
+    const { error } = await supabase.from('hardware').insert([formData]);
     if (!error) {
       setCreatedSku(formData.sku);
       setShowSuccess(true);
-      fetchInventory();
+      fetchAll();
     } else {
-      alert("Error al guardar: " + error.message);
+      alert('Error al guardar: ' + error.message);
     }
     setLoading(false);
   };
 
-  const getIconoCategoria = (categoria: string) => {
-    switch (categoria) {
-      case 'Laptop': return <Laptop className="h-4 w-4" />;
-      case 'PC Escritorio': return <HardDrive className="h-4 w-4" />;
-      case 'Monitor': return <Monitor className="h-4 w-4" />;
-      case 'Tablet': return <Tablet className="h-4 w-4" />;
-      case 'Periferico': return <Keyboard className="h-4 w-4" />;
-      case 'Componente': return <Cpu className="h-4 w-4" />;
-      default: return <Package className="h-4 w-4" />;
-    }
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditFormData({ modelo: item.modelo, categoria: item.categoria, estado: item.estado, sku: item.sku });
+    setMenuOpenId(null);
   };
 
-  const filteredItems = items.filter(item => 
-    item.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editItem) return;
+    setEditLoading(true);
+    const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
+    if (!error) { fetchAll(); setEditItem(null); }
+    else alert('Error al editar: ' + error.message);
+    setEditLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    setDeleteLoading(true);
+    await supabase.from('hardware').delete().eq('id', deleteItem.id);
+    fetchAll();
+    setDeleteItem(null);
+    setDeleteLoading(false);
+  };
+
+  const filteredItems = items.filter(item =>
+    item.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.sku?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getBadgeClass = (estadoNombre: string) => {
+    const est = estados.find(e => e.nombre === estadoNombre);
+    return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header de la página */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Inventario de Hardware</h1>
@@ -120,29 +305,27 @@ export default function InventarioPage() {
         </button>
       </div>
 
-      {/* Barra de Filtros */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por SKU o Modelo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-          />
-        </div>
+      {/* Búsqueda */}
+      <div className="relative flex-1 max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Buscar por SKU o Modelo..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+        />
       </div>
 
-      {/* Tabla de Inventario */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* Tabla */}
+      <div className="max-w-[calc(100vw-2rem)] sm:max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
               <tr>
-                <th className="px-6 py-4">Equipo / Modelo</th>
-                <th className="px-6 py-4">SKU</th>
-                <th className="px-6 py-4">Categoría</th>
+                <th className="px-6 py-4 text-slate-900">Equipo / Modelo</th>
+                <th className="px-6 py-4 hidden sm:table-cell">SKU</th>
+                <th className="px-6 py-4 hidden md:table-cell">Categoría</th>
                 <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
@@ -164,27 +347,36 @@ export default function InventarioPage() {
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                        <div className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
                           {getIconoCategoria(item.categoria)}
                         </div>
-                        <span className="font-semibold text-slate-900">{item.modelo}</span>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-900">{item.modelo}</span>
+                          <span className="text-[10px] font-mono text-slate-400 sm:hidden">{item.sku}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{item.sku}</td>
-                    <td className="px-6 py-4 text-slate-600">
-                      <span className="flex items-center gap-1.5">
-                        {item.categoria}
-                      </span>
-                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500 hidden sm:table-cell">{item.sku}</td>
+                    <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{item.categoria}</td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold border ${
-                        item.estado === 'DISPONIBLE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'
-                      }`}>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold border ${getBadgeClass(item.estado)}`}>
                         {item.estado}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="rounded-lg p-2 hover:bg-slate-100 cursor-pointer text-slate-400 hover:text-slate-600">
+                      <button
+                        ref={el => { btnRefs.current[item.id] = el; }}
+                        onClick={() => {
+                          if (menuOpenId === item.id) { setMenuOpenId(null); return; }
+                          const btn = btnRefs.current[item.id];
+                          if (btn) {
+                            const r = btn.getBoundingClientRect();
+                            setMenuPos({ top: r.bottom + window.scrollY + 4, right: window.innerWidth - r.right });
+                          }
+                          setMenuOpenId(item.id);
+                        }}
+                        className="rounded-lg p-2 hover:bg-slate-100 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </td>
@@ -196,158 +388,151 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* --- PANEL LATERAL (SLIDE-OVER) FLUIDO --- */}
+      {/* --- PANEL LATERAL (SLIDE-OVER) --- */}
       <Transition show={isModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setIsModalOpen(false)}>
-          
-          {/* Fondo oscuro (fade) */}
-          <Transition.Child
-            as={Fragment}
-            enter="transition-opacity ease-linear duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="transition-opacity ease-linear duration-300"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
+          <Transition.Child as={Fragment} enter="transition-opacity ease-linear duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="transition-opacity ease-linear duration-300" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/40" />
           </Transition.Child>
 
           <div className="fixed inset-0 overflow-hidden">
             <div className="absolute inset-0 overflow-hidden">
-              {/* Contenedor alineado a la derecha */}
-              <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
-                
-                {/* Animación de deslizamiento suave (despliegue) */}
-                <Transition.Child
-                  as={Fragment}
-                  enter="transform transition ease-in-out duration-400 sm:duration-500"
-                  enterFrom="translate-x-full"
-                  enterTo="translate-x-0"
-                  leave="transform transition ease-in-out duration-400 sm:duration-500"
-                  leaveFrom="translate-x-0"
-                  leaveTo="translate-x-full"
-                >
-                  <Dialog.Panel className="pointer-events-auto w-screen max-w-md flex">
-                    
-                    {/* Tarjeta principal del panel (Bordes redondeados a la izquierda) */}
+              <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
+                <Transition.Child as={Fragment} enter="transform transition ease-in-out duration-400 sm:duration-500" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in-out duration-400 sm:duration-500" leaveFrom="translate-x-0" leaveTo="translate-x-full">
+                  <Dialog.Panel className="pointer-events-auto w-screen sm:max-w-md flex">
                     <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
-                      
-                      {/* Cabecera Fija */}
-                      <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white/80 backdrop-blur-md">
-                        <Dialog.Title as="h3" className="text-xl font-bold text-slate-900 tracking-tight">
-                          Registrar Equipo
-                        </Dialog.Title>
-                        <button 
-                          onClick={() => setIsModalOpen(false)} 
-                          className="rounded-full p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors cursor-pointer"
-                        >
+
+                      {/* Cabecera */}
+                      <div className="px-6 sm:px-8 py-7 border-b border-slate-100 flex items-center justify-between shrink-0">
+                        <Dialog.Title as="h3" className="text-xl font-bold text-slate-900 tracking-tight">Registrar Equipo</Dialog.Title>
+                        <button onClick={() => setIsModalOpen(false)} className="rounded-full p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors">
                           <X className="h-5 w-5" />
                         </button>
                       </div>
-                      
-                      {/* Área de Formulario con Scroll */}
-                      <div className="flex-1 overflow-y-auto px-8 py-6">
+
+                      <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
                         {showSuccess ? (
                           <div className="flex flex-col items-center text-center py-10 animate-in fade-in duration-500">
                             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 border-[6px] border-emerald-100 mb-6 shadow-sm">
                               <CheckCircle2 className="h-12 w-12 text-emerald-600" />
                             </div>
-                            <h3 className="text-2xl font-bold text-slate-900 tracking-tight">¡Equipo Guardado!</h3>
+                            <h3 className="text-2xl font-bold text-slate-900 tracking-tight">¡Guardado con Éxito!</h3>
                             <p className="mt-3 text-slate-500 font-medium leading-relaxed">
-                              El equipo <span className="text-slate-900 font-bold">{formData.modelo}</span> ya es parte del inventario oficial.
+                              El equipo <span className="text-slate-900 font-bold">{formData.modelo}</span> ya está registrado en el inventario oficial.
                             </p>
-                            
                             <div className="mt-10 flex w-full flex-col gap-3">
-                              <button
-                                onClick={() => router.push(`/admin/generar-qr?sku=${createdSku}`)}
-                                className="flex items-center justify-center gap-2 w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all cursor-pointer"
-                              >
-                                <QrCode className="h-5 w-5" />
-                                Generar e Imprimir QR
+                              <button onClick={() => router.push(`/admin/generar-qr?sku=${createdSku}`)} className="flex items-center justify-center gap-2 w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                                <QrCode className="h-5 w-5" /> Generar e Imprimir QR
                               </button>
-                              
-                              <button
-                                onClick={openModal}
-                                className="w-full rounded-2xl border border-slate-200 bg-white py-4 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm"
-                              >
+                              <button onClick={openModal} className="w-full rounded-2xl border border-slate-200 bg-white py-4 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
                                 Registrar otro equipo
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <form onSubmit={handleSubmit} className="space-y-5 pb-8">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1.5">
+                          <form onSubmit={handleSubmit} className="space-y-6 pb-12">
+
+                            {/* Categoría con editor inline */}
+                            <div className="space-y-1.5 relative">
+                              <div className="flex items-center justify-between">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría</label>
-                                <select 
-                                  value={formData.categoria}
-                                  onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold text-slate-700 cursor-pointer"
+                                <button
+                                  type="button"
+                                  onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); }}
+                                  className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
                                 >
-                                  <option value="Laptop">Laptop</option>
-                                  <option value="PC Escritorio">PC Escritorio</option>
-                                  <option value="Monitor">Monitor</option>
-                                  <option value="Tablet">Tablet</option>
-                                  <option value="Periferico">Periférico</option>
-                                  <option value="Componente">Componente</option>
-                                </select>
+                                  <Pencil className="h-3 w-3" /> Personalizar
+                                </button>
                               </div>
-                              <div className="space-y-1.5">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
-                                <select 
-                                  value={formData.estado}
-                                  onChange={(e) => setFormData({...formData, estado: e.target.value})}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold text-slate-700 cursor-pointer"
-                                >
-                                  <option value="DISPONIBLE">Disponible</option>
-                                  <option value="EN_USO">En Uso</option>
-                                </select>
-                              </div>
+                              <select
+                                value={formData.categoria}
+                                onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                              >
+                                {categorias.map(c => (
+                                  <option key={c.id} value={c.nombre}>{c.nombre}</option>
+                                ))}
+                              </select>
+                              {showCatEditor && (
+                                <InlineEditor
+                                  items={categorias}
+                                  onAdd={addCategoria}
+                                  onDelete={deleteCategoria}
+                                  onSelect={(nombre) => setFormData(prev => ({ ...prev, categoria: nombre }))}
+                                  extraField={{ key: 'prefijo', label: 'Prefijo SKU', type: 'text' }}
+                                  onClose={() => setShowCatEditor(false)}
+                                />
+                              )}
                             </div>
 
-                            <div className="space-y-1.5 pt-2">
+                            {/* Estado con editor inline */}
+                            <div className="space-y-1.5 relative">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
+                                <button
+                                  type="button"
+                                  onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); }}
+                                  className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all"
+                                >
+                                  <Pencil className="h-3 w-3" /> Personalizar
+                                </button>
+                              </div>
+                              <select
+                                value={formData.estado}
+                                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                              >
+                                {estados.map(e => (
+                                  <option key={e.id} value={e.nombre}>{e.nombre}</option>
+                                ))}
+                              </select>
+                              {showEstEditor && (
+                                <InlineEditor
+                                  items={estados}
+                                  onAdd={addEstado}
+                                  onDelete={deleteEstado}
+                                  onSelect={(nombre) => setFormData(prev => ({ ...prev, estado: nombre }))}
+                                  extraField={{ key: 'color', label: 'Color del badge', type: 'color-pick', options: colorOptions }}
+                                  onClose={() => setShowEstEditor(false)}
+                                />
+                              )}
+                            </div>
+
+                            {/* Modelo */}
+                            <div className="space-y-1.5">
                               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo del Equipo</label>
-                              <input 
-                                required 
-                                type="text" 
+                              <input
+                                required
+                                type="text"
                                 placeholder="Ej: Lenovo ThinkPad T14"
                                 value={formData.modelo}
-                                onChange={(e) => setFormData({...formData, modelo: e.target.value})}
-                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold shadow-sm"
+                                onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
                               />
                             </div>
 
-                            <div className="space-y-1.5 pt-2">
+                            {/* SKU (sólo lectura / editable) */}
+                            <div className="space-y-1.5">
                               <div className="flex justify-between items-end mb-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU</label>
-                                {!isManualSku && formData.modelo && (
-                                  <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Autogenerado</span>
-                                )}
+                                <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                               </div>
-                              <input 
-                                required 
-                                type="text" 
-                                placeholder="Ej: LAP-LENOVO-8492"
+                              <input
+                                required
+                                type="text"
                                 value={formData.sku}
-                                onChange={(e) => {
-                                  setIsManualSku(true);
-                                  setFormData({...formData, sku: e.target.value.toUpperCase()});
-                                }}
-                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono text-slate-700 font-bold tracking-wider shadow-sm"
+                                onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono text-slate-700 font-bold tracking-wider"
                               />
-                              <p className="text-[11px] text-slate-400 mt-2 font-medium">
-                                El SKU será la placa patente única para identificar este equipo en el escáner.
-                              </p>
                             </div>
 
                             <div className="pt-6">
                               <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                                className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50"
                               >
-                                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Plus className="h-5 w-5"/> Guardar Equipo</>}
+                                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Plus className="h-5 w-5" /> Guardar Equipo</>}
                               </button>
                             </div>
                           </form>
@@ -361,6 +546,121 @@ export default function InventarioPage() {
           </div>
         </Dialog>
       </Transition>
+
+      {/* --- DROPDOWN PORTAL --- */}
+      {menuOpenId && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
+          <div
+            className="fixed z-50 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl py-1.5 overflow-hidden"
+            style={{ top: menuPos.top, right: menuPos.right }}
+          >
+            <button
+              onClick={() => { const item = items.find(i => i.id === menuOpenId); if (item) openEdit(item); setMenuOpenId(null); }}
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+            >
+              <Edit2 className="h-4 w-4 text-slate-400" /> Editar equipo
+            </button>
+            <div className="my-1 border-t border-slate-100" />
+            <button
+              onClick={() => { const item = items.find(i => i.id === menuOpenId); if (item) { setDeleteItem(item); setMenuOpenId(null); } }}
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+            >
+              <Trash2 className="h-4 w-4" /> Eliminar
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+
+      {/* --- MODAL EDITAR --- */}
+      {editItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setEditItem(null)} />
+          <div className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Editar Equipo</h3>
+              <button onClick={() => setEditItem(null)} className="rounded-full p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 cursor-pointer transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEdit} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo</label>
+                <input
+                  required type="text"
+                  value={editFormData.modelo}
+                  onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría</label>
+                  <select
+                    value={editFormData.categoria}
+                    onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                  >
+                    {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
+                  <select
+                    value={editFormData.estado}
+                    onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                  >
+                    {estados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU</label>
+                <input
+                  required type="text"
+                  value={editFormData.sku}
+                  onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setEditItem(null)} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={editLoading} className="flex-1 flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700 cursor-pointer disabled:opacity-50 transition-all">
+                  {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4" /> Guardar</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL CONFIRMAR BORRADO --- */}
+      {deleteItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setDeleteItem(null)} />
+          <div className="relative w-full max-w-sm rounded-3xl bg-white shadow-2xl p-6 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 border-4 border-red-100 mx-auto mb-4">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">¿Eliminar equipo?</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Estás a punto de eliminar <span className="font-bold text-slate-800">{deleteItem.modelo}</span> ({deleteItem.sku}). Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setDeleteItem(null)} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all">
+                Cancelar
+              </button>
+              <button onClick={handleDelete} disabled={deleteLoading} className="flex-1 flex justify-center items-center gap-2 rounded-2xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-all">
+                {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4" /> Eliminar</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
