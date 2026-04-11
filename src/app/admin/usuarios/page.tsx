@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Tipo para el estado de presencia de cada usuario
 type PresenceState = {
   user_id: string;
   online_at: string;
@@ -20,19 +19,18 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  // Mapa de user_id → presencia activa
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     fetchUsuarios();
     setupPresence();
 
     return () => {
-      // Cleanup: salir del canal al desmontar
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
   }, []);
@@ -40,15 +38,15 @@ export default function UsuariosPage() {
   const setupPresence = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    
+    if (channelRef.current) return;
 
-    // Nos unimos al canal de presencia global de la app
     const channel = supabase.channel('app_presence', {
       config: { presence: { key: user.id } }
     });
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        // Cada vez que el estado de presencia cambia, actualizamos el mapa
         const state = channel.presenceState<PresenceState>();
         const online: Record<string, boolean> = {};
         Object.keys(state).forEach((key) => {
@@ -65,23 +63,22 @@ export default function UsuariosPage() {
           delete updated[key];
           return updated;
         });
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // Emitimos nuestra propia presencia
-          await channel.track({
-            user_id: user.id,
-            online_at: new Date().toISOString(),
-          });
-        }
       });
 
     channelRef.current = channel;
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({
+          user_id: user.id,
+          online_at: new Date().toISOString(),
+        });
+      }
+    });
   };
 
   const fetchUsuarios = async () => {
     setLoading(true);
-    
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUserId(user?.id || null);
 
@@ -131,33 +128,28 @@ export default function UsuariosPage() {
     setUpdatingId(null);
   };
 
-  // Cuántos usuarios están online ahora mismo
-  const totalOnline = Object.keys(onlineUsers).length;
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gestión de Usuarios</h1>
-          <p className="text-sm text-slate-500">Controla quién tiene acceso al sistema y monitorea su actividad.</p>
-        </div>
+      {/* Header sin botón de actualizar */}
+      <div className="mb-8 px-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          Gestión de Usuarios
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          Controla el acceso y monitorea la actividad del personal en tiempo real.
+        </p>
       </div>
-      {/* Grid de Usuarios */}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {loading ? (
           <div className="col-span-full py-20 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
-            <p className="text-slate-500 font-medium">Buscando personal y su actividad...</p>
-          </div>
-        ) : usuarios.length === 0 ? (
-          <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-dashed border-slate-300">
-            <User className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-            <p className="text-slate-500 font-medium">No hay usuarios registrados.</p>
+            <p className="text-slate-500 font-medium">Cargando personal...</p>
           </div>
         ) : (
           usuarios.map((perfil) => {
-            const isOnline = !!onlineUsers[perfil.id];
+            const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
+
             return (
               <div 
                 key={perfil.id} 
@@ -167,14 +159,12 @@ export default function UsuariosPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Avatar con indicador de presencia */}
                     <div className="relative">
                       <div className={`flex h-14 w-14 items-center justify-center rounded-2xl font-bold text-xl shadow-inner ${
                         perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {perfil.email?.substring(0, 1).toUpperCase()}
                       </div>
-                      {/* Punto de presencia en tiempo real */}
                       <span className={`absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white ${
                         isOnline ? 'bg-emerald-500' : 'bg-slate-300'
                       }`}>
@@ -200,7 +190,6 @@ export default function UsuariosPage() {
                           {perfil.rol}
                         </span>
 
-                        {/* Badge de estado de sesión */}
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                           isOnline 
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -213,7 +202,6 @@ export default function UsuariosPage() {
                   </div>
                 </div>
 
-                {/* Estadísticas */}
                 <div className="mt-6 flex items-center gap-4 text-xs bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
                   <div className="flex flex-1 flex-col gap-1">
                     <span className="text-slate-500 font-medium flex items-center gap-1.5">
@@ -234,7 +222,6 @@ export default function UsuariosPage() {
                   </div>
                 </div>
 
-                {/* Botones de acción */}
                 <div className="mt-5 flex items-center justify-end gap-2">
                   <p className="mr-auto text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 hidden sm:block">
                     ID: {perfil.id.substring(0, 8)}...
@@ -250,7 +237,7 @@ export default function UsuariosPage() {
                         <button
                           disabled={updatingId === perfil.id}
                           onClick={() => cambiarRol(perfil.id, 'OPERADOR')}
-                          className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50 border border-transparent hover:border-emerald-100"
+                          className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-transparent hover:border-emerald-100 disabled:opacity-50"
                         >
                           Hacer Operador
                         </button>
@@ -259,7 +246,7 @@ export default function UsuariosPage() {
                         <button
                           disabled={updatingId === perfil.id}
                           onClick={() => cambiarRol(perfil.id, 'ADMIN')}
-                          className="rounded-xl px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50 border border-transparent hover:border-blue-100"
+                          className="rounded-xl px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-transparent hover:border-blue-100 disabled:opacity-50"
                         >
                           Hacer Admin
                         </button>
@@ -273,7 +260,6 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      {/* Nota de seguridad */}
       <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-5 mt-8">
         <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
