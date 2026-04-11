@@ -179,7 +179,7 @@ export default function InventarioPage() {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="py-20 text-center text-slate-400">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin mb-2" />
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
                     Cargando inventario...
                   </td>
                 </tr>
