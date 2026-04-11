@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
+import { Dialog, Transition } from '@headlessui/react';
 import { 
   Plus, Search, MoreVertical, 
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
   X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import NuevoEquipoModal from './NuevoEquipoModal'; // Asegúrate que la ruta sea correcta
+import NuevoEquipoModal from './NuevoEquipoModal';
 
 // --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -79,7 +80,6 @@ export default function InventarioPage() {
     setLoading(false);
   };
 
-  // Funciones que pasaremos al sub-componente
   const addCategoria = async (nombre: string, extra: Record<string, string>) => {
     const prefijo = (extra.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
     const { data } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
@@ -233,7 +233,7 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* --- EL COMPONENTE SEPARADO --- */}
+      {/* --- MODAL NUEVO EQUIPO --- */}
       <NuevoEquipoModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -272,94 +272,216 @@ export default function InventarioPage() {
         document.body
       )}
 
-      {/* --- MODAL EDITAR --- */}
-      {editItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setEditItem(null)} />
-          <div className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Editar Equipo</h3>
-              <button onClick={() => setEditItem(null)} className="rounded-full p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 cursor-pointer transition-colors">
-                <X className="h-5 w-5" />
-              </button>
+      {/* --- MODAL EDITAR EQUIPO --- */}
+      <Transition show={!!editItem} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setEditItem(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
+
+                  {/* Botón X */}
+                  <div className="absolute right-5 top-5">
+                    <button
+                      type="button"
+                      onClick={() => setEditItem(null)}
+                      className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Header */}
+                  <div className="flex flex-col items-center text-center gap-4 mb-8">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                      <Edit2 className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">
+                        Editar Equipo
+                      </Dialog.Title>
+                      <p className="mt-2.5 text-sm text-slate-500 font-medium">
+                        Modifica los datos del activo registrado.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Formulario */}
+                  <form onSubmit={handleEdit} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo</label>
+                      <input
+                        required
+                        type="text"
+                        value={editFormData.modelo}
+                        onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría</label>
+                        <select
+                          value={editFormData.categoria}
+                          onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                        >
+                          {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
+                        <select
+                          value={editFormData.estado}
+                          onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                        >
+                          {estados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU</label>
+                      <input
+                        required
+                        type="text"
+                        value={editFormData.sku}
+                        onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider"
+                      />
+                    </div>
+
+                    {/* Botones */}
+                    <div className="mt-8 flex flex-col gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={editLoading}
+                        className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {editLoading
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <><Check className="h-4 w-4" /> Guardar cambios</>
+                        }
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditItem(null)}
+                        className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </Dialog.Panel>
+              </Transition.Child>
             </div>
-            <form onSubmit={handleEdit} className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo</label>
-                <input
-                  required type="text"
-                  value={editFormData.modelo}
-                  onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría</label>
-                  <select
-                    value={editFormData.categoria}
-                    onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                  >
-                    {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado</label>
-                  <select
-                    value={editFormData.estado}
-                    onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                  >
-                    {estados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU</label>
-                <input
-                  required type="text"
-                  value={editFormData.sku}
-                  onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setEditItem(null)} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={editLoading} className="flex-1 flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700 cursor-pointer disabled:opacity-50 transition-all">
-                  {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4" /> Guardar</>}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        </Dialog>
+      </Transition>
 
       {/* --- MODAL CONFIRMAR BORRADO --- */}
-      {deleteItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setDeleteItem(null)} />
-          <div className="relative w-full max-w-sm rounded-3xl bg-white shadow-2xl p-6 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 border-4 border-red-100 mx-auto mb-4">
-              <AlertTriangle className="h-8 w-8 text-red-500" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">¿Eliminar equipo?</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Estás a punto de eliminar <span className="font-bold text-slate-800">{deleteItem.modelo}</span> ({deleteItem.sku}). Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setDeleteItem(null)} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all">
-                Cancelar
-              </button>
-              <button onClick={handleDelete} disabled={deleteLoading} className="flex-1 flex justify-center items-center gap-2 rounded-2xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-all">
-                {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4" /> Eliminar</>}
-              </button>
+      <Transition show={!!deleteItem} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
+
+                  {/* Botón X */}
+                  <div className="absolute right-5 top-5">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteItem(null)}
+                      className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Contenido */}
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100">
+                      <AlertTriangle className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">
+                        ¿Eliminar equipo?
+                      </Dialog.Title>
+                      <p className="mt-2.5 text-sm text-slate-500 font-medium">
+                        Estás a punto de eliminar{' '}
+                        <span className="font-bold text-slate-800">{deleteItem?.modelo}</span>{' '}
+                        ({deleteItem?.sku}). Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Botones */}
+                  <div className="mt-8 flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={deleteLoading}
+                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {deleteLoading
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteItem(null)}
+                      className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
             </div>
           </div>
-        </div>
-      )}
+        </Dialog>
+      </Transition>
     </div>
   );
 }
