@@ -13,6 +13,7 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsuarios();
@@ -21,7 +22,11 @@ export default function UsuariosPage() {
   const fetchUsuarios = async () => {
     setLoading(true);
     
-    // 1. Traemos TODOS los perfiles (Ahora Supabase nos dejará gracias a la política SQL)
+    // 0. Obtenemos el usuario que está usando la app ahora mismo
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id || null);
+
+    // 1. Traemos TODOS los perfiles
     const { data: perfilesData, error: perfilesError } = await supabase
       .from('perfiles')
       .select('*')
@@ -86,7 +91,7 @@ export default function UsuariosPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {loading ? (
           <div className="col-span-full py-20 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600 mb-2" />
+            <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
             <p className="text-slate-500 font-medium">Buscando personal y su actividad...</p>
           </div>
         ) : usuarios.length === 0 ? (
@@ -154,24 +159,32 @@ export default function UsuariosPage() {
                   ID: {perfil.id.substring(0, 8)}...
                 </p>
                 
-                {perfil.rol !== 'OPERADOR' && (
-                  <button
-                    disabled={updatingId === perfil.id}
-                    onClick={() => cambiarRol(perfil.id, 'OPERADOR')}
-                    className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50 border border-transparent hover:border-emerald-100"
-                  >
-                    Hacer Operador
-                  </button>
-                )}
-                
-                {perfil.rol !== 'ADMIN' && (
-                  <button
-                    disabled={updatingId === perfil.id}
-                    onClick={() => cambiarRol(perfil.id, 'ADMIN')}
-                    className="rounded-xl px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50 border border-transparent hover:border-blue-100"
-                  >
-                    Hacer Admin
-                  </button>
+                {perfil.id === currentUserId ? (
+                  <span className="rounded-xl px-4 py-2 text-xs font-bold text-slate-400 bg-slate-50 border border-slate-100">
+                    Tu cuenta
+                  </span>
+                ) : (
+                  <>
+                    {perfil.rol !== 'OPERADOR' && (
+                      <button
+                        disabled={updatingId === perfil.id}
+                        onClick={() => cambiarRol(perfil.id, 'OPERADOR')}
+                        className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50 border border-transparent hover:border-emerald-100"
+                      >
+                        Hacer Operador
+                      </button>
+                    )}
+                    
+                    {perfil.rol !== 'ADMIN' && (
+                      <button
+                        disabled={updatingId === perfil.id}
+                        onClick={() => cambiarRol(perfil.id, 'ADMIN')}
+                        className="rounded-xl px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50 border border-transparent hover:border-blue-100"
+                      >
+                        Hacer Admin
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
