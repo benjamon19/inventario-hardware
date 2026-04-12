@@ -143,12 +143,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </Dialog>
       </Transition>
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r ${currentTheme.border} ${currentTheme.card} hidden md:flex flex-col`}>
+      {/* CLASE AGREGADA: print:hidden para ocultar el menú lateral */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r ${currentTheme.border} ${currentTheme.card} hidden md:flex flex-col print:hidden`}>
         <SidebarContent />
       </aside>
 
-      <div className="flex flex-1 flex-col md:pl-72">
-        <header className={`sticky top-0 z-40 flex h-20 items-center border-b ${currentTheme.border} ${currentTheme.card} px-4 sm:px-6 lg:px-8`}>
+      {/* CLASE AGREGADA: print:pl-0 para quitar el margen izquierdo que dejaba el menú */}
+      <div className="flex flex-1 flex-col md:pl-72 print:pl-0">
+        
+        {/* CLASE AGREGADA: print:hidden para ocultar la barra superior */}
+        <header className={`sticky top-0 z-40 flex h-20 items-center border-b ${currentTheme.border} ${currentTheme.card} px-4 sm:px-6 lg:px-8 print:hidden`}>
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 md:hidden hover:bg-slate-100 transition-colors cursor-pointer"
@@ -165,7 +169,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </h2>
             
             <div className="flex shrink-0 items-center">
-              {/* Avatar Dinámico: Sin clics, sin hover, solo info visual */}
               <div className={`flex h-9 w-9 items-center justify-center rounded-full font-bold text-sm border shadow-sm select-none ${userAvatar.styles}`}>
                 {userAvatar.initial}
               </div>
@@ -173,7 +176,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        <main className="p-4 sm:p-8">
+        {/* CLASES AGREGADAS: print:p-0 print:m-0 para usar toda la hoja sin márgenes */}
+        <main className="p-4 sm:p-8 print:p-0 print:m-0">
           {children}
         </main>
       </div>
