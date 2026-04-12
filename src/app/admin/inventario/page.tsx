@@ -214,8 +214,9 @@ export default function InventarioPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
 
-  // Modal de Nuevo Equipo
+  // Modal de Nuevo Equipo & Toast de Éxito
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // Vista detalle
   const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
@@ -377,7 +378,7 @@ export default function InventarioPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -529,16 +530,15 @@ export default function InventarioPage() {
                           const btn = btnRefs.current[item.id];
                           if (btn) {
                             const r = btn.getBoundingClientRect();
-                            const menuHeight = 110; // Altura estimada de tu menú
+                            const menuHeight = 110; 
                             const spaceBelow = window.innerHeight - r.bottom;
                             
-                            // Si queda poco espacio abajo (menos de 130px), lo tiramos hacia arriba
                             const shouldOpenUp = spaceBelow < (menuHeight + 20);
                             
                             setMenuPos({ 
                               top: shouldOpenUp 
-                                ? r.top + window.scrollY - menuHeight - 8  // Posición para abrir hacia arriba
-                                : r.bottom + window.scrollY + 4,           // Posición normal hacia abajo
+                                ? r.top + window.scrollY - menuHeight - 8 
+                                : r.bottom + window.scrollY + 4,          
                               right: window.innerWidth - r.right 
                             });
                           }
@@ -612,7 +612,11 @@ export default function InventarioPage() {
       <NuevoEquipoModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchAll}
+        onSuccess={() => {
+          fetchAll();
+          setShowSuccessToast(true);
+          setTimeout(() => setShowSuccessToast(false), 3000);
+        }}
         categorias={categorias}
         estados={estados}
         addCategoria={addCategoria}
@@ -621,12 +625,12 @@ export default function InventarioPage() {
         deleteEstado={deleteEstado}
       />
 
-      {/* Dropdown portal animado */}
+      {/* Dropdown portal animado (Móvil vs PC) */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none">
             
-            {/* Overlay: Fondo oscuro que se desvanece */}
+            {/* Overlay */}
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
@@ -642,7 +646,7 @@ export default function InventarioPage() {
               />
             </Transition.Child>
             
-            {/* Menú: Sube/Baja en móvil, Aparece/Desaparece en PC */}
+            {/* Menú */}
             <Transition.Child
               as={Fragment}
               enter="transition transform ease-out duration-300"
@@ -664,7 +668,7 @@ export default function InventarioPage() {
                     : {} 
                 }
               >
-                {/* Pill de arrastre visual (solo visible en móvil) */}
+                {/* Pill de arrastre visual */}
                 <div className="mx-auto mt-2 mb-5 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
 
                 <button
@@ -691,7 +695,6 @@ export default function InventarioPage() {
                 </button>
               </div>
             </Transition.Child>
-
           </div>
         </Transition>,
         document.body
@@ -803,6 +806,30 @@ export default function InventarioPage() {
             </div>
           </div>
         </Dialog>
+      </Transition>
+
+      {/* NOTIFICACIÓN "PASTILLA" DE ÉXITO */}
+      <Transition
+        show={showSuccessToast}
+        as={Fragment}
+        enter="transition ease-out duration-300 transform"
+        enterFrom="opacity-0 translate-y-10 scale-95"
+        enterTo="opacity-100 translate-y-0 scale-100"
+        leave="transition ease-in duration-200 transform"
+        leaveFrom="opacity-100 translate-y-0 scale-100"
+        leaveTo="opacity-0 translate-y-10 scale-95"
+      >
+        <div className="fixed bottom-0 left-0 right-0 z-100 p-6 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-3 bg-white px-6 py-3.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-emerald-100">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <Check className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-slate-800 leading-tight">Listo, equipo registrado</p>
+              <p className="text-[11px] text-slate-400 font-medium">El inventario se ha actualizado correctamente</p>
+            </div>
+          </div>
+        </div>
       </Transition>
     </div>
   );

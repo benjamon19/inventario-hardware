@@ -3,7 +3,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, CheckCircle2, QrCode, Pencil, Plus, Minus, Check, Trash2 } from 'lucide-react';
+import { X, Loader2, Pencil, Plus, Minus, Check, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 // --- Tipos ---
@@ -136,11 +136,7 @@ export default function NuevoEquipoModal({
   isOpen, onClose, onSuccess, categorias, estados,
   addCategoria, deleteCategoria, addEstado, deleteEstado
 }: Props) {
-  const router = useRouter();
-
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [createdSku, setCreatedSku] = useState('');
   
   // Datos comunes
   const [formData, setFormData] = useState({
@@ -161,7 +157,6 @@ export default function NuevoEquipoModal({
   // Reiniciar estado cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      setShowSuccess(false);
       const defaultCat = categorias[0]?.nombre ?? '';
       setFormData({
         categoria: defaultCat,
@@ -181,13 +176,13 @@ export default function NuevoEquipoModal({
   // Si cambia la categoría, regenerar los prefijos de los SKUs
   useEffect(() => {
     const cat = categorias.find(c => c.nombre === formData.categoria);
-    if (cat && !showSuccess) {
+    if (cat) {
       setEquipos(prev => prev.map(eq => ({
         ...eq,
         sku: generarSKU(cat.prefijo)
       })));
     }
-  }, [formData.categoria, categorias, showSuccess]);
+  }, [formData.categoria, categorias]);
 
   // Controlar la cantidad de equipos a registrar
   const handleCantidadChange = (nuevaCantidad: number) => {
@@ -233,9 +228,8 @@ export default function NuevoEquipoModal({
     const { error } = await supabase.from('hardware').insert(toInsert);
     
     if (!error) {
-      setCreatedSku(equipos[0].sku); // Guardamos el primero para el QR del success
-      setShowSuccess(true);
-      onSuccess();
+      onSuccess(); // Activa el Toast de éxito y refresca en la página principal
+      onClose();   // Cierra este modal inmediatamente
     } else {
       alert('Error al guardar: ' + error.message);
     }
@@ -264,197 +258,163 @@ export default function NuevoEquipoModal({
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
-                      {showSuccess ? (
-                        <div className="flex flex-col items-center text-center py-10 animate-in fade-in duration-500">
-                          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 border-[6px] border-emerald-100 mb-6 shadow-sm">
-                            <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+                      <form onSubmit={handleSubmit} className="space-y-6 pb-12">
+
+                        {/* Categoría */}
+                        <div className="space-y-1.5 relative">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                              Categoría <span className="text-red-500">*</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); }}
+                              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                            >
+                              <Pencil className="h-3 w-3" /> Personalizar
+                            </button>
                           </div>
-                          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">¡Guardado con Éxito!</h3>
-                          <p className="mt-3 text-slate-500 font-medium leading-relaxed">
-                            {cantidad === 1 
-                              ? <>El equipo <span className="text-slate-900 font-bold">{formData.modelo}</span> ya está registrado.</>
-                              : <>Se han registrado <span className="text-slate-900 font-bold">{cantidad} equipos</span> modelo {formData.modelo}.</>
-                            }
-                          </p>
-                          <div className="mt-10 flex w-full flex-col gap-3">
+                          <select
+                            value={formData.categoria}
+                            onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                          >
+                            {categorias.map(c => (
+                              <option key={c.id} value={c.nombre}>{c.nombre}</option>
+                            ))}
+                          </select>
+                          {showCatEditor && (
+                            <InlineEditor
+                              items={categorias}
+                              onAdd={addCategoria}
+                              onDelete={deleteCategoria}
+                              onSelect={(nombre) => setFormData(prev => ({ ...prev, categoria: nombre }))}
+                              extraField={{ key: 'prefijo', label: 'Prefijo SKU', type: 'text' }}
+                              onClose={() => setShowCatEditor(false)}
+                            />
+                          )}
+                        </div>
+
+                        {/* Estado */}
+                        <div className="space-y-1.5 relative">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                              Estado <span className="text-red-500">*</span>
+                            </label>
                             <button
-                              onClick={() => router.push(cantidad === 1 ? `/admin/generar-qr?sku=${createdSku}` : '/admin/generar-qr')}
-                              className="flex items-center justify-center gap-2 w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all cursor-pointer"
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); }}
+                              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
-                              <QrCode className="h-5 w-5" /> Generar e Imprimir QR
+                              <Pencil className="h-3 w-3" /> Personalizar
                             </button>
-                            <button
-                              onClick={() => {
-                                setShowSuccess(false);
-                                setFormData({ categoria: categorias[0]?.nombre ?? '', estado: estados[0]?.nombre ?? '', modelo: '' });
-                                setCantidad(1);
-                                setEquipos([{ id: Date.now(), sku: generarSKU(categorias[0]?.prefijo ?? 'HW'), descripcion: '' }]);
-                              }}
-                              className="w-full rounded-2xl border border-slate-200 bg-white py-4 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
-                            >
-                              Registrar otro equipo
-                            </button>
+                          </div>
+                          <select
+                            value={formData.estado}
+                            onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                          >
+                            {estados.map(e => (
+                              <option key={e.id} value={e.nombre}>{e.nombre}</option>
+                            ))}
+                          </select>
+                          {showEstEditor && (
+                            <InlineEditor
+                              items={estados}
+                              onAdd={addEstado}
+                              onDelete={deleteEstado}
+                              onSelect={(nombre) => setFormData(prev => ({ ...prev, estado: nombre }))}
+                              extraField={{ key: 'color', label: 'Color del badge', type: 'color-pick', options: colorOptions }}
+                              onClose={() => setShowEstEditor(false)}
+                            />
+                          )}
+                        </div>
+
+                        {/* Modelo */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Modelo del Equipo <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej: Lenovo ThinkPad T14"
+                            value={formData.modelo}
+                            onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
+                          />
+                        </div>
+
+                        {/* CANTIDAD */}
+                        <div className="pt-2">
+                          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                              Unidades a registrar
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <button type="button" onClick={() => handleCantidadChange(cantidad - 1)} disabled={cantidad <= 1} className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 transition-colors"><Minus className="h-4 w-4" /></button>
+                              <span className="w-4 text-center font-bold text-sm text-slate-800">{cantidad}</span>
+                              <button type="button" onClick={() => handleCantidadChange(cantidad + 1)} disabled={cantidad >= 20} className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 transition-colors"><Plus className="h-4 w-4" /></button>
+                            </div>
                           </div>
                         </div>
-                      ) : (
-                        <form onSubmit={handleSubmit} className="space-y-6 pb-12">
 
-                          {/* Categoría */}
-                          <div className="space-y-1.5 relative">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                Categoría <span className="text-red-500">*</span>
-                              </label>
-                              <button
-                                type="button"
-                                onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); }}
-                                className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
-                              >
-                                <Pencil className="h-3 w-3" /> Personalizar
-                              </button>
-                            </div>
-                            <select
-                              value={formData.categoria}
-                              onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                            >
-                              {categorias.map(c => (
-                                <option key={c.id} value={c.nombre}>{c.nombre}</option>
-                              ))}
-                            </select>
-                            {showCatEditor && (
-                              <InlineEditor
-                                items={categorias}
-                                onAdd={addCategoria}
-                                onDelete={deleteCategoria}
-                                onSelect={(nombre) => setFormData(prev => ({ ...prev, categoria: nombre }))}
-                                extraField={{ key: 'prefijo', label: 'Prefijo SKU', type: 'text' }}
-                                onClose={() => setShowCatEditor(false)}
-                              />
-                            )}
-                          </div>
-
-                          {/* Estado */}
-                          <div className="space-y-1.5 relative">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                Estado <span className="text-red-500">*</span>
-                              </label>
-                              <button
-                                type="button"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); }}
-                                className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
-                              >
-                                <Pencil className="h-3 w-3" /> Personalizar
-                              </button>
-                            </div>
-                            <select
-                              value={formData.estado}
-                              onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                            >
-                              {estados.map(e => (
-                                <option key={e.id} value={e.nombre}>{e.nombre}</option>
-                              ))}
-                            </select>
-                            {showEstEditor && (
-                              <InlineEditor
-                                items={estados}
-                                onAdd={addEstado}
-                                onDelete={deleteEstado}
-                                onSelect={(nombre) => setFormData(prev => ({ ...prev, estado: nombre }))}
-                                extraField={{ key: 'color', label: 'Color del badge', type: 'color-pick', options: colorOptions }}
-                                onClose={() => setShowEstEditor(false)}
-                              />
-                            )}
-                          </div>
-
-                          {/* Modelo */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                              Modelo del Equipo <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Ej: Lenovo ThinkPad T14"
-                              value={formData.modelo}
-                              onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
-                            />
-                          </div>
-
-                          {/* CANTIDAD (Integrado sutilmente) */}
-                          <div className="pt-2">
-                            <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                Unidades a registrar
-                              </label>
-                              <div className="flex items-center gap-3">
-                                <button type="button" onClick={() => handleCantidadChange(cantidad - 1)} disabled={cantidad <= 1} className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 transition-colors"><Minus className="h-4 w-4" /></button>
-                                <span className="w-4 text-center font-bold text-sm text-slate-800">{cantidad}</span>
-                                <button type="button" onClick={() => handleCantidadChange(cantidad + 1)} disabled={cantidad >= 20} className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 transition-colors"><Plus className="h-4 w-4" /></button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="border-t border-slate-100 pt-2 space-y-6">
-                            {equipos.map((eq, index) => (
-                              <div key={eq.id} className={cantidad > 1 ? "relative p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-6" : "space-y-6"}>
-                                
-                                {cantidad > 1 && (
-                                  <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
-                                    {index + 1}
-                                  </div>
-                                )}
-
-                                {/* SKU */}
-                                <div className="space-y-1.5">
-                                  <div className="flex justify-between items-end mb-1">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                      Código SKU <span className="text-red-500">*</span>
-                                    </label>
-                                    <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Auto-generado</span>
-                                  </div>
-                                  <input
-                                    required
-                                    type="text"
-                                    value={eq.sku}
-                                    onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.toUpperCase())}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all font-mono text-slate-700 font-bold tracking-wider"
-                                  />
+                        <div className="border-t border-slate-100 pt-2 space-y-6">
+                          {equipos.map((eq, index) => (
+                            <div key={eq.id} className={cantidad > 1 ? "relative p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-6" : "space-y-6"}>
+                              
+                              {cantidad > 1 && (
+                                <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                                  {index + 1}
                                 </div>
+                              )}
 
-                                {/* Descripción */}
-                                <div className="space-y-1.5">
+                              {/* SKU */}
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-end mb-1">
                                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                    Descripción / Notas {cantidad > 1 && <span className="lowercase font-normal">(Opcional)</span>}
+                                    Código SKU <span className="text-red-500">*</span>
                                   </label>
-                                  <textarea
-                                    value={eq.descripcion}
-                                    onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
-                                    placeholder={cantidad > 1 ? "Ej: Número de serie, detalle particular..." : "Ej: En mantención por falla en pantalla. Motivo de ingreso a bodega..."}
-                                    rows={3}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all resize-none text-slate-700"
-                                  />
-                                  {cantidad === 1 && <p className="text-[11px] text-slate-400 px-1">Opcional — detalla el motivo de ingreso, estado de mantención, etc.</p>}
+                                  <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                                 </div>
-                                
+                                <input
+                                  required
+                                  type="text"
+                                  value={eq.sku}
+                                  onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.toUpperCase())}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                />
                               </div>
-                            ))}
-                          </div>
 
-                          <div className="pt-2">
-                            <button
-                              type="submit"
-                              disabled={loading}
-                              className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
-                            >
-                              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Plus className="h-5 w-5" /> Guardar Equipo{cantidad > 1 ? 's' : ''}</>}
-                            </button>
-                          </div>
-                        </form>
-                      )}
+                              {/* Descripción */}
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                  Descripción / Notas {cantidad > 1 && <span className="lowercase font-normal">(Opcional)</span>}
+                                </label>
+                                <textarea
+                                  value={eq.descripcion}
+                                  onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
+                                  placeholder={cantidad > 1 ? "Ej: Número de serie, detalle particular..." : "Ej: En mantención por falla en pantalla. Motivo de ingreso a bodega..."}
+                                  rows={3}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all resize-none text-slate-700"
+                                />
+                                {cantidad === 1 && <p className="text-[11px] text-slate-400 px-1">Opcional — detalla el motivo de ingreso, estado de mantención, etc.</p>}
+                              </div>
+                              
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="pt-2">
+                          <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Plus className="h-5 w-5" /> Guardar Equipo{cantidad > 1 ? 's' : ''}</>}
+                          </button>
+                        </div>
+                      </form>
                     </div>
                   </div>
                 </Dialog.Panel>
