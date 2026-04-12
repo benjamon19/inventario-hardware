@@ -494,26 +494,40 @@ export default function GenerarQRPage() {
         leaveFrom="opacity-100 translate-y-0 scale-100"
         leaveTo="opacity-0 translate-y-10 scale-95"
       >
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-6 flex justify-center pointer-events-none print:hidden">
-          <div className="pointer-events-auto flex items-center gap-5 bg-white px-3 py-3 pl-6 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200">
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center pointer-events-none print:hidden">
+          
+          {/* Contenedor principal: Full redondo (rounded-full) */}
+          <div className="pointer-events-auto w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 sm:gap-5 bg-white px-5 py-3 sm:pl-7 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200">
             
-            <div className="flex flex-col justify-center pr-2">
+            {/* Sección de Textos */}
+            <div className="flex flex-col justify-center">
               <p className="text-sm font-bold text-slate-800 leading-tight">
-                {selectedIds.size} etiqueta{selectedIds.size > 1 ? 's' : ''} seleccionada{selectedIds.size > 1 ? 's' : ''}
+                {selectedIds.size} seleccionada{selectedIds.size > 1 ? 's' : ''}
               </p>
-              <p className="text-xs text-slate-500 font-medium mt-0.5 leading-tight">
-                Lista{selectedIds.size > 1 ? 's' : ''} para imprimir
+              <p className="text-[11px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-tight">
+                {selectedIds.size} etiqueta{selectedIds.size > 1 ? 's' : ''} lista para imprimir
               </p>
             </div>
             
-            <div className="w-px h-8 bg-slate-200" />
+            {/* Barra vertical gris (se mantiene siempre) */}
+            <div className="w-px h-8 bg-slate-200 shrink-0" />
             
-            <div className="flex items-center gap-1.5 pr-1">
-              <button onClick={imprimir} className="flex items-center gap-2 bg-violet-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-violet-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer text-sm">
-                <Printer className="h-4 w-4" /> Imprimir todas
+            {/* Sección de Acciones */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button 
+                onClick={imprimir} 
+                className="flex items-center gap-2 bg-violet-600 text-white px-4 sm:px-6 py-2.5 rounded-full font-bold hover:bg-violet-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer text-sm whitespace-nowrap"
+              >
+                <Printer className="h-4 w-4" /> 
+                <span className="hidden sm:inline">Imprimir todas</span>
+                <span className="sm:hidden">Imprimir</span>
               </button>
               
-              <button onClick={deseleccionarTodos} title="Limpiar selección" className="p-2.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer">
+              <button 
+                onClick={deseleccionarTodos} 
+                title="Limpiar selección" 
+                className="p-2 sm:p-2.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
