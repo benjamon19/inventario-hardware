@@ -71,7 +71,7 @@ export function MultiSessionWarning() {
         Móvil -> Centrado (left-0 right-0 justify-center)
         PC -> Esquina derecha (md:left-auto md:right-6)
       */}
-      <div className="fixed bottom-6 left-0 right-0 z-[9999] px-4 flex justify-center md:left-auto md:right-6 md:px-0 pointer-events-none">
+      <div className="fixed bottom-6 left-0 right-0 z-9999 px-4 flex justify-center md:left-auto md:right-6 md:px-0 pointer-events-none">
         
         {/* Tarjeta de la alerta */}
         <div className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 shadow-[0_8px_30px_rgb(234,179,8,0.15)]">
