@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { currentTheme } from "@/config/theme";
+import { MultiSessionWarning } from "@/components/MultiSessionWarning";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,8 +18,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.className} ${currentTheme.background} ${currentTheme.text} antialiased min-h-screen transition-colors duration-300`}>
+      <body className={`${inter.className} ${currentTheme.background} ${currentTheme.text} antialiased min-h-screen transition-colors duration-300 relative`}>
         {children}
+        {/* Renderizamos la alerta a nivel global */}
+        <MultiSessionWarning />
       </body>
     </html>
   );
