@@ -621,45 +621,79 @@ export default function InventarioPage() {
         deleteEstado={deleteEstado}
       />
 
-      {/* Dropdown portal */}
-      {menuOpenId && typeof document !== 'undefined' && createPortal(
-        <>
-          {/* Overlay para cerrar al hacer click fuera */}
-          <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
-          
-          <div
-            className="fixed z-50 w-44 rounded-2xl border border-slate-200 bg-white shadow-2xl py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
-            style={{ 
-              top: menuPos.top, 
-              right: menuPos.right,
-              // Evita que se salga en pantallas ultra pequeñas
-              maxWidth: 'calc(100vw - 2rem)' 
-            }}
-          >
-            <button
-              onClick={() => { 
-                const item = items.find(i => i.id === menuOpenId); 
-                if (item) openEdit(item); 
-                setMenuOpenId(null); 
-              }}
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
-            >
-              <Edit2 className="h-4 w-4 text-slate-400" /> Editar equipo
-            </button>
+      {/* Dropdown portal animado */}
+      {typeof document !== 'undefined' && createPortal(
+        <Transition show={!!menuOpenId} as={Fragment}>
+          <div className="fixed inset-0 z-50 pointer-events-none">
             
-            <div className="my-1 border-t border-slate-100" />
-            
-            <button
-              onClick={() => { 
-                const item = items.find(i => i.id === menuOpenId); 
-                if (item) { setDeleteItem(item); setMenuOpenId(null); } 
-              }}
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+            {/* Overlay: Fondo oscuro que se desvanece */}
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
             >
-              <Trash2 className="h-4 w-4" /> Eliminar
-            </button>
+              <div 
+                className="absolute inset-0 bg-slate-900/40 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none pointer-events-auto" 
+                onClick={() => setMenuOpenId(null)} 
+              />
+            </Transition.Child>
+            
+            {/* Menú: Sube/Baja en móvil, Aparece/Desaparece en PC */}
+            <Transition.Child
+              as={Fragment}
+              enter="transition transform ease-out duration-300"
+              enterFrom="translate-y-full md:translate-y-0 md:opacity-0 md:scale-95"
+              enterTo="translate-y-0 md:opacity-100 md:scale-100"
+              leave="transition transform ease-in duration-200"
+              leaveFrom="translate-y-0 md:opacity-100 md:scale-100"
+              leaveTo="translate-y-full md:translate-y-0 md:opacity-0 md:scale-95"
+            >
+              <div
+                className="absolute bg-white shadow-2xl overflow-hidden pointer-events-auto
+                           /* MÓVIL: Drawer */
+                           bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-slate-200 pb-8 pt-2 px-4
+                           /* PC: Dropdown flotante */
+                           md:bottom-auto md:left-auto md:w-44 md:rounded-2xl md:border md:p-0 md:py-1.5"
+                style={
+                  typeof window !== 'undefined' && window.innerWidth >= 768 
+                    ? { top: menuPos.top, right: menuPos.right } 
+                    : {} 
+                }
+              >
+                {/* Pill de arrastre visual (solo visible en móvil) */}
+                <div className="mx-auto mt-2 mb-5 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
+
+                <button
+                  onClick={() => { 
+                    const item = items.find(i => i.id === menuOpenId); 
+                    if (item) openEdit(item); 
+                    setMenuOpenId(null); 
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-4 md:py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors rounded-2xl md:rounded-none"
+                >
+                  <Edit2 className="h-5 w-5 md:h-4 md:w-4 text-slate-400" /> Editar equipo
+                </button>
+                
+                <div className="my-1 border-t border-slate-100 hidden md:block" />
+                
+                <button
+                  onClick={() => { 
+                    const item = items.find(i => i.id === menuOpenId); 
+                    if (item) { setDeleteItem(item); setMenuOpenId(null); } 
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-4 md:py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors mt-2 md:mt-0 rounded-2xl md:rounded-none"
+                >
+                  <Trash2 className="h-5 w-5 md:h-4 md:w-4" /> Eliminar
+                </button>
+              </div>
+            </Transition.Child>
+
           </div>
-        </>,
+        </Transition>,
         document.body
       )}
 

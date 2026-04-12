@@ -70,7 +70,7 @@ export default function ConfiguracionPage() {
             </div>
             <h2 className="text-lg font-bold text-slate-900">Seguridad</h2>
           </div>
-          <p className="text-sm text-slate-500 italic">Próximamente: Cambio de contraseña y autenticación de dos factores.</p>
+          <p className="text-sm text-slate-500 italic">Próximamente: Cambio de contraseña</p>
         </div>
       </div>
 
