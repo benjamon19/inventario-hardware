@@ -155,7 +155,7 @@ export default function GenerarQRPage() {
 
   return (
     <>
-      <style>{`
+<style>{`
         @media screen {
           .print-only { display: none !important; }
         }
@@ -178,14 +178,13 @@ export default function GenerarQRPage() {
             display: block !important;
           }
 
-          /*
-            Cada etiqueta usa position:fixed + inset:0
-            (igual que el original que funcionaba perfecto).
-            El div .page-break entre etiquetas fuerza el salto de hoja.
+          /* CORRECCIÓN AQUÍ: 
+            Quitamos position: fixed e inset: 0. 
+            Usamos height: 100vh para que cada etiqueta ocupe exactamente una hoja. 
           */
           .etiqueta {
-            position: fixed !important;
-            inset: 0;
+            height: 100vh;
+            width: 100vw;
             display: flex !important;
             flex-direction: column;
             justify-content: center;
@@ -199,7 +198,6 @@ export default function GenerarQRPage() {
           .page-break {
             break-after: page;
             page-break-after: always;
-            height: 100vh;
             display: block !important;
           }
         }
