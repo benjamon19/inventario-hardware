@@ -6,7 +6,9 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { Package, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
 import { currentTheme } from '@/config/theme';
-import { supabase } from '@/lib/supabase';
+
+// Importamos el Server Action que maneja el login y la cookie
+import { procesarLogin } from './actions'; 
 
 gsap.registerPlugin(useGSAP);
 
@@ -33,37 +35,23 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg(null);
     
-    // 1. Intentar inicio de sesión
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Llamamos al Server Action enviando el estado del checkbox
+    const result = await procesarLogin(email, password, rememberMe);
 
-    if (error) {
-      setErrorMsg('Credenciales incorrectas. Inténtalo de nuevo.');
+    if (result?.error) {
+      setErrorMsg(result.error);
       setIsLoading(false);
       return;
     }
 
-    if (data.session) {
-      // 2. Si hay sesión, consultar el ROL del usuario en la tabla perfiles
-      const { data: perfil, error: perfilError } = await supabase
-        .from('perfiles')
-        .select('rol')
-        .eq('id', data.session.user.id)
-        .single();
-
-      if (perfilError) {
-        console.error("Error obteniendo perfil:", perfilError);
-      }
-
-      // 3. Refrescar y Redirigir según el rol
+    if (result?.success) {
       router.refresh();
       
-      if (perfil?.rol === 'ADMIN') {
+      // Redirigir según el rol devuelto por el Server Action
+      if (result.rol === 'ADMIN') {
         router.push('/admin');
       } else {
-        router.push('/');
+        router.push('/operador');
       }
     }
   };
