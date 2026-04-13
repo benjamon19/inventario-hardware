@@ -16,6 +16,7 @@ export interface RobotHandle {
 }
 
 const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
+  const containerRef = useRef<HTMLDivElement>(null); 
   const robotRef = useRef<SVGSVGElement>(null);
   const bodyWrapperRef = useRef<SVGGElement>(null);
   const eyesRef = useRef<SVGGElement>(null);
@@ -46,6 +47,9 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   };
 
   const speak = (text: string, persist = false) => {
+    // En móvil ni siquiera intentamos procesar el texto de la nube
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+
     stopSpeaking();
     setShowSpeech(true);
     setSpeech(""); 
@@ -56,7 +60,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       if (i < text.length) {
         setSpeech(text.substring(0, i + 1));
         i++;
-        typingTimeoutRef.current = setTimeout(typeChar, 45); // Un pelín más lento al escribir (5ms+), por estilo.
+        typingTimeoutRef.current = setTimeout(typeChar, 45); 
       } else if (!persist) {
         typingTimeoutRef.current = setTimeout(() => {
           setShowSpeech(false);
@@ -69,7 +73,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
   // ── ANIMACIONES IDLE ──
   const idleAnimations = [
-    // 1. Hablar
     () => {
       const phrase = frasesWall[Math.floor(Math.random() * frasesWall.length)];
       speak(phrase);
@@ -81,8 +84,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
         
       gsap.to(antennaLightRef.current, { fill: '#38BDF8', duration: 0.1, repeat: phrase.length, yoyo: true });
     },
-
-    // 2. GLITCH DEL SISTEMA (Cortocircuito)
     () => {
       const tl = gsap.timeline({ onComplete: () => { isBusyRef.current = false; } });
       isBusyRef.current = true;
@@ -94,8 +95,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
         .to(eyesRef.current, { rotation: 0, duration: 0.5, ease: 'back.out(2)', delay: 0.5 })
         .to(antennaLightRef.current, { fill: '#10B981', duration: 0.2 });
     },
-
-    // 3. PARPADEO SUTIL
     () => {
       if (isBusyRef.current) return;
       gsap.timeline()
@@ -110,7 +109,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
   const scheduleIdle = () => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    // AJUSTE 1.5x: Mínimo 7.5s (antes 5s), Rango aleatorio 7.5s (antes 5s). Total: 7.5s a 15s.
     const delay = 7500 + Math.random() * 7500; 
     idleTimerRef.current = setTimeout(() => {
       if (!isBusyRef.current) {
@@ -122,8 +120,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   };
 
   useEffect(() => {
-    // ── SALUDO INICIAL FORZADO AL ENTRAR A LA PÁGINA ──
-    // AJUSTE 1.5x: Espera 2.25s (antes 1.5s) para saludar al terminar la entrada.
     const initialGreetingTimer = setTimeout(() => {
       if (!hasGreetedRef.current && !isBusyRef.current) {
         hasGreetedRef.current = true;
@@ -163,6 +159,10 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   useImperativeHandle(ref, () => ({
     playFocusEmail: () => {
       stopSpeaking(); 
+      if (window.innerWidth < 768) {
+        gsap.to(containerRef.current, { y: 125, duration: 0.4, ease: 'power2.out' });
+      }
+
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, handsRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       gsap.to([bodyWrapperRef.current, leftHandRef.current, rightHandRef.current], { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, duration: 0.2 });
@@ -173,12 +173,17 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
     playBlurEmail: () => {
       isBusyRef.current = false;
+      gsap.to(containerRef.current, { y: 0, duration: 0.4, ease: 'power2.inOut' });
       gsap.to(eyesRef.current, { y: 0, x: 0, duration: 0.3 });
       gsap.to(bodyWrapperRef.current, { rotation: 0, duration: 0.3 });
     },
 
     playFocusPassword: (isHidden: boolean) => {
       stopSpeaking();
+      if (window.innerWidth < 768) {
+        gsap.to(containerRef.current, { y: 250, duration: 0.4, ease: 'power2.out' });
+      }
+
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       gsap.to(antennaLightRef.current, { fill: '#F59E0B', duration: 0.3 });
@@ -207,6 +212,8 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
     playBlurPassword: () => {
       isBusyRef.current = false;
+      gsap.to(containerRef.current, { y: 0, duration: 0.4, ease: 'power2.inOut' });
+
       gsap.to([leftHandRef.current, rightHandRef.current], { y: 0, x: 0, rotation: 0, duration: 0.4, ease: 'power3.inOut' });
       gsap.to(eyesRef.current, { scaleY: 1, scaleX: 1, y: 0, x: 0, rotation: 0, transformOrigin: '50% 50%', duration: 0.2 });
       gsap.to(antennaLightRef.current, { fill: '#10B981', duration: 0.3 });
@@ -214,6 +221,8 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
     playError: () => {
       stopSpeaking();
+      gsap.to(containerRef.current, { y: 0, duration: 0.3 }); 
+
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       gsap.to(antennaLightRef.current, { fill: '#EF4444', duration: 0.2 });
@@ -239,6 +248,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     },
 
     playSuccess: () => {
+      gsap.to(containerRef.current, { y: 0, duration: 0.3 }); 
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       
@@ -283,28 +293,26 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   }));
 
   return (
-    <div className="absolute -top-27.5 md:-top-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
+    <div ref={containerRef} className="absolute -top-27.5 md:-top-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
       
-      {/* ── CUADRO DE TEXTO ESTILO NUBE ── */}
+      {/* ── CUADRO DE TEXTO ESTILO NUBE (Oculto en móvil con hidden md:block) ── */}
       <div 
-        className={`absolute bottom-full mb-8 w-60 z-50 transition-all duration-300 origin-bottom drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]
+        className={`hidden md:block absolute bottom-full mb-10 left-1/2 -translate-x-1/2 w-240px z-50 transition-all duration-300 origin-bottom drop-shadow-[0_8px_16px_rgba(0,0,0,0.08)]
         ${showSpeech ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}
       >
-        <div className="relative bg-white px-5 py-4 rounded-3xl text-slate-700 font-semibold text-xs text-center">
-          {/* Bolitas para hacer la forma de nube */}
-          <div className="absolute -top-4 left-6 w-12 h-12 bg-white rounded-full"></div>
-          <div className="absolute -top-6 right-8 w-16 h-16 bg-white rounded-full"></div>
-          <div className="absolute -top-2 right-3 w-10 h-10 bg-white rounded-full"></div>
+        <div className="relative bg-white px-6 py-5 rounded-[40px] text-center">
+          <div className="absolute -top-5 left-8 w-16 h-16 bg-white rounded-full"></div>
+          <div className="absolute -top-8 right-10 w-20 h-20 bg-white rounded-full"></div>
           
-          {/* Texto (z-10 para que quede por encima de las bolitas) */}
-          <div className="relative z-10 leading-relaxed">
-            {speech}<span className="text-black animate-pulse font-bold text-sm">_</span>
+          <div className="relative z-10 text-slate-700 font-bold text-xs leading-relaxed flex items-center justify-center min-h-40px">
+            <p>
+              {speech}<span className="text-sky-500 animate-pulse text-sm">_</span>
+            </p>
           </div>
-
-          {/* Burbujitas de conexión hacia el robot (estilo "pensamiento") */}
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full"></div>
-          <div className="absolute -bottom-7 left-[45%] w-3 h-3 bg-white rounded-full"></div>
         </div>
+
+        <div className="absolute -bottom-4 left-[42%] w-6 h-6 bg-white rounded-full"></div>
+        <div className="absolute -bottom-8 left-[48%] w-3 h-3 bg-white rounded-full"></div>
       </div>
 
       <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-24 h-4 bg-black/20 rounded-full blur-md" />
