@@ -160,7 +160,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     playFocusEmail: () => {
       stopSpeaking(); 
       if (window.innerWidth < 768) {
-        gsap.to(containerRef.current, { y: 125, duration: 0.4, ease: 'power2.out' });
+        gsap.to(containerRef.current, { y: 145, duration: 0.4, ease: 'power2.out' });
       }
 
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, handsRef.current, leftHandRef.current, rightHandRef.current]);
