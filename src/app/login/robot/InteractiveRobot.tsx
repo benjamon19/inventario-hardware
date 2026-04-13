@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -12,6 +12,7 @@ export interface RobotHandle {
   playTogglePasswordVisibility: (isHidden: boolean) => void;
   playError: () => void;
   playSuccess: () => void;
+  playDespedida: () => Promise<void>;
 }
 
 const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
@@ -19,41 +20,148 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const eyesRef = useRef<SVGGElement>(null);
   const handsRef = useRef<SVGGElement>(null);
   const antennaLightRef = useRef<SVGCircleElement>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isBusyRef = useRef(false);
+
+  // ── Animaciones idle chistosas ──
+  const idleAnimations = [
+    // 1. Parpadeo doble rápido
+    () => {
+      gsap.timeline()
+        .to(eyesRef.current, { scaleY: 0.05, transformOrigin: '50% 50%', duration: 0.06 })
+        .to(eyesRef.current, { scaleY: 1, duration: 0.06 })
+        .to(eyesRef.current, { scaleY: 0.05, duration: 0.06, delay: 0.08 })
+        .to(eyesRef.current, { scaleY: 1, duration: 0.06 });
+    },
+    // 2. Mirada curiosa a la derecha y vuelve
+    () => {
+      gsap.timeline()
+        .to(eyesRef.current, { x: 5, duration: 0.3, ease: 'power2.out' })
+        .to(robotRef.current, { rotation: 4, duration: 0.3, ease: 'power1.out' }, '<')
+        .to(eyesRef.current, { x: 0, duration: 0.4, ease: 'power2.inOut', delay: 0.8 })
+        .to(robotRef.current, { rotation: 0, duration: 0.4, ease: 'power1.inOut' }, '<');
+    },
+    // 3. Mirada curiosa a la izquierda
+    () => {
+      gsap.timeline()
+        .to(eyesRef.current, { x: -5, duration: 0.3, ease: 'power2.out' })
+        .to(robotRef.current, { rotation: -4, duration: 0.3, ease: 'power1.out' }, '<')
+        .to(eyesRef.current, { x: 0, duration: 0.4, ease: 'power2.inOut', delay: 0.8 })
+        .to(robotRef.current, { rotation: 0, duration: 0.4, ease: 'power1.inOut' }, '<');
+    },
+    // 4. Se aburre — cabeza para abajo y "despierta"
+    () => {
+      gsap.timeline()
+        .to(robotRef.current, { rotation: 8, y: '-=5', duration: 0.6, ease: 'power1.inOut' })
+        .to(eyesRef.current, { scaleY: 0.3, transformOrigin: '50% 50%', duration: 0.4 }, '<')
+        .to(robotRef.current, { rotation: -5, duration: 0.15, ease: 'power3.out', delay: 0.5 })
+        .to(eyesRef.current, { scaleY: 1.4, duration: 0.1 }, '<')
+        .to(robotRef.current, { rotation: 0, y: '+=5', duration: 0.4, ease: 'elastic.out(1, 0.5)' })
+        .to(eyesRef.current, { scaleY: 1, duration: 0.3 }, '<');
+    },
+    // 5. Saludo con mano — brazo derecho sube y baja
+    () => {
+      gsap.timeline()
+        .to(handsRef.current, { y: -30, rotation: 5, duration: 0.3, ease: 'back.out(2)' })
+        .to(handsRef.current, { rotation: -5, duration: 0.15, yoyo: true, repeat: 3 })
+        .to(handsRef.current, { y: 0, rotation: 0, duration: 0.4, ease: 'power3.inOut' });
+    },
+    // 6. Ojos enormes de sorpresa y vuelven
+    () => {
+      gsap.timeline()
+        .to(eyesRef.current, { scaleY: 1.6, scaleX: 1.3, transformOrigin: '50% 50%', duration: 0.15, ease: 'back.out(3)' })
+        .to(eyesRef.current, { scaleY: 1.6, scaleX: 1.3, duration: 0.4 })
+        .to(eyesRef.current, { scaleY: 1, scaleX: 1, duration: 0.3, ease: 'power2.inOut' });
+    },
+    // 7. Giro de cabeza nervioso
+    () => {
+      gsap.timeline()
+        .to(robotRef.current, { rotation: -6, duration: 0.2, ease: 'power1.out' })
+        .to(robotRef.current, { rotation: 6, duration: 0.2, ease: 'power1.inOut' })
+        .to(robotRef.current, { rotation: -4, duration: 0.15 })
+        .to(robotRef.current, { rotation: 0, duration: 0.3, ease: 'elastic.out(1, 0.6)' });
+    },
+    // 8. Antena parpadea de color — "pensando"
+    () => {
+      gsap.timeline()
+        .to(antennaLightRef.current, { fill: '#F59E0B', duration: 0.2 })
+        .to(antennaLightRef.current, { fill: '#10B981', duration: 0.2, delay: 0.2 })
+        .to(antennaLightRef.current, { fill: '#0EA5E9', duration: 0.2, delay: 0.2 })
+        .to(antennaLightRef.current, { fill: '#10B981', duration: 0.4, delay: 0.2 });
+    },
+  ];
+
+  // ── Scheduler de idle ──
+  const scheduleIdle = () => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    const delay = 3000 + Math.random() * 4000;
+    idleTimerRef.current = setTimeout(() => {
+      if (!isBusyRef.current) {
+        const anim = idleAnimations[Math.floor(Math.random() * idleAnimations.length)];
+        anim();
+      }
+      scheduleIdle();
+    }, delay);
+  };
+
+  useEffect(() => {
+    scheduleIdle();
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, []);
 
   useGSAP(() => {
-    // Animación de flotado constante
-    gsap.to(robotRef.current, {
+    // ── ANIMACIÓN DE ENTRADA CHISTOSA ──
+    const tl = gsap.timeline();
+
+    tl.from(robotRef.current, {
+      scale: 0,
+      rotation: 720,
+      y: 50,
+      duration: 1.5,
+      ease: 'elastic.out(0.8, 0.4)'
+    })
+    .to(robotRef.current, {
       y: -15,
       rotationY: 2,
       duration: 2,
       ease: "sine.inOut",
       yoyo: true,
       repeat: -1
-    });
+    }, "-=0.2");
 
+    gsap.from('.robot-shadow', { scale: 0, opacity: 0, duration: 1.5, ease: 'elastic.out(0.8, 0.4)' });
     gsap.to('.robot-shadow', {
       scale: 0.8,
       opacity: 0.2,
       duration: 2,
       ease: "sine.inOut",
       yoyo: true,
-      repeat: -1
+      repeat: -1,
+      delay: 1.3
     });
   });
 
   useImperativeHandle(ref, () => ({
     playFocusEmail: () => {
+      isBusyRef.current = true;
       gsap.to(eyesRef.current, { y: 6, x: -2, scaleY: 1, duration: 0.3, ease: 'power2.out' });
       gsap.to(antennaLightRef.current, { fill: '#0EA5E9', duration: 0.3 });
+      gsap.to(robotRef.current, { rotation: -3, duration: 0.2, ease: 'power1.out', yoyo: true, repeat: 1 });
     },
     playBlurEmail: () => {
+      isBusyRef.current = false;
       gsap.to(eyesRef.current, { y: 0, x: 0, duration: 0.3 });
+      gsap.to(robotRef.current, { rotation: 0, duration: 0.3 });
     },
     playFocusPassword: (isHidden: boolean) => {
+      isBusyRef.current = true;
       gsap.to(antennaLightRef.current, { fill: '#F59E0B', duration: 0.3 });
       if (isHidden) {
         gsap.to(handsRef.current, { y: -52, duration: 0.4, ease: 'back.out(1.5)' });
         gsap.to(eyesRef.current, { scaleY: 0.1, transformOrigin: '50% 50%', duration: 0.2 });
+        gsap.to(robotRef.current, { rotation: 5, duration: 0.3, ease: 'power1.inOut', yoyo: true, repeat: 1 });
       } else {
         gsap.to(handsRef.current, { y: 0, duration: 0.4 });
         gsap.to(eyesRef.current, { y: 6, x: 0, scaleY: 1, transformOrigin: '50% 50%', duration: 0.3 });
@@ -69,16 +177,69 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       }
     },
     playBlurPassword: () => {
+      isBusyRef.current = false;
       gsap.to(handsRef.current, { y: 0, duration: 0.4, ease: 'power3.inOut' });
       gsap.to(eyesRef.current, { scaleY: 1, scaleX: 1, y: 0, x: 0, transformOrigin: '50% 50%', duration: 0.2 });
       gsap.to(antennaLightRef.current, { fill: '#10B981', duration: 0.3 });
     },
     playError: () => {
-      gsap.to(antennaLightRef.current, { fill: '#EF4444', opacity: 1, duration: 0.3 });
-      gsap.to(robotRef.current, { x: 8, duration: 0.05, yoyo: true, repeat: 5 });
+      isBusyRef.current = true;
+      gsap.to(antennaLightRef.current, { fill: '#EF4444', duration: 0.2 });
+
+      gsap.to(robotRef.current, {
+        x: 10, duration: 0.05, ease: 'none', yoyo: true, repeat: 9,
+        onComplete: () => { gsap.to(robotRef.current, { x: 0, duration: 0.1 }); }
+      });
+
+      gsap.timeline()
+        .to(eyesRef.current, { scaleY: 0.4, scaleX: 1.2, transformOrigin: '50% 50%', duration: 0.15 })
+        .to(eyesRef.current, { scaleY: 0.4, scaleX: 1.2, duration: 0.6 })
+        .to(eyesRef.current, { scaleY: 1, scaleX: 1, duration: 0.3 });
+
+      gsap.timeline()
+        .to(handsRef.current, { y: -20, rotation: -5, duration: 0.2, ease: 'power2.out' })
+        .to(handsRef.current, { y: 0, rotation: 0, duration: 0.4, ease: 'bounce.out', delay: 0.3 });
+
+      gsap.to(antennaLightRef.current, {
+        fill: '#10B981', duration: 0.5, delay: 1.5,
+        onComplete: () => { isBusyRef.current = false; }
+      });
     },
     playSuccess: () => {
-      gsap.to(antennaLightRef.current, { fill: '#10B981', opacity: 1, duration: 0.3 });
+      isBusyRef.current = true;
+      gsap.to(antennaLightRef.current, { fill: '#10B981', duration: 0.3 });
+
+      gsap.timeline()
+        .to(robotRef.current, { y: -30, duration: 0.3, ease: 'power2.out' })
+        .to(robotRef.current, { y: -15, duration: 0.4, ease: 'bounce.out' });
+
+      gsap.timeline()
+        .to(eyesRef.current, { scaleY: 1.3, scaleX: 1.1, transformOrigin: '50% 50%', duration: 0.2 })
+        .to(eyesRef.current, { scaleY: 1.3, scaleX: 1.1, duration: 0.5 })
+        .to(eyesRef.current, { scaleY: 1, scaleX: 1, duration: 0.3 });
+
+      gsap.timeline()
+        .to(handsRef.current, { y: -60, rotation: 0, duration: 0.3, ease: 'back.out(2)' })
+        .to(handsRef.current, { y: -55, duration: 0.15, yoyo: true, repeat: 3 })
+        .to(handsRef.current, { y: 0, duration: 0.5, ease: 'power3.inOut', delay: 0.3 });
+
+      gsap.timeline()
+        .to(robotRef.current, { rotation: -8, duration: 0.2, ease: 'power1.out' })
+        .to(robotRef.current, { rotation: 8, duration: 0.2, ease: 'power1.inOut' })
+        .to(robotRef.current, { rotation: 0, duration: 0.3, ease: 'elastic.out(1, 0.5)' });
+    },
+    // ── NUEVA ANIMACIÓN DE SALIDA ──
+    playDespedida: () => {
+      return new Promise<void>((resolve) => {
+        isBusyRef.current = true;
+        const tl = gsap.timeline({ onComplete: resolve });
+        
+        tl.to(robotRef.current, { y: 20, scaleY: 0.6, scaleX: 1.3, duration: 0.3, ease: "power2.out" })
+          .to(eyesRef.current, { scaleY: 0.2, scaleX: 1.5, duration: 0.1 }, "<") 
+          .to(antennaLightRef.current, { fill: '#EF4444', duration: 0.1 }, "<") 
+          .to(robotRef.current, { y: -1000, scaleY: 1.5, scaleX: 0.5, duration: 0.6, ease: "back.in(1.5)" })
+          .to('.robot-shadow', { opacity: 0, scale: 0, duration: 0.3 }, "-=0.5");
+      });
     }
   }));
 
