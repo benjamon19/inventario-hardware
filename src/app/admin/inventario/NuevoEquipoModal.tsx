@@ -3,7 +3,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Pencil, Plus, Minus, Check, Trash2 } from 'lucide-react';
+import { X, Loader2, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 // --- Tipos ---
@@ -143,6 +143,7 @@ export default function NuevoEquipoModal({
     categoria: '',
     modelo: '',
     estado: '',
+    ubicacion: '', // <--- CAMBIO: Agregado campo ubicación
   });
 
   // Datos dinámicos para múltiples registros
@@ -162,6 +163,7 @@ export default function NuevoEquipoModal({
         categoria: defaultCat,
         modelo: '',
         estado: estados[0]?.nombre ?? '',
+        ubicacion: '', // <--- CAMBIO: Resetear ubicación
       });
       setCantidad(1);
       
@@ -222,14 +224,15 @@ export default function NuevoEquipoModal({
       categoria: formData.categoria,
       modelo: formData.modelo.trim(),
       estado: formData.estado,
+      ubicacion: formData.ubicacion.trim() || null, // <--- CAMBIO: Agregado a payload
       descripcion: eq.descripcion.trim() || null,
     }));
 
     const { error } = await supabase.from('hardware').insert(toInsert);
     
     if (!error) {
-      onSuccess(); // Activa el Toast de éxito y refresca en la página principal
-      onClose();   // Cierra este modal inmediatamente
+      onSuccess(); 
+      onClose();   
     } else {
       alert('Error al guardar: ' + error.message);
     }
@@ -341,6 +344,20 @@ export default function NuevoEquipoModal({
                             placeholder="Ej: Lenovo ThinkPad T14"
                             value={formData.modelo}
                             onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
+                          />
+                        </div>
+
+                        {/* CAMBIO: Ubicación */}
+                        <div className="space-y-1.5">
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <MapPin className="h-3.5 w-3.5" /> Ubicación / Estante <span className="lowercase font-normal text-[10px] ml-1">(Opcional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej: Pasillo 4, Estante A..."
+                            value={formData.ubicacion}
+                            onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
                           />
                         </div>

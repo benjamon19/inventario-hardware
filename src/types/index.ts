@@ -1,5 +1,5 @@
 export type ItemStatus = 'DISPONIBLE' | 'EN_USO' | 'EN_REPARACION' | 'DE_BAJA';
-export type TransactionType = 'INGRESO' | 'SALIDA';
+export type TransactionType = 'INGRESO' | 'SALIDA' | 'CREACION' | 'EDICION' | 'ELIMINACION' | 'ETIQUETA';
 
 export interface HardwareItem {
   id: string;
@@ -8,6 +8,7 @@ export interface HardwareItem {
   modelo: string;
   estado: ItemStatus;
   asignado_a?: string | null;
+  ubicacion?: string;
   updated_at: string;
 }
 

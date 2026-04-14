@@ -7,7 +7,8 @@ import {
   Plus, Search, MoreVertical, 
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
   X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle,
-  ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight
+  ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight,
+  MapPin // <--- CAMBIO: Nuevo icono
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import NuevoEquipoModal from './NuevoEquipoModal';
@@ -21,6 +22,7 @@ type HardwareItem = {
   modelo: string;
   categoria: string;
   estado: string;
+  ubicacion?: string; // <--- CAMBIO: Agregado a la interfaz
   descripcion?: string;
   created_at?: string;
   updated_at?: string;
@@ -134,11 +136,14 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
                   <p className="font-bold text-slate-800">{item.categoria}</p>
                 </div>
 
+                {/* CAMBIO: Ubicación mostrada en la vista de detalle */}
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <Hash className="h-3 w-3" /> Código SKU
+                    <MapPin className="h-3 w-3" /> Ubicación
                   </div>
-                  <p className="font-bold font-mono text-slate-800">{item.sku}</p>
+                  <p className="font-bold text-slate-800">
+                    {item.ubicacion || <span className="text-slate-400 italic font-medium">Sin asignar</span>}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
@@ -228,7 +233,7 @@ export default function InventarioPage() {
 
   // Modal de edición
   const [editItem, setEditItem] = useState<HardwareItem | null>(null);
-  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '', descripcion: '' });
+  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: '' }); // <--- CAMBIO: Edit state
   const [editLoading, setEditLoading] = useState(false);
 
   // Modal de borrado
@@ -280,6 +285,7 @@ export default function InventarioPage() {
       estado: item.estado,
       sku: item.sku,
       descripcion: item.descripcion ?? '',
+      ubicacion: item.ubicacion ?? '', // <--- CAMBIO: Inicializar campo
     });
     setMenuOpenId(null);
     setDetalleItem(null);
@@ -314,7 +320,9 @@ export default function InventarioPage() {
   const filteredItems = items.filter(item => {
     const matchSearch =
       item.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase()); // <--- CAMBIO: Filtrar por ubicación
+      
     const matchCat = !filterCategoria || item.categoria === filterCategoria;
     const matchEst = !filterEstado || item.estado === filterEstado;
     return matchSearch && matchCat && matchEst;
@@ -395,11 +403,11 @@ export default function InventarioPage() {
 
       {/* Búsqueda + Filtros */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por SKU o Modelo..."
+            placeholder="Buscar por SKU, Modelo o Ubicación..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
@@ -463,15 +471,95 @@ export default function InventarioPage() {
         </div>
       )}
 
-      {/* Tabla */}
-      <div className="max-w-[calc(100vw-2rem)] sm:max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+      {/* Tabla y Vistas Responsivas */}
+      <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        
+    {/* =========================================================
+        1. VISTA MÓVIL (Tarjetas tipo App) - Oculto en PC
+        ========================================================= */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {loading ? (
+            <div className="py-20 text-center text-slate-400">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3" />
+              Cargando inventario...
+            </div>
+          ) : paginatedItems.length === 0 ? (
+            <div className="py-20 text-center text-slate-400">No se encontraron equipos</div>
+          ) : (
+            paginatedItems.map((item) => (
+              <div
+                key={`mobile-${item.id}`}
+                className="p-4 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('button')) return;
+                  setDetalleItem(item);
+                }}
+              >
+                <div className="flex justify-between items-start gap-3 mb-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="rounded-xl bg-slate-100 p-2.5 text-slate-600 shrink-0">
+                      {getIconoCategoria(item.categoria)}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-900 truncate leading-tight">
+                        {item.modelo}
+                      </span>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                          {item.sku}
+                        </span>
+                        {item.ubicacion && (
+                          <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5">
+                            <MapPin className="h-3 w-3" /> {item.ubicacion}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Botón Acciones Móvil */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (menuOpenId === item.id) { setMenuOpenId(null); return; }
+                      const r = e.currentTarget.getBoundingClientRect();
+                      const menuHeight = 110; 
+                      const spaceBelow = window.innerHeight - r.bottom;
+                      setMenuPos({ 
+                        top: spaceBelow < (menuHeight + 20) ? r.top + window.scrollY - menuHeight - 8 : r.bottom + window.scrollY + 4,          
+                        right: window.innerWidth - r.right 
+                      });
+                      setMenuOpenId(item.id);
+                    }}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors shrink-0"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="flex items-center justify-between pl-13">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getBadgeClass(item.estado)}`}>
+                    {item.estado}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {item.categoria}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* =========================================================
+            2. VISTA ESCRITORIO (Tabla Tradicional) - Oculto en Móvil
+            ========================================================= */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
               <tr>
                 <th className="px-6 py-4 text-slate-900">Equipo / Modelo</th>
-                <th className="px-6 py-4 hidden sm:table-cell">SKU</th>
-                <th className="px-6 py-4 hidden md:table-cell">Categoría</th>
+                <th className="px-6 py-4">SKU</th>
+                <th className="px-6 py-4">Categoría</th>
+                <th className="px-6 py-4">Ubicación</th>
                 <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
@@ -479,22 +567,21 @@ export default function InventarioPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-400">
+                  <td colSpan={6} className="py-20 text-center text-slate-400">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
                     Cargando inventario...
                   </td>
                 </tr>
               ) : paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-400">No se encontraron equipos</td>
+                  <td colSpan={6} className="py-20 text-center text-slate-400">No se encontraron equipos</td>
                 </tr>
               ) : (
                 paginatedItems.map((item) => (
                   <tr
-                    key={item.id}
+                    key={`desktop-${item.id}`}
                     className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                     onClick={(e) => {
-                      // No abrir detalle si se hizo click en el botón de acciones
                       if ((e.target as HTMLElement).closest('button')) return;
                       setDetalleItem(item);
                     }}
@@ -506,42 +593,39 @@ export default function InventarioPage() {
                         </div>
                         <div className="flex flex-col">
                           <span className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{item.modelo}</span>
-                          <span className="text-[10px] font-mono text-slate-400 sm:hidden">{item.sku}</span>
                           {item.descripcion && (
-                            <span className="text-[11px] text-slate-400 truncate max-w-200px hidden sm:block">{item.descripcion}</span>
+                            <span className="text-[11px] text-slate-400 truncate max-w-50">{item.descripcion}</span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500 hidden sm:table-cell">{item.sku}</td>
-                    <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{item.categoria}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{item.sku}</td>
+                    <td className="px-6 py-4 text-slate-600">{item.categoria}</td>
+                    <td className="px-6 py-4 text-slate-500 text-xs font-semibold">
+                      {item.ubicacion ? (
+                        <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-slate-400"/> {item.ubicacion}</span>
+                      ) : (
+                        <span className="text-slate-300 italic font-normal">--</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold border ${getBadgeClass(item.estado)}`}>
                         {item.estado}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
+                      {/* Botón Acciones Desktop */}
                       <button
-                        ref={el => { btnRefs.current[item.id] = el; }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (menuOpenId === item.id) { setMenuOpenId(null); return; }
-                          
-                          const btn = btnRefs.current[item.id];
-                          if (btn) {
-                            const r = btn.getBoundingClientRect();
-                            const menuHeight = 110; 
-                            const spaceBelow = window.innerHeight - r.bottom;
-                            
-                            const shouldOpenUp = spaceBelow < (menuHeight + 20);
-                            
-                            setMenuPos({ 
-                              top: shouldOpenUp 
-                                ? r.top + window.scrollY - menuHeight - 8 
-                                : r.bottom + window.scrollY + 4,          
-                              right: window.innerWidth - r.right 
-                            });
-                          }
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const menuHeight = 110; 
+                          const spaceBelow = window.innerHeight - r.bottom;
+                          setMenuPos({ 
+                            top: spaceBelow < (menuHeight + 20) ? r.top + window.scrollY - menuHeight - 8 : r.bottom + window.scrollY + 4,          
+                            right: window.innerWidth - r.right 
+                          });
                           setMenuOpenId(item.id);
                         }}
                         className="rounded-lg p-2 hover:bg-slate-100 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
@@ -556,18 +640,16 @@ export default function InventarioPage() {
           </table>
         </div>
 
-        {/* Paginación */}
+        {/* =========================================================
+            3. PAGINACIÓN (Compartida para ambas vistas)
+            ========================================================= */}
         {!loading && filteredItems.length > ITEMS_PER_PAGE && (
-          <div className="border-t border-slate-100 px-6 py-4 flex items-center justify-between bg-slate-50/50">
-            <p className="text-xs text-slate-500 font-medium">
+          <div className="border-t border-slate-100 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+            <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
               Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> equipos
             </p>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-              >
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
@@ -575,32 +657,19 @@ export default function InventarioPage() {
                 .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
                 .reduce<(number | '...')[]>((acc, p, idx, arr) => {
                   if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                  acc.push(p);
-                  return acc;
+                  acc.push(p); return acc;
                 }, [])
                 .map((p, idx) =>
                   p === '...' ? (
                     <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
                   ) : (
-                    <button
-                      key={p}
-                      onClick={() => setCurrentPage(p as number)}
-                      className={`min-w-2rem h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        currentPage === p
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
+                    <button key={p} onClick={() => setCurrentPage(p as number)} className={`min-w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
                       {p}
                     </button>
                   )
                 )}
 
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-              >
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
@@ -745,6 +814,15 @@ export default function InventarioPage() {
                         </select>
                       </div>
                     </div>
+
+                    {/* CAMBIO: Ubicación en formulario de edición */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <MapPin className="h-3 w-3" /> Ubicación / Estante
+                      </label>
+                      <input type="text" value={editFormData.ubicacion} onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" placeholder="Ej: Pasillo A, Estante 2"/>
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         SKU <span className="text-red-500">*</span>
@@ -833,4 +911,4 @@ export default function InventarioPage() {
       </Transition>
     </div>
   );
-}
+} 

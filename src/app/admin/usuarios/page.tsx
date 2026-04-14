@@ -8,7 +8,6 @@ import {
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-// IMPORTAMOS TU NUEVO HOOK PODEROSO
 import { usePresence } from '@/hooks/usePresence';
 
 export default function UsuariosPage() {
@@ -17,7 +16,7 @@ export default function UsuariosPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // MÁGIA AQUÍ: Obtenemos los usuarios online en 1 sola línea, sin chocar con el Layout
+  // Hook de presencia (Usuarios Online)
   const onlineUsers = usePresence();
 
   // Filtros
@@ -26,10 +25,24 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     fetchUsuarios();
+
+    // 🔴 SUSCRIPCIÓN EN TIEMPO REAL (Actualiza stats y nuevos usuarios automáticamente)
+    const channel = supabase
+      .channel('usuarios_page_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+        fetchUsuarios(); // Si cambia un rol o entra un nuevo usuario
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transacciones' }, () => {
+        fetchUsuarios(); // Si alguien escanea algo, actualiza su "última actividad"
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchUsuarios = async () => {
-    setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUserId(user?.id || null);
 
@@ -67,8 +80,8 @@ export default function UsuariosPage() {
   const cambiarRol = async (userId: string, nuevoRol: string) => {
     setUpdatingId(userId);
     const { error } = await supabase.from('perfiles').update({ rol: nuevoRol }).eq('id', userId);
-    if (!error) await fetchUsuarios();
-    else alert('No se pudo actualizar el rol: ' + error.message);
+    if (error) alert('No se pudo actualizar el rol: ' + error.message);
+    // No necesitamos llamar a fetchUsuarios() aquí porque el realtime lo hará por nosotros
     setUpdatingId(null);
   };
 
@@ -90,21 +103,17 @@ export default function UsuariosPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-2 px-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          Gestión de Usuarios
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Controla el acceso y monitorea la actividad del personal en tiempo real.
-        </p>
+    <div className="space-y-6 relative">
+      {/* Header unificado con las demás vistas */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
+        <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal en tiempo real.</p>
       </div>
 
-      {/* Búsqueda + Filtros */}
+      {/* Barra de herramientas */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
         {/* Buscador */}
-        <div className="relative max-w-sm w-full">
+        <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -116,16 +125,16 @@ export default function UsuariosPage() {
         </div>
 
         {/* Filtro por rol */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
           {roles.map(rol => (
             <button
               key={rol}
               onClick={() => setFilterRol(rol)}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${rolChipClass(rol, filterRol === rol)}`}
+              className={`whitespace-nowrap flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${rolChipClass(rol, filterRol === rol)}`}
             >
-              {rol === 'ADMIN' && <ShieldCheck className="h-3 w-3" />}
-              {rol === 'OPERADOR' && <CheckCircle2 className="h-3 w-3" />}
-              {rol === 'PENDIENTE' && <Clock className="h-3 w-3" />}
+              {rol === 'ADMIN' && <ShieldCheck className="h-3.5 w-3.5" />}
+              {rol === 'OPERADOR' && <CheckCircle2 className="h-3.5 w-3.5" />}
+              {rol === 'PENDIENTE' && <Clock className="h-3.5 w-3.5" />}
               {rol === 'TODOS' ? 'Todos' : rol}
             </button>
           ))}
@@ -133,131 +142,123 @@ export default function UsuariosPage() {
 
         {/* Contador */}
         {!loading && (
-          <span className="ml-auto text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-1.5 rounded-full">
-            {filteredUsuarios.length}
-            {filteredUsuarios.length !== usuarios.length && ` de ${usuarios.length}`} usuario{filteredUsuarios.length !== 1 ? 's' : ''}
+          <span className="ml-auto text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-1.5 rounded-full whitespace-nowrap">
+            {filteredUsuarios.length} de {usuarios.length} usu.
           </span>
         )}
       </div>
 
-      {/* Grid de usuarios */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Grid de usuarios (Alineado a 3 columnas en pantallas grandes) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          <div className="col-span-full py-20 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
-            <p className="text-slate-500 font-medium">Cargando personal...</p>
+          <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+            <p className="font-medium">Cargando personal...</p>
           </div>
         ) : filteredUsuarios.length === 0 ? (
-          <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-dashed border-slate-300">
-            <Users className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+          <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+            <Users className="mx-auto h-12 w-12 text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No se encontraron usuarios.</p>
           </div>
         ) : (
           filteredUsuarios.map((perfil) => {
-            // Evaluamos si el usuario está en línea
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
 
             return (
               <div
                 key={perfil.id}
-                className={`flex flex-col rounded-3xl border bg-white p-6 shadow-sm transition-all hover:shadow-lg group ${
-                  isOnline ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-slate-200 hover:border-blue-100'
+                className={`flex flex-col rounded-3xl border bg-white p-5 shadow-sm hover:shadow-xl transition-all duration-300 group ${
+                  isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
                 }`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className={`flex h-14 w-14 items-center justify-center rounded-2xl font-bold text-xl shadow-inner ${
-                        perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {perfil.email?.substring(0, 1).toUpperCase()}
-                      </div>
-                      <span className={`absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white ${
-                        isOnline ? 'bg-emerald-500' : 'bg-slate-300'
-                      }`}>
-                        {isOnline && (
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                        )}
-                      </span>
+                <div className="flex items-start gap-4">
+                  <div className="relative shrink-0">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl font-bold text-lg shadow-inner border ${
+                      perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>
+                      {perfil.email?.substring(0, 1).toUpperCase()}
                     </div>
+                    <span className={`absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white ${
+                      isOnline ? 'bg-emerald-500' : 'bg-slate-300'
+                    }`}>
+                      {isOnline && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                      )}
+                    </span>
+                  </div>
 
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-lg truncate max-w-200px sm:max-w-xs">{perfil.email}</h3>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border ${
-                          perfil.rol === 'ADMIN'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : perfil.rol === 'OPERADOR'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
-                          {perfil.rol === 'ADMIN' && <ShieldCheck className="h-3.5 w-3.5" />}
-                          {perfil.rol === 'OPERADOR' && <CheckCircle2 className="h-3.5 w-3.5" />}
-                          {perfil.rol === 'PENDIENTE' && <Clock className="h-3.5 w-3.5" />}
-                          {perfil.rol}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-900 text-base truncate">{perfil.email}</h3>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${
+                        perfil.rol === 'ADMIN'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : perfil.rol === 'OPERADOR'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {perfil.rol}
+                      </span>
+                      {isOnline && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50">
+                          En línea
                         </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          isOnline
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-slate-50 text-slate-400 border border-slate-200'
-                        }`}>
-                          {isOnline ? '● En línea' : '○ Desconectado'}
-                        </span>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center gap-4 text-xs bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
-                  <div className="flex flex-1 flex-col gap-1">
-                    <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                      <Package className="h-3.5 w-3.5" /> Equipos procesados
+                <div className="mt-5 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Package className="h-3 w-3" /> Movi.
                     </span>
-                    <span className="font-bold text-slate-900 text-base">{perfil.totalMovimientos}</span>
+                    <span className="font-bold text-slate-800">{perfil.totalMovimientos}</span>
                   </div>
-                  <div className="h-10 w-px bg-slate-200" />
-                  <div className="flex flex-1 flex-col gap-1">
-                    <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5" /> Último escaneo
+                  <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-3">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Activity className="h-3 w-3" /> Actividad
                     </span>
-                    <span className="font-bold text-slate-900">
+                    <span className="font-bold text-slate-800 truncate">
                       {perfil.ultimaActividad
                         ? format(new Date(perfil.ultimaActividad), "d MMM, HH:mm", { locale: es })
-                        : 'Sin actividad'}
+                        : 'Nunca'}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-end gap-2">
-                  <p className="mr-auto text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 hidden sm:block">
-                    ID: {perfil.id.substring(0, 8)}...
+                <div className="mt-4 flex items-center justify-between border-t border-slate-50 pt-4">
+                  <p className="text-[9px] font-mono font-bold text-slate-300">
+                    ID: {perfil.id.substring(0, 8)}
                   </p>
-                  {perfil.id === currentUserId ? (
-                    <span className="rounded-xl px-4 py-2 text-xs font-bold text-slate-400 bg-slate-50 border border-slate-100">
-                      Tu cuenta
-                    </span>
-                  ) : (
-                    <>
-                      {perfil.rol !== 'OPERADOR' && (
-                        <button
-                          disabled={updatingId === perfil.id}
-                          onClick={() => cambiarRol(perfil.id, 'OPERADOR')}
-                          className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-transparent hover:border-emerald-100 disabled:opacity-50"
-                        >
-                          Hacer Operador
-                        </button>
-                      )}
-                      {perfil.rol !== 'ADMIN' && (
-                        <button
-                          disabled={updatingId === perfil.id}
-                          onClick={() => cambiarRol(perfil.id, 'ADMIN')}
-                          className="rounded-xl px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-transparent hover:border-blue-100 disabled:opacity-50"
-                        >
-                          Hacer Admin
-                        </button>
-                      )}
-                    </>
-                  )}
+                  <div className="flex gap-2">
+                    {perfil.id === currentUserId ? (
+                      <span className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
+                        Tu cuenta
+                      </span>
+                    ) : (
+                      <>
+                        {perfil.rol !== 'OPERADOR' && (
+                          <button
+                            disabled={updatingId === perfil.id}
+                            onClick={() => cambiarRol(perfil.id, 'OPERADOR')}
+                            className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
+                          >
+                            Hacer Operador
+                          </button>
+                        )}
+                        {perfil.rol !== 'ADMIN' && (
+                          <button
+                            disabled={updatingId === perfil.id}
+                            onClick={() => cambiarRol(perfil.id, 'ADMIN')}
+                            className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
+                          >
+                            Hacer Admin
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -266,12 +267,12 @@ export default function UsuariosPage() {
       </div>
 
       {/* Info niveles */}
-      <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-5 mt-8">
+      <div className="flex items-start gap-3 rounded-3xl bg-blue-50 border border-blue-100 p-5 mt-8">
         <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
           <h4 className="text-sm font-bold text-blue-900">Niveles de Acceso</h4>
           <p className="text-xs font-medium text-blue-700 mt-1 opacity-90 leading-relaxed">
-            Los Administradores pueden ver estadísticas y modificar configuraciones. Los Operadores solo tienen acceso a la herramienta de escaneo de bodega.
+            Los <strong>Administradores</strong> pueden ver estadísticas y modificar configuraciones. Los <strong>Operadores</strong> solo tienen acceso a la herramienta de escaneo de bodega.
           </p>
         </div>
       </div>
