@@ -178,10 +178,10 @@ export default function GenerarQRPage() {
             display: block !important;
           }
 
-          /* Forzamos el salto directo en la etiqueta */
+          /* CLASE CORREGIDA: Forzamos el salto directo en la etiqueta */
           .etiqueta {
             height: 100vh;
-            width: 100%;
+            width: 100;
             display: flex !important;
             flex-direction: column;
             justify-content: center;
@@ -212,15 +212,10 @@ export default function GenerarQRPage() {
         <div className="print-only">
           {listaImpresion.map((eq) => (
             <div key={eq.id} className="etiqueta">
-            {/* QR */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 0 }}>
-              <QRCodeSVG 
-                value={eq.sku} 
-                level="H" 
-                includeMargin={false} 
-                style={{ width: '100%', height: '100%', objectFit: 'contain', margin: '0 auto' }} 
-              />
-            </div>
+              {/* QR */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 0 }}>
+                <QRCodeSVG value={eq.sku} level="H" includeMargin={false} style={{ width: '100%', height: '100%' }} />
+              </div>
               {/* Textos */}
               <div style={{ flexShrink: 0, textAlign: 'center', width: '100%', marginTop: '2mm' }}>
                 <p style={{ color: 'black', fontSize: 'clamp(14px, 5vw, 48px)', fontWeight: 900, margin: 0, lineHeight: 1.1, letterSpacing: '0.05em' }}>{eq.sku}</p>
@@ -235,36 +230,27 @@ export default function GenerarQRPage() {
       {/* UI PANTALLA */}
       <div className="screen-only max-w-5xl mx-auto space-y-8">
 
-      {/* Buscador */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Generador de Etiquetas QR
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Busca un equipo por SKU o selecciónalo desde el listado.
-        </p>
-
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <div className="relative w-full sm:flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Ingresa SKU (ej: LAP-1234)"
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-semibold"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && buscarEquipo()}
-            />
+        {/* Buscador */}
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+          <h1 className="text-2xl font-bold text-slate-900">Generador de Etiquetas QR</h1>
+          <p className="text-slate-500 text-sm mt-1">Busca un equipo por SKU o selecciónalo desde el listado.</p>
+          <div className="mt-6 flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Ingresa SKU (ej: LAP-1234)"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-semibold"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && buscarEquipo()}
+              />
+            </div>
+            <button onClick={buscarEquipo} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all cursor-pointer text-sm">
+              Buscar
+            </button>
           </div>
-
-          <button
-            onClick={buscarEquipo}
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all cursor-pointer text-sm"
-          >
-            Buscar
-          </button>
         </div>
-      </div>
 
         {/* Vista previa — solo modo individual */}
         {!multiMode && item && (
@@ -348,7 +334,7 @@ export default function GenerarQRPage() {
           )}
 
           {/* Búsqueda */}
-          <div className="relative w-full sm:max-w-sm">
+          <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"

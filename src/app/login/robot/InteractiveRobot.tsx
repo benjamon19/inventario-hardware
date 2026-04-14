@@ -56,7 +56,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const stopSpeaking = () => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     setShowSpeech(false);
-    setSpeech('');
   };
 
   const speak = (text: string, persist = false) => {
@@ -72,7 +71,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
         } else if (!persist) {
           typingTimeoutRef.current = setTimeout(() => {
             setShowSpeech(false);
-            setSpeech('');
           }, 4000);
         }
       };
@@ -284,7 +282,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
           }
         });
         setShowSpeech(false);
-        setSpeech('');
         tl.to(bodyWrapperRef.current, { y: 20, scaleY: 0.6, scaleX: 1.3, duration: 0.3, ease: 'power2.out' })
           .to(eyesRef.current, { scaleY: 0.2, scaleX: 1.5, duration: 0.1 }, '<')
           .to(antennaLightRef.current, { fill: '#EF4444', duration: 0.1 }, '<')
