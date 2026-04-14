@@ -165,7 +165,8 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       if (isSuccessRef.current) return;
       stopSpeaking();
       if (window.innerWidth < 768) {
-        gsap.to(containerRef.current, { y: 145, duration: 0.4, ease: 'power2.out' });
+        const isTiny = window.innerWidth <= 390;
+        gsap.to(containerRef.current, { y: isTiny ? 90 : 145, duration: 0.4, ease: 'power2.out' });
       }
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, handsRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
@@ -187,7 +188,8 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       if (isSuccessRef.current) return;
       stopSpeaking();
       if (window.innerWidth < 768) {
-        gsap.to(containerRef.current, { y: 250, duration: 0.4, ease: 'power2.out' });
+        const isTiny = window.innerWidth <= 390;
+        gsap.to(containerRef.current, { y: isTiny ? 140 : 250, duration: 0.4, ease: 'power2.out' });
       }
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
@@ -291,19 +293,12 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     }
   }));
 
-  // ── Lógica del pill ──
-  // En móvil, si el texto supera el umbral se permite wrap (2 líneas, ancho máximo)
-  // En desktop siempre una línea
   const isLongOnMobile = isMobile && speech.length > MOBILE_WRAP_THRESHOLD;
 
   return (
-    <div ref={containerRef} className="absolute -top-27.5 md:-top-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
+    // Agregamos max-[390px]:-top-20 para que no quede tan arriba al ser más chico
+    <div ref={containerRef} className="absolute -top-24 md:-top-32 max-[390px]:-top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
 
-      {/*
-        ── PILL HORIZONTAL — siempre encima del robot ──
-        En móvil con texto largo: ancho fijo + wrap a 2 líneas con texto centrado.
-        En desktop y textos cortos: una sola línea, whitespace-nowrap.
-      */}
       <div
         className={`
           absolute bottom-full mb-3
@@ -311,20 +306,23 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
           flex items-center gap-2
           bg-white/95 backdrop-blur-sm
           border border-slate-200 shadow-md
-          rounded-2xl px-4 py-2
+          rounded-2xl px-3 py-1.5 md:px-4 md:py-2
           transition-all duration-300 origin-bottom
-          ${isLongOnMobile ? 'w-56 whitespace-normal text-center' : 'whitespace-nowrap'}
+          ${isLongOnMobile ? 'w-48 md:w-52 whitespace-normal text-center' : 'whitespace-nowrap'}
           ${showSpeech ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95'}
         `}
       >
         <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
-        <p className="text-slate-700 font-bold text-[10px] md:text-[11px] tracking-wide leading-snug">
+        <p className="text-slate-700 font-bold text-[9px] md:text-[11px] tracking-wide leading-snug">
           {speech}<span className="text-sky-500 animate-pulse">▍</span>
         </p>
       </div>
 
-      <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-24 h-4 bg-black/20 rounded-full blur-md" />
-      <svg ref={robotRef} viewBox="0 0 128 128" className="w-40 h-40 md:w-52 md:h-52 drop-shadow-2xl overflow-visible" xmlns="http://www.w3.org/2000/svg">
+      {/* Sombra más chica en max-[390px] */}
+      <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-20 h-3 md:w-24 md:h-4 max-[390px]:w-14 max-[390px]:h-2 bg-black/20 rounded-full blur-md" />
+      
+      {/* Robot enano: max-[390px]:w-28 max-[390px]:h-28 */}
+      <svg ref={robotRef} viewBox="0 0 128 128" className="w-36 h-36 md:w-44 md:h-44 max-[390px]:w-28 max-[390px]:h-28 drop-shadow-2xl overflow-visible" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="antennaGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
