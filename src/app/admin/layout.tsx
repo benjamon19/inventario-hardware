@@ -65,10 +65,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-white">
       <div className="flex h-24 shrink-0 items-center gap-3 px-6 pt-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200">
           <Package className="h-5 w-5" />
         </div>
-        <span className="font-extrabold tracking-tight text-slate-900 text-xl">Bodega Área Informática</span>
+        {/* AQUÍ ESTÁ EL CAMBIO: text-base en móvil, text-lg en sm, text-xl en md, y leading-tight */}
+        <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg md:text-xl leading-tight">
+          Bodega Área Informática
+        </span>
       </div>
       
       <div className="flex flex-1 flex-col justify-between overflow-y-auto">
@@ -128,7 +131,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <>
-      {/* AQUÍ INYECTAMOS LA LÓGICA DE ESCALADO RESPONSIVO */}
       <style dangerouslySetInnerHTML={{
         __html: `
           @media (max-width: 1349px) {
@@ -147,7 +149,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Transition.Child>
             <div className="fixed inset-0 flex">
               <Transition.Child as={Fragment} enter="transition ease-in-out duration-350 transform" enterFrom="-translate-x-full" enterTo="translate-x-0" leave="transition ease-in-out duration-450 transform" leaveFrom="translate-x-0" leaveTo="-translate-x-full">
-                <Dialog.Panel className="relative flex w-70 flex-col bg-white shadow-2xl overflow-hidden rounded-r-3xl">
+                {/* Cambié w-70 a w-72 para usar las medidas estándar de Tailwind (18rem) */}
+                <Dialog.Panel className="relative flex w-72 flex-col bg-white shadow-2xl overflow-hidden rounded-r-3xl">
                   <SidebarContent />
                 </Dialog.Panel>
               </Transition.Child>
@@ -155,15 +158,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Dialog>
         </Transition>
 
-        {/* CLASE AGREGADA: print:hidden para ocultar el menú lateral */}
         <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r ${currentTheme.border} ${currentTheme.card} hidden md:flex flex-col print:hidden`}>
           <SidebarContent />
         </aside>
 
-        {/* CLASE AGREGADA: print:pl-0 para quitar el margen izquierdo que dejaba el menú */}
         <div className="flex flex-1 flex-col md:pl-72 print:pl-0">
           
-          {/* CLASE AGREGADA: print:hidden para ocultar la barra superior */}
           <header className={`sticky top-0 z-40 flex h-20 items-center border-b ${currentTheme.border} ${currentTheme.card} px-4 sm:px-6 lg:px-8 print:hidden`}>
             <button
               type="button"
@@ -188,7 +188,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </header>
 
-          {/* CLASES AGREGADAS: print:p-0 print:m-0 para usar toda la hoja sin márgenes */}
           <main className="p-4 sm:p-8 print:p-0 print:m-0">
             {children}
           </main>
