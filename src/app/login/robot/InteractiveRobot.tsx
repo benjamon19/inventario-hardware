@@ -15,8 +15,11 @@ export interface RobotHandle {
   playDespedida: () => Promise<void>;
 }
 
+// Umbral de caracteres a partir del cual el pill pasa a 2 líneas en móvil
+const MOBILE_WRAP_THRESHOLD = 28;
+
 const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
-  const containerRef = useRef<HTMLDivElement>(null); 
+  const containerRef = useRef<HTMLDivElement>(null);
   const robotRef = useRef<SVGSVGElement>(null);
   const bodyWrapperRef = useRef<SVGGElement>(null);
   const eyesRef = useRef<SVGGElement>(null);
@@ -24,17 +27,24 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const leftHandRef = useRef<SVGPathElement>(null);
   const rightHandRef = useRef<SVGPathElement>(null);
   const antennaLightRef = useRef<SVGCircleElement>(null);
-  
+
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBusyRef = useRef(false);
   const hasGreetedRef = useRef(false);
-  
   const isSuccessRef = useRef(false);
 
-  // ── ESTADOS PARA EL EFECTO TIPO MÁQUINA DE ESCRIBIR ──
-  const [speech, setSpeech] = useState("");
+  const [speech, setSpeech] = useState('');
   const [showSpeech, setShowSpeech] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Detectar móvil solo en cliente
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const frasesWall = [
     "¿MUCHO INVENTARIO? DÉJAMELO A MÍ.",
@@ -46,30 +56,28 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const stopSpeaking = () => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     setShowSpeech(false);
+    setSpeech('');
   };
 
   const speak = (text: string, persist = false) => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
-
     stopSpeaking();
-    setShowSpeech(true);
-    setSpeech(""); 
-    
-    let i = 0;
-
-    const typeChar = () => {
-      if (i < text.length) {
-        setSpeech(text.substring(0, i + 1));
-        i++;
-        typingTimeoutRef.current = setTimeout(typeChar, 45); 
-      } else if (!persist) {
-        typingTimeoutRef.current = setTimeout(() => {
-          setShowSpeech(false);
-        }, 4000);
-      }
-    };
-    
-    typingTimeoutRef.current = setTimeout(typeChar, 50);
+    typingTimeoutRef.current = setTimeout(() => {
+      setShowSpeech(true);
+      let i = 0;
+      const typeChar = () => {
+        if (i < text.length) {
+          setSpeech(text.substring(0, i + 1));
+          i++;
+          typingTimeoutRef.current = setTimeout(typeChar, 45);
+        } else if (!persist) {
+          typingTimeoutRef.current = setTimeout(() => {
+            setShowSpeech(false);
+            setSpeech('');
+          }, 4000);
+        }
+      };
+      typeChar();
+    }, 80);
   };
 
   // ── ANIMACIONES IDLE ──
@@ -77,20 +85,18 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     () => {
       const phrase = frasesWall[Math.floor(Math.random() * frasesWall.length)];
       speak(phrase);
-      
       gsap.timeline()
         .to(bodyWrapperRef.current, { rotation: -3, duration: 1, ease: 'sine.inOut' })
         .to(bodyWrapperRef.current, { rotation: 3, duration: 1, ease: 'sine.inOut', yoyo: true, repeat: 1 })
         .to(bodyWrapperRef.current, { rotation: 0, duration: 1, ease: 'sine.inOut' });
-        
       gsap.to(antennaLightRef.current, { fill: '#38BDF8', duration: 0.1, repeat: phrase.length, yoyo: true });
     },
     () => {
       const tl = gsap.timeline({ onComplete: () => { isBusyRef.current = false; } });
       isBusyRef.current = true;
       tl.to(antennaLightRef.current, { fill: '#EF4444', duration: 0.05, repeat: 15, yoyo: true }, 0)
-        .to(bodyWrapperRef.current, { x: "random(-8, 8)", y: "random(-8, 8)", rotation: "random(-10, 10)", duration: 0.05, repeat: 20, yoyo: true }, 0)
-        .to(eyesRef.current, { scaleY: "random(0.1, 1.8)", scaleX: "random(0.5, 1.5)", duration: 0.1, repeat: 10, yoyo: true }, 0)
+        .to(bodyWrapperRef.current, { x: 'random(-8, 8)', y: 'random(-8, 8)', rotation: 'random(-10, 10)', duration: 0.05, repeat: 20, yoyo: true }, 0)
+        .to(eyesRef.current, { scaleY: 'random(0.1, 1.8)', scaleX: 'random(0.5, 1.5)', duration: 0.1, repeat: 10, yoyo: true }, 0)
         .to([bodyWrapperRef.current, eyesRef.current], { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, duration: 0.1 })
         .to(eyesRef.current, { rotation: 180, duration: 0.5, ease: 'power2.out' })
         .to(eyesRef.current, { rotation: 0, duration: 0.5, ease: 'back.out(2)', delay: 0.5 })
@@ -110,7 +116,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
   const scheduleIdle = () => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    const delay = 7500 + Math.random() * 7500; 
+    const delay = 7500 + Math.random() * 7500;
     idleTimerRef.current = setTimeout(() => {
       if (!isBusyRef.current) {
         const anim = idleAnimations[Math.floor(Math.random() * idleAnimations.length)];
@@ -124,14 +130,13 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     const initialGreetingTimer = setTimeout(() => {
       if (!hasGreetedRef.current && !isBusyRef.current) {
         hasGreetedRef.current = true;
-        speak("HOLA SOY WALL. POR FAVOR INICIA SESIÓN PARA COMENZAR A ORDENAR.");
-        
+        speak('HOLA SOY WALL. POR FAVOR INICIA SESIÓN PARA COMENZAR A ORDENAR.');
         gsap.timeline()
           .to(bodyWrapperRef.current, { rotation: -3, duration: 1.5, ease: 'sine.inOut' })
           .to(bodyWrapperRef.current, { rotation: 3, duration: 1.5, ease: 'sine.inOut', yoyo: true, repeat: 1 })
           .to(bodyWrapperRef.current, { rotation: 0, duration: 1, ease: 'sine.inOut' });
       }
-    }, 2250); 
+    }, 2250);
 
     scheduleIdle();
 
@@ -148,23 +153,22 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       scale: 0, rotation: 720, y: 50, duration: 1.5, ease: 'elastic.out(0.8, 0.4)'
     })
     .to(robotRef.current, {
-      y: -15, rotationY: 2, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1
-    }, "-=0.2");
+      y: -15, rotationY: 2, duration: 2, ease: 'sine.inOut', yoyo: true, repeat: -1
+    }, '-=0.2');
 
     gsap.from('.robot-shadow', { scale: 0, opacity: 0, duration: 1.5, ease: 'elastic.out(0.8, 0.4)' });
     gsap.to('.robot-shadow', {
-      scale: 0.8, opacity: 0.2, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 1.3
+      scale: 0.8, opacity: 0.2, duration: 2, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.3
     });
   });
 
   useImperativeHandle(ref, () => ({
     playFocusEmail: () => {
-      if (isSuccessRef.current) return; // Ignorar si ya inició sesión
-      stopSpeaking(); 
+      if (isSuccessRef.current) return;
+      stopSpeaking();
       if (window.innerWidth < 768) {
         gsap.to(containerRef.current, { y: 145, duration: 0.4, ease: 'power2.out' });
       }
-
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, handsRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       gsap.to([bodyWrapperRef.current, leftHandRef.current, rightHandRef.current], { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, duration: 0.2 });
@@ -174,7 +178,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     },
 
     playBlurEmail: () => {
-      if (isSuccessRef.current) return; // Candado: Evita que regrese de golpe al apretar Iniciar Sesión
+      if (isSuccessRef.current) return;
       isBusyRef.current = false;
       gsap.to(containerRef.current, { y: 0, duration: 0.4, ease: 'power2.inOut' });
       gsap.to(eyesRef.current, { y: 0, x: 0, duration: 0.3 });
@@ -187,13 +191,11 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       if (window.innerWidth < 768) {
         gsap.to(containerRef.current, { y: 250, duration: 0.4, ease: 'power2.out' });
       }
-
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       gsap.to(antennaLightRef.current, { fill: '#F59E0B', duration: 0.3 });
       gsap.to(bodyWrapperRef.current, { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, duration: 0.2 });
       gsap.to([leftHandRef.current, rightHandRef.current], { x: 0, rotation: 0, duration: 0.2 });
-
       if (isHidden) {
         gsap.to([leftHandRef.current, rightHandRef.current], { y: -44, duration: 0.4, ease: 'back.out(1.5)' });
         gsap.to(eyesRef.current, { scaleY: 0.1, rotation: 0, transformOrigin: '50% 50%', duration: 0.2 });
@@ -216,10 +218,9 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     },
 
     playBlurPassword: () => {
-      if (isSuccessRef.current) return; // Candado: Evita que regrese al quitar el teclado tras darle a Enter/Submit
+      if (isSuccessRef.current) return;
       isBusyRef.current = false;
       gsap.to(containerRef.current, { y: 0, duration: 0.4, ease: 'power2.inOut' });
-
       gsap.to([leftHandRef.current, rightHandRef.current], { y: 0, x: 0, rotation: 0, duration: 0.4, ease: 'power3.inOut' });
       gsap.to(eyesRef.current, { scaleY: 1, scaleX: 1, y: 0, x: 0, rotation: 0, transformOrigin: '50% 50%', duration: 0.2 });
       gsap.to(antennaLightRef.current, { fill: '#10B981', duration: 0.3 });
@@ -227,28 +228,22 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
     playError: () => {
       stopSpeaking();
-      isSuccessRef.current = false; // Por si acaso
-      // Solo en error lo regresamos a su posición normal si estaba abajo por el teclado
-      gsap.to(containerRef.current, { y: 0, duration: 0.3 }); 
-
+      isSuccessRef.current = false;
+      gsap.to(containerRef.current, { y: 0, duration: 0.3 });
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
       gsap.to(antennaLightRef.current, { fill: '#EF4444', duration: 0.2 });
-
       gsap.to(bodyWrapperRef.current, {
         x: 12, duration: 0.05, ease: 'none', yoyo: true, repeat: 9,
         onComplete: () => { gsap.to(bodyWrapperRef.current, { x: 0, duration: 0.1 }); }
       });
-
       gsap.timeline()
         .to(eyesRef.current, { scaleY: 0.4, scaleX: 1.2, transformOrigin: '50% 50%', duration: 0.15 })
         .to(eyesRef.current, { scaleY: 0.4, scaleX: 1.2, duration: 0.6 })
         .to(eyesRef.current, { scaleY: 1, scaleX: 1, duration: 0.3 });
-
       gsap.timeline()
         .to([leftHandRef.current, rightHandRef.current], { y: -20, rotation: -5, duration: 0.2, ease: 'power2.out' })
         .to([leftHandRef.current, rightHandRef.current], { y: 0, rotation: 0, duration: 0.4, ease: 'bounce.out', delay: 0.3 });
-
       gsap.to(antennaLightRef.current, {
         fill: '#10B981', duration: 0.5, delay: 1.5,
         onComplete: () => { isBusyRef.current = false; }
@@ -257,29 +252,22 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
 
     playSuccess: () => {
       isSuccessRef.current = true;
-      
-      gsap.killTweensOf(containerRef.current); 
+      gsap.killTweensOf(containerRef.current);
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
-      
-      speak("¡ACCESO CONCEDIDO! INICIANDO SISTEMA...", true); 
-      
+      speak('¡ACCESO CONCEDIDO! INICIANDO SISTEMA...', true);
       gsap.to(antennaLightRef.current, { fill: '#10B981', duration: 0.3 });
-
       gsap.timeline()
         .to(bodyWrapperRef.current, { y: -30, duration: 0.3, ease: 'power2.out' })
         .to(bodyWrapperRef.current, { y: 0, duration: 0.4, ease: 'bounce.out' });
-
       gsap.timeline()
         .to(eyesRef.current, { scaleY: 1.3, scaleX: 1.1, transformOrigin: '50% 50%', duration: 0.2 })
         .to(eyesRef.current, { scaleY: 1.3, scaleX: 1.1, duration: 0.5 })
         .to(eyesRef.current, { scaleY: 1, scaleX: 1, duration: 0.3 });
-
       gsap.timeline()
         .to([leftHandRef.current, rightHandRef.current], { y: -60, rotation: 0, duration: 0.3, ease: 'back.out(2)' })
         .to([leftHandRef.current, rightHandRef.current], { y: -55, duration: 0.15, yoyo: true, repeat: 3 })
         .to([leftHandRef.current, rightHandRef.current], { y: 0, duration: 0.5, ease: 'power3.inOut', delay: 0.3 });
-
       gsap.timeline()
         .to(bodyWrapperRef.current, { rotation: -8, duration: 0.2, ease: 'power1.out' })
         .to(bodyWrapperRef.current, { rotation: 8, duration: 0.2, ease: 'power1.inOut' })
@@ -289,46 +277,53 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     playDespedida: () => {
       return new Promise<void>((resolve) => {
         isBusyRef.current = true;
-        const tl = gsap.timeline({ 
+        const tl = gsap.timeline({
           onComplete: () => {
             if (containerRef.current) containerRef.current.style.display = 'none';
             resolve();
-          } 
+          }
         });
-        
         setShowSpeech(false);
-
-        tl.to(bodyWrapperRef.current, { y: 20, scaleY: 0.6, scaleX: 1.3, duration: 0.3, ease: "power2.out" })
-          .to(eyesRef.current, { scaleY: 0.2, scaleX: 1.5, duration: 0.1 }, "<") 
-          .to(antennaLightRef.current, { fill: '#EF4444', duration: 0.1 }, "<") 
-          // Despega desde donde sea que esté en ese momento
-          .to(robotRef.current, { y: -1000, scaleY: 1.5, scaleX: 0.5, duration: 0.6, ease: "back.in(1.5)" })
-          .to('.robot-shadow', { opacity: 0, scale: 0, duration: 0.3 }, "-=0.5");
+        setSpeech('');
+        tl.to(bodyWrapperRef.current, { y: 20, scaleY: 0.6, scaleX: 1.3, duration: 0.3, ease: 'power2.out' })
+          .to(eyesRef.current, { scaleY: 0.2, scaleX: 1.5, duration: 0.1 }, '<')
+          .to(antennaLightRef.current, { fill: '#EF4444', duration: 0.1 }, '<')
+          .to(robotRef.current, { y: -1000, scaleY: 1.5, scaleX: 0.5, duration: 0.6, ease: 'back.in(1.5)' })
+          .to('.robot-shadow', { opacity: 0, scale: 0, duration: 0.3 }, '-=0.5');
       });
     }
   }));
 
+  // ── Lógica del pill ──
+  // En móvil, si el texto supera el umbral se permite wrap (2 líneas, ancho máximo)
+  // En desktop siempre una línea
+  const isLongOnMobile = isMobile && speech.length > MOBILE_WRAP_THRESHOLD;
+
   return (
     <div ref={containerRef} className="absolute -top-27.5 md:-top-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
-      
-      {/* ── CUADRO DE TEXTO ESTILO NUBE (Oculto en móvil con hidden md:block) ── */}
-      <div 
-        className={`hidden md:block absolute bottom-full mb-10 left-1/2 -translate-x-1/2 w- 240px z-50 transition-all duration-300 origin-bottom drop-shadow-[0_8px_16px_rgba(0,0,0,0.08)]
-        ${showSpeech ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}
-      >
-        <div className="relative bg-white px-6 py-5 rounded-[40px] text-center">
-          <div className="absolute -top-5 left-8 w-16 h-16 bg-white rounded-full"></div>
-          <div className="absolute -top-8 right-10 w-20 h-20 bg-white rounded-full"></div>
-          
-          <div className="relative z-10 text-slate-700 font-bold text-xs leading-relaxed flex items-center justify-center min-h-40px">
-            <p>
-              {speech}<span className="text-sky-500 animate-pulse text-sm">_</span>
-            </p>
-          </div>
-        </div>
 
-        <div className="absolute -bottom-4 left-[42%] w-6 h-6 bg-white rounded-full"></div>
-        <div className="absolute -bottom-8 left-[48%] w-3 h-3 bg-white rounded-full"></div>
+      {/*
+        ── PILL HORIZONTAL — siempre encima del robot ──
+        En móvil con texto largo: ancho fijo + wrap a 2 líneas con texto centrado.
+        En desktop y textos cortos: una sola línea, whitespace-nowrap.
+      */}
+      <div
+        className={`
+          absolute bottom-full mb-3
+          left-1/2 -translate-x-1/2
+          flex items-center gap-2
+          bg-white/95 backdrop-blur-sm
+          border border-slate-200 shadow-md
+          rounded-2xl px-4 py-2
+          transition-all duration-300 origin-bottom
+          ${isLongOnMobile ? 'w-56 whitespace-normal text-center' : 'whitespace-nowrap'}
+          ${showSpeech ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95'}
+        `}
+      >
+        <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
+        <p className="text-slate-700 font-bold text-[10px] md:text-[11px] tracking-wide leading-snug">
+          {speech}<span className="text-sky-500 animate-pulse">▍</span>
+        </p>
       </div>
 
       <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-24 h-4 bg-black/20 rounded-full blur-md" />
@@ -342,23 +337,19 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
             <stop offset="0%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#D97706" />
           </linearGradient>
         </defs>
-        
         <g ref={bodyWrapperRef} style={{ transformOrigin: '64px 100px' }}>
           <line x1="64" y1="36" x2="64" y2="12" stroke="#94A3B8" strokeWidth="4" strokeLinecap="round" />
           <circle ref={antennaLightRef} cx="64" cy="12" r="6" fill="#10B981" />
           <circle cx="64" cy="12" r="12" fill="url(#antennaGlow)" opacity="0.4" />
-          
           <rect x="24" y="36" width="80" height="64" rx="16" fill="url(#bodyGradient)" />
           <rect x="34" y="88" width="60" height="12" rx="4" fill="#B45309" />
           <rect x="34" y="48" width="60" height="34" rx="8" fill="#0F172A" />
-          
           <g ref={eyesRef}>
             <circle cx="48" cy="65" r="7" fill="#38BDF8" />
             <circle cx="46" cy="63" r="2" fill="#FFFFFF" opacity="0.9" />
             <circle cx="80" cy="65" r="7" fill="#38BDF8" />
             <circle cx="78" cy="63" r="2" fill="#FFFFFF" opacity="0.9" />
           </g>
-          
           <g ref={handsRef}>
             <path ref={leftHandRef} d="M 20 100 Q 20 85 36 85 L 50 85 Q 56 85 56 95 L 56 112 Q 56 120 48 120 L 28 120 Q 20 120 20 112 Z" fill="#FCD34D" style={{ transformOrigin: '38px 100px' }} />
             <path ref={rightHandRef} d="M 108 100 Q 108 85 92 85 L 78 85 Q 72 85 72 95 L 72 112 Q 72 120 80 120 L 100 120 Q 108 120 108 112 Z" fill="#FCD34D" style={{ transformOrigin: '90px 100px' }} />

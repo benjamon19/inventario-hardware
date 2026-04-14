@@ -90,7 +90,7 @@ export default function ActividadPage() {
   );
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-6 relative">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Historial de Actividad</h1>
