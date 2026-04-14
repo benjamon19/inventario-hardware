@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ScanLine, 
@@ -33,12 +33,39 @@ export default function OperatorPage() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
+  // Referencia al input para controlarlo programáticamente
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Emitimos presencia en tiempo real
   usePresence();
 
   useEffect(() => {
     fetchMyActivity();
   }, []);
+
+  // 1. AUTO-FOCUS: Poner el cursor en el input apenas se abre o se vuelve a escanear
+  useEffect(() => {
+    if (isScanning && !selectedItem) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isScanning, selectedItem]);
+
+  // 2. AUTO-SUBMIT: Vigilar si el texto cumple con el formato de SKU
+  useEffect(() => {
+    // Expresión regular: 2 a 5 letras/números, un guion, y 4 números (Ej: LAP-1234, MON-0001)
+    const skuValido = /^[A-Z0-9]{2,5}-\d{4}$/i.test(manualSku.trim());
+    
+    if (skuValido) {
+      // Pequeño delay de 150ms por si la pistola física manda un "Enter" natural después
+      const timer = setTimeout(() => {
+        processSku(manualSku.trim().toUpperCase());
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [manualSku]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -63,6 +90,11 @@ export default function OperatorPage() {
   };
 
   const processSku = async (sku: string) => {
+    if (!sku) return;
+
+    // 3. AUTO-OCULTAR TECLADO: Quitamos el foco del input
+    inputRef.current?.blur();
+    
     setLoading(true);
     setStatusMsg(null);
     
@@ -79,6 +111,8 @@ export default function OperatorPage() {
       setSelectedItem(item);
       setIsScanning(false);
     }
+    
+    setManualSku(''); // Limpiamos el input para el siguiente escaneo
     setLoading(false);
   };
 
@@ -163,7 +197,7 @@ export default function OperatorPage() {
                 }`}>
                   ESTADO: {selectedItem.estado}
                 </span>
-                <button onClick={() => { setIsScanning(true); setSelectedItem(null); }} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                <button onClick={() => { setIsScanning(true); setSelectedItem(null); setManualSku(''); }} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -196,12 +230,13 @@ export default function OperatorPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input 
+                ref={inputRef}
                 type="text" 
-                placeholder="O ingresar SKU manualmente..."
+                placeholder="Pistola láser o ingreso manual..."
                 value={manualSku}
                 onChange={(e) => setManualSku(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 transition-all shadow-sm"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
               />
               {loading && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-blue-500" />}
             </div>
