@@ -9,18 +9,19 @@ import {
 } from 'recharts';
 import { InventoryTransaction } from '@/types';
 
-// Paleta de colores consistente
+// ACTULIZADO: Los nombres aquí deben coincidir EXACTAMENTE con tu base de datos
 const COLORS_ESTADOS = {
   'DISPONIBLE': '#10b981', 
   'EN_USO': '#3b82f6',     
-  'EN_REPARACION': '#f59e0b', 
-  'DE_BAJA': '#ef4444'     
+  'EN_MANTENCION': '#f59e0b', // Cambiado de EN_REPARACION
+  'DADO_DE_BAJA': '#ef4444'   // Cambiado de DE_BAJA
 };
 const COLORS_CATEGORIAS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#0ea5e9'];
 
 export default function AdminDashboard() {
   const [recentTransactions, setRecentTransactions] = useState<InventoryTransaction[]>([]);
-  const [chartMovimientos, setChartMovimientos] = useState<any[]>([]);
+  // NUEVO: Estado para el gráfico principal cruzado
+  const [distribucionData, setDistribucionData] = useState<any[]>([]);
   const [estadoData, setEstadoData] = useState<any[]>([]);
   const [categoriaData, setCategoriaData] = useState<any[]>([]);
 
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
     { name: 'Total Equipos', value: '0', icon: Box, color: 'text-slate-600', bg: 'bg-slate-100' },
     { name: 'Disponibles', value: '0', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { name: 'En Uso', value: '0', icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { name: 'En Reparación', value: '0', icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { name: 'En Mantención', value: '0', icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
     { name: 'Dados de Baja', value: '0', icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
     { name: 'Movimientos Hoy', value: '0', icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
   ]);
@@ -50,8 +51,9 @@ export default function AdminDashboard() {
         supabase.from('hardware').select('*', { count: 'exact', head: true }),
         supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DISPONIBLE'),
         supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_USO'),
-        supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_REPARACION'),
-        supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DE_BAJA'),
+        // ACTUALIZADO: Consultas ajustadas a los textos literales de tu BD
+        supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_MANTENCION'),
+        supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DADO_DE_BAJA'),
         supabase.from('transacciones').select('id').gte('timestamp', `${hoy}T00:00:00Z`),
         supabase.from('transacciones').select('*').order('timestamp', { ascending: false }).limit(8),
         supabase.from('hardware').select('estado, categoria')
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
         { name: 'Total Equipos', value: String(totalHardware || 0), icon: Box, color: 'text-slate-600', bg: 'bg-slate-100' },
         { name: 'Disponibles', value: String(disponibles || 0), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         { name: 'En Uso', value: String(enUso || 0), icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { name: 'En Reparación', value: String(enReparacion || 0), icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { name: 'En Mantención', value: String(enReparacion || 0), icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
         { name: 'Dados de Baja', value: String(deBaja || 0), icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
         { name: 'Movimientos Hoy', value: String(movsHoy?.length || 0), icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
       ]);
@@ -69,13 +71,27 @@ export default function AdminDashboard() {
       if (ultimasTx) setRecentTransactions(ultimasTx);
 
       if (allHardware) {
-        const conteoEstados = { DISPONIBLE: 0, EN_USO: 0, EN_REPARACION: 0, DE_BAJA: 0 };
+        // ACTUALIZADO: Keys coincidentes con la BD
+        const conteoEstados = { DISPONIBLE: 0, EN_USO: 0, EN_MANTENCION: 0, DADO_DE_BAJA: 0 };
         const conteoCategorias: Record<string, number> = {};
+        const distribucionCat: Record<string, any> = {};
 
         allHardware.forEach(item => {
+          // Llenar datos para la torta
           if (item.estado in conteoEstados) conteoEstados[item.estado as keyof typeof conteoEstados]++;
+          
           const cat = item.categoria || 'Sin Categoría';
+          
+          // Llenar datos para barras de categorías simples
           conteoCategorias[cat] = (conteoCategorias[cat] || 0) + 1;
+
+          // NUEVO: Agrupar datos cruzados para el gráfico principal
+          if (!distribucionCat[cat]) {
+            distribucionCat[cat] = { name: cat, DISPONIBLE: 0, EN_USO: 0, EN_MANTENCION: 0, DADO_DE_BAJA: 0 };
+          }
+          if (item.estado in distribucionCat[cat]) {
+             distribucionCat[cat][item.estado]++;
+          }
         });
 
         setEstadoData(Object.entries(conteoEstados).map(([name, value]) => ({ name, value })));
@@ -83,15 +99,9 @@ export default function AdminDashboard() {
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
         );
+        // Guardar la data estructurada para el nuevo gráfico
+        setDistribucionData(Object.values(distribucionCat));
       }
-
-      setChartMovimientos([
-        { fecha: 'Lun', ingresos: 12, salidas: 8 },
-        { fecha: 'Mar', ingresos: 5, salidas: 15 },
-        { fecha: 'Mié', ingresos: 18, salidas: 6 },
-        { fecha: 'Jue', ingresos: 9, salidas: 11 },
-        { fecha: 'Vie', ingresos: 14, salidas: 10 },
-      ]);
     }
 
     fetchDashboardData();
@@ -121,20 +131,23 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Fila 1: Movimientos Semanales y Estado Global */}
+      {/* Fila 1: NUEVO Gráfico Apilado y Estado Global */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Ingresos vs Salidas Semanales</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Distribución de Estados por Categoría</h2>
           <div className="w-full">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartMovimientos} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={distribucionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                 <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="salidas" name="Salidas" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                {/* Barras Apiladas usando los mismos colores definidos arriba */}
+                <Bar dataKey="DISPONIBLE" name="Disponible" stackId="a" fill={COLORS_ESTADOS['DISPONIBLE']} maxBarSize={50} />
+                <Bar dataKey="EN_USO" name="En Uso" stackId="a" fill={COLORS_ESTADOS['EN_USO']} maxBarSize={50} />
+                <Bar dataKey="EN_MANTENCION" name="En Mantención" stackId="a" fill={COLORS_ESTADOS['EN_MANTENCION']} maxBarSize={50} />
+                <Bar dataKey="DADO_DE_BAJA" name="Dado de Baja" stackId="a" fill={COLORS_ESTADOS['DADO_DE_BAJA']} maxBarSize={50} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
