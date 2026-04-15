@@ -8,7 +8,7 @@ import {
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
   X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle,
   ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight,
-  MapPin // <--- CAMBIO: Nuevo icono
+  MapPin
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import NuevoEquipoModal from './NuevoEquipoModal';
@@ -22,7 +22,7 @@ type HardwareItem = {
   modelo: string;
   categoria: string;
   estado: string;
-  ubicacion?: string; // <--- CAMBIO: Agregado a la interfaz
+  ubicacion?: string;
   descripcion?: string;
   created_at?: string;
   updated_at?: string;
@@ -88,7 +88,6 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-      {/* Back button */}
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer group"
@@ -97,14 +96,11 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
         Volver al inventario
       </button>
 
-      {/* Tarjeta principal estilo producto */}
       <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        {/* Banner superior con color según estado */}
         <div className={`h-2 w-full ${dotClass}`} />
 
         <div className="p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row gap-8">
-            {/* Lado izquierdo — icono grande */}
             <div className="flex flex-col items-center gap-4 shrink-0">
               <div className="flex h-36 w-36 items-center justify-center rounded-3xl bg-slate-100 border-2 border-slate-200 text-slate-500 shadow-inner">
                 {getIconoCategoria(item.categoria, 'lg')}
@@ -115,19 +111,17 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
               </span>
             </div>
 
-            {/* Lado derecho — detalles */}
-            <div className="flex-1 space-y-6">
-              {/* Nombre y SKU */}
+            <div className="flex-1 space-y-6 min-w-0">
+              {/* ✅ FIX: min-w-0 evita desborde del contenido de texto */}
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight wrap-break-word">
                   {item.modelo}
                 </h2>
-                <p className="mt-1.5 font-mono text-sm text-slate-400 font-bold tracking-widest">
+                <p className="mt-1.5 font-mono text-sm text-slate-400 font-bold tracking-widest break-all">
                   {item.sku}
                 </p>
               </div>
 
-              {/* Grid de atributos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -136,7 +130,6 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
                   <p className="font-bold text-slate-800">{item.categoria}</p>
                 </div>
 
-                {/* CAMBIO: Ubicación mostrada en la vista de detalle */}
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-1">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     <MapPin className="h-3 w-3" /> Ubicación
@@ -164,7 +157,6 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
                 </div>
               </div>
 
-              {/* Descripción */}
               <div className="rounded-2xl border border-slate-100 p-4 space-y-2">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   <FileText className="h-3 w-3" /> Notas / Descripción
@@ -179,7 +171,6 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
           </div>
         </div>
 
-        {/* Footer con acciones */}
         <div className="border-t border-slate-100 px-6 sm:px-8 py-4 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
           <p className="text-[11px] text-slate-400 font-mono">
             Última actualización: {formatDate(item.updated_at)}
@@ -215,34 +206,26 @@ export default function InventarioPage() {
   const [filterEstado, setFilterEstado] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Categorías y estados dinámicos
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
 
-  // Modal de Nuevo Equipo & Toast de Éxito
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // Vista detalle
   const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
 
-  // Menú de acciones
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  // Modal de edición
   const [editItem, setEditItem] = useState<HardwareItem | null>(null);
-  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: '' }); // <--- CAMBIO: Edit state
+  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: '' });
   const [editLoading, setEditLoading] = useState(false);
 
-  // Modal de borrado
   const [deleteItem, setDeleteItem] = useState<HardwareItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
-
-  // Reset página al filtrar
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
 
   const fetchAll = async () => {
@@ -285,7 +268,7 @@ export default function InventarioPage() {
       estado: item.estado,
       sku: item.sku,
       descripcion: item.descripcion ?? '',
-      ubicacion: item.ubicacion ?? '', // <--- CAMBIO: Inicializar campo
+      ubicacion: item.ubicacion ?? '',
     });
     setMenuOpenId(null);
     setDetalleItem(null);
@@ -316,26 +299,42 @@ export default function InventarioPage() {
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
 
-  // Filtrado
   const filteredItems = items.filter(item => {
     const matchSearch =
       item.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase()); // <--- CAMBIO: Filtrar por ubicación
-      
+      item.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat = !filterCategoria || item.categoria === filterCategoria;
     const matchEst = !filterEstado || item.estado === filterEstado;
     return matchSearch && matchCat && matchEst;
   });
 
-  // Paginación
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const paginatedItems = filteredItems.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Si hay detalle activo, mostrar vista detalle
+  // ✅ FIX: Función de posición del menú que NO usa window.innerWidth
+  // para calcular `right`, ya que con zoom esa medida es incorrecta.
+  // En cambio usamos getBoundingClientRect() directamente.
+  const openMenu = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
+    e.stopPropagation();
+    if (menuOpenId === itemId) { setMenuOpenId(null); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    const menuHeight = 110;
+    const spaceBelow = window.innerHeight - r.bottom;
+    setMenuPos({
+      top: spaceBelow < (menuHeight + 20)
+        ? r.top + window.scrollY - menuHeight - 8
+        : r.bottom + window.scrollY + 4,
+      // ✅ FIX: Calculamos `right` desde el borde derecho del botón al borde derecho del viewport
+      // usando documentElement.clientWidth (no se ve afectado por zoom CSS)
+      right: document.documentElement.clientWidth - r.right,
+    });
+    setMenuOpenId(itemId);
+  };
+
   if (detalleItem) {
     return (
       <div className="space-y-6">
@@ -349,7 +348,6 @@ export default function InventarioPage() {
           getBadgeClass={getBadgeClass}
         />
 
-        {/* Modal borrado (puede abrirse desde el detalle) */}
         <Transition show={!!deleteItem} as={Fragment}>
           <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
@@ -386,7 +384,9 @@ export default function InventarioPage() {
   }
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-6 relative overflow-x-hidden">
+      {/* ✅ FIX: overflow-x-hidden en el wrapper de la página */}
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -403,7 +403,8 @@ export default function InventarioPage() {
 
       {/* Búsqueda + Filtros */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:flex-1 sm:max-w-sm">
+        {/* ✅ FIX: min-w-0 en el wrapper del input */}
+        <div className="relative w-full sm:flex-1 sm:max-w-sm min-w-0">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -414,7 +415,6 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* Filtro categoría */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setFilterCategoria('')}
@@ -474,9 +474,9 @@ export default function InventarioPage() {
       {/* Tabla y Vistas Responsivas */}
       <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         
-    {/* =========================================================
-        1. VISTA MÓVIL (Tarjetas tipo App) - Oculto en PC
-        ========================================================= */}
+        {/* =========================================================
+            1. VISTA MÓVIL (Tarjetas tipo App)
+            ========================================================= */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (
             <div className="py-20 text-center text-slate-400">
@@ -497,6 +497,7 @@ export default function InventarioPage() {
               >
                 <div className="flex justify-between items-start gap-3 mb-3">
                   <div className="flex items-start gap-3 min-w-0">
+                    {/* ✅ FIX: min-w-0 en el contenedor flex del texto */}
                     <div className="rounded-xl bg-slate-100 p-2.5 text-slate-600 shrink-0">
                       {getIconoCategoria(item.categoria)}
                     </div>
@@ -509,27 +510,15 @@ export default function InventarioPage() {
                           {item.sku}
                         </span>
                         {item.ubicacion && (
-                          <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5">
-                            <MapPin className="h-3 w-3" /> {item.ubicacion}
+                          <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5 truncate">
+                            <MapPin className="h-3 w-3 shrink-0" /> {item.ubicacion}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
-                  {/* Botón Acciones Móvil */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (menuOpenId === item.id) { setMenuOpenId(null); return; }
-                      const r = e.currentTarget.getBoundingClientRect();
-                      const menuHeight = 110; 
-                      const spaceBelow = window.innerHeight - r.bottom;
-                      setMenuPos({ 
-                        top: spaceBelow < (menuHeight + 20) ? r.top + window.scrollY - menuHeight - 8 : r.bottom + window.scrollY + 4,          
-                        right: window.innerWidth - r.right 
-                      });
-                      setMenuOpenId(item.id);
-                    }}
+                    onClick={(e) => openMenu(e, item.id)}
                     className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors shrink-0"
                   >
                     <MoreVertical className="h-5 w-5" />
@@ -550,7 +539,7 @@ export default function InventarioPage() {
         </div>
 
         {/* =========================================================
-            2. VISTA ESCRITORIO (Tabla Tradicional) - Oculto en Móvil
+            2. VISTA ESCRITORIO (Tabla Tradicional)
             ========================================================= */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -591,8 +580,8 @@ export default function InventarioPage() {
                         <div className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
                           {getIconoCategoria(item.categoria)}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{item.modelo}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors truncate">{item.modelo}</span>
                           {item.descripcion && (
                             <span className="text-[11px] text-slate-400 truncate max-w-50">{item.descripcion}</span>
                           )}
@@ -603,7 +592,7 @@ export default function InventarioPage() {
                     <td className="px-6 py-4 text-slate-600">{item.categoria}</td>
                     <td className="px-6 py-4 text-slate-500 text-xs font-semibold">
                       {item.ubicacion ? (
-                        <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-slate-400"/> {item.ubicacion}</span>
+                        <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-slate-400 shrink-0"/> {item.ubicacion}</span>
                       ) : (
                         <span className="text-slate-300 italic font-normal">--</span>
                       )}
@@ -614,20 +603,8 @@ export default function InventarioPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {/* Botón Acciones Desktop */}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (menuOpenId === item.id) { setMenuOpenId(null); return; }
-                          const r = e.currentTarget.getBoundingClientRect();
-                          const menuHeight = 110; 
-                          const spaceBelow = window.innerHeight - r.bottom;
-                          setMenuPos({ 
-                            top: spaceBelow < (menuHeight + 20) ? r.top + window.scrollY - menuHeight - 8 : r.bottom + window.scrollY + 4,          
-                            right: window.innerWidth - r.right 
-                          });
-                          setMenuOpenId(item.id);
-                        }}
+                        onClick={(e) => openMenu(e, item.id)}
                         className="rounded-lg p-2 hover:bg-slate-100 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
                       >
                         <MoreVertical className="h-4 w-4" />
@@ -641,7 +618,7 @@ export default function InventarioPage() {
         </div>
 
         {/* =========================================================
-            3. PAGINACIÓN (Compartida para ambas vistas)
+            3. PAGINACIÓN
             ========================================================= */}
         {!loading && filteredItems.length > ITEMS_PER_PAGE && (
           <div className="border-t border-slate-100 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
@@ -694,7 +671,12 @@ export default function InventarioPage() {
         deleteEstado={deleteEstado}
       />
 
-      {/* Dropdown portal animado (Móvil vs PC) */}
+      {/* =========================================================
+          PORTAL: Menú Dropdown / Drawer Móvil
+          ✅ FIX: Unificamos el cálculo de posición usando openMenu()
+          que usa document.documentElement.clientWidth en vez de
+          window.innerWidth, lo cual no se ve afectado por zoom CSS.
+          ========================================================= */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none">
@@ -727,17 +709,15 @@ export default function InventarioPage() {
             >
               <div
                 className="absolute bg-white shadow-2xl overflow-hidden pointer-events-auto
-                           /* MÓVIL: Drawer */
                            bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-slate-200 pb-8 pt-2 px-4
-                           /* PC: Dropdown flotante */
                            md:bottom-auto md:left-auto md:w-44 md:rounded-2xl md:border md:p-0 md:py-1.5"
                 style={
                   typeof window !== 'undefined' && window.innerWidth >= 768 
                     ? { top: menuPos.top, right: menuPos.right } 
-                    : {} 
+                    : {}
                 }
               >
-                {/* Pill de arrastre visual */}
+                {/* Pill de arrastre visual (solo móvil) */}
                 <div className="mx-auto mt-2 mb-5 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
 
                 <button
@@ -815,7 +795,6 @@ export default function InventarioPage() {
                       </div>
                     </div>
 
-                    {/* CAMBIO: Ubicación en formulario de edición */}
                     <div className="space-y-1.5">
                       <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
                         <MapPin className="h-3 w-3" /> Ubicación / Estante
@@ -886,7 +865,7 @@ export default function InventarioPage() {
         </Dialog>
       </Transition>
 
-      {/* NOTIFICACIÓN "PASTILLA" DE ÉXITO */}
+      {/* Toast de éxito */}
       <Transition
         show={showSuccessToast}
         as={Fragment}
@@ -911,4 +890,4 @@ export default function InventarioPage() {
       </Transition>
     </div>
   );
-} 
+}
