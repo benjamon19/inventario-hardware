@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Box, CheckCircle2, MonitorPlay, Wrench, Trash2, ArrowRightLeft } from 'lucide-react';
+import { 
+  Box, CheckCircle2, MonitorPlay, Wrench, Trash2, 
+  ArrowRightLeft, AlertTriangle, Info 
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -9,21 +12,20 @@ import {
 } from 'recharts';
 import { InventoryTransaction } from '@/types';
 
-// ACTULIZADO: Los nombres aquí deben coincidir EXACTAMENTE con tu base de datos
 const COLORS_ESTADOS = {
   'DISPONIBLE': '#10b981', 
   'EN_USO': '#3b82f6',     
-  'EN_MANTENCION': '#f59e0b', // Cambiado de EN_REPARACION
-  'DADO_DE_BAJA': '#ef4444'   // Cambiado de DE_BAJA
+  'EN_MANTENCION': '#f59e0b',
+  'DADO_DE_BAJA': '#ef4444'  
 };
 const COLORS_CATEGORIAS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#0ea5e9'];
 
 export default function AdminDashboard() {
   const [recentTransactions, setRecentTransactions] = useState<InventoryTransaction[]>([]);
-  // NUEVO: Estado para el gráfico principal cruzado
   const [distribucionData, setDistribucionData] = useState<any[]>([]);
   const [estadoData, setEstadoData] = useState<any[]>([]);
   const [categoriaData, setCategoriaData] = useState<any[]>([]);
+  const [stockCritico, setStockCritico] = useState<any[]>([]);
 
   const [stats, setStats] = useState([
     { name: 'Total Equipos', value: '0', icon: Box, color: 'text-slate-600', bg: 'bg-slate-100' },
@@ -51,7 +53,6 @@ export default function AdminDashboard() {
         supabase.from('hardware').select('*', { count: 'exact', head: true }),
         supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DISPONIBLE'),
         supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_USO'),
-        // ACTUALIZADO: Consultas ajustadas a los textos literales de tu BD
         supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_MANTENCION'),
         supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DADO_DE_BAJA'),
         supabase.from('transacciones').select('id').gte('timestamp', `${hoy}T00:00:00Z`),
@@ -71,10 +72,12 @@ export default function AdminDashboard() {
       if (ultimasTx) setRecentTransactions(ultimasTx);
 
       if (allHardware) {
-        // ACTUALIZADO: Keys coincidentes con la BD
         const conteoEstados = { DISPONIBLE: 0, EN_USO: 0, EN_MANTENCION: 0, DADO_DE_BAJA: 0 };
         const conteoCategorias: Record<string, number> = {};
         const distribucionCat: Record<string, any> = {};
+        
+        // Objeto temporal para calcular el stock crítico
+        const stockPorCategoria: Record<string, { total: number, disponible: number }> = {};
 
         allHardware.forEach(item => {
           // Llenar datos para la torta
@@ -82,25 +85,47 @@ export default function AdminDashboard() {
           
           const cat = item.categoria || 'Sin Categoría';
           
-          // Llenar datos para barras de categorías simples
+          // Llenar datos para barras simples
           conteoCategorias[cat] = (conteoCategorias[cat] || 0) + 1;
 
-          // NUEVO: Agrupar datos cruzados para el gráfico principal
+          // Agrupar datos para el gráfico apilado
           if (!distribucionCat[cat]) {
             distribucionCat[cat] = { name: cat, DISPONIBLE: 0, EN_USO: 0, EN_MANTENCION: 0, DADO_DE_BAJA: 0 };
           }
           if (item.estado in distribucionCat[cat]) {
              distribucionCat[cat][item.estado]++;
           }
+
+          // Preparar datos de stock para ver qué falta
+          if (!stockPorCategoria[cat]) {
+            stockPorCategoria[cat] = { total: 0, disponible: 0 };
+          }
+          stockPorCategoria[cat].total++;
+          if (item.estado === 'DISPONIBLE') {
+            stockPorCategoria[cat].disponible++;
+          }
         });
 
+        // Formatear la data para los estados y categorías generales
         setEstadoData(Object.entries(conteoEstados).map(([name, value]) => ({ name, value })));
         setCategoriaData(Object.entries(conteoCategorias)
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
         );
-        // Guardar la data estructurada para el nuevo gráfico
         setDistribucionData(Object.values(distribucionCat));
+
+        // Calcular stock crítico (categorías con menos de 5 equipos disponibles)
+        const alertas = Object.entries(stockPorCategoria)
+          .map(([name, stats]) => ({
+            name,
+            disponible: stats.disponible,
+            porcentaje: stats.total > 0 ? (stats.disponible / stats.total) * 100 : 0
+          }))
+          .filter(item => item.disponible < 5)
+          .sort((a, b) => a.disponible - b.disponible)
+          .slice(0, 4); // Tomamos solo las 4 más críticas para que entre en el panel
+
+        setStockCritico(alertas);
       }
     }
 
@@ -131,7 +156,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Fila 1: NUEVO Gráfico Apilado y Estado Global */}
+      {/* Fila 1: Gráfico Apilado y Estado Global */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Distribución de Estados por Categoría</h2>
@@ -143,7 +168,6 @@ export default function AdminDashboard() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                 <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                {/* Barras Apiladas usando los mismos colores definidos arriba */}
                 <Bar dataKey="DISPONIBLE" name="Disponible" stackId="a" fill={COLORS_ESTADOS['DISPONIBLE']} maxBarSize={50} />
                 <Bar dataKey="EN_USO" name="En Uso" stackId="a" fill={COLORS_ESTADOS['EN_USO']} maxBarSize={50} />
                 <Bar dataKey="EN_MANTENCION" name="En Mantención" stackId="a" fill={COLORS_ESTADOS['EN_MANTENCION']} maxBarSize={50} />
@@ -180,7 +204,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Fila 2: Categorías y Últimas Transacciones */}
+      {/* Fila 2: Categorías y Stock Crítico */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Equipos por Categoría</h2>
@@ -201,37 +225,54 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm h-full flex flex-col">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Actividad Reciente</h2>
-          <div className="space-y-4 flex-1">
-            {recentTransactions.length > 0 ? (
-              recentTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${tx.tipo === 'INGRESO' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                      <ArrowRightLeft className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">SKU: {tx.sku}</p>
-                      <p className="text-xs text-slate-500">
-                        {new Date(tx.timestamp).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
+        {/* Panel de Alertas de Stock Crítico */}
+        <div className="rounded-xl border border-red-100 bg-white p-6 shadow-sm h-full flex flex-col relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+            <AlertTriangle className="w-32 h-32" />
+          </div>
+          
+          <div className="flex items-center gap-2 mb-6 relative z-10">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <h2 className="text-lg font-semibold text-slate-800">Alertas de Stock Crítico</h2>
+          </div>
+          
+          <div className="flex-1 flex flex-col justify-start gap-5 relative z-10">
+            {stockCritico.length > 0 ? (
+              stockCritico.map(item => (
+                <div key={item.name}>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium text-slate-700">{item.name}</span>
+                    <span className={`font-bold ${item.disponible === 0 ? 'text-red-600' : 'text-orange-600'}`}>
+                      {item.disponible} disponibles
+                    </span>
                   </div>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                    tx.tipo === 'INGRESO' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {tx.tipo}
-                  </span>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-1000 ease-out ${item.disponible === 0 ? 'bg-red-500' : 'bg-orange-400'}`} 
+                      style={{ width: `${Math.max(item.porcentaje, 5)}%` }} // Mínimo 5% para que la barra se vea un poco aunque esté en cero
+                    ></div>
+                  </div>
                 </div>
               ))
             ) : (
-              <div className="h-full flex items-center justify-center py-10">
-                 <p className="text-slate-400 italic text-sm">No hay transacciones registradas</p>
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-2 opacity-50" />
+                  <p className="text-slate-500 font-medium text-sm">Inventario Saludable</p>
+                  <p className="text-slate-400 text-xs mt-1">Ninguna categoría tiene menos de 5 unidades.</p>
+                </div>
               </div>
             )}
+            
+            <div className="mt-auto pt-4 border-t border-slate-100">
+              <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                <Info className="h-4 w-4 shrink-0" /> 
+                Se muestran las categorías con menos de 5 equipos listos para ser asignados.
+              </p>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );

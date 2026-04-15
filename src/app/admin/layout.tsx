@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <>
       {/*
-        ✅ FIX: Se eliminó el bloque <style> con `zoom: 0.8` en móvil.
+        FIX: Se eliminó el bloque <style> con `zoom: 0.8` en móvil.
         Ese zoom desincronizaba window.innerWidth con el viewport real,
         causando que el portal del menú se posicionara fuera de pantalla
         y estirara el layout horizontalmente en dispositivos móviles.
@@ -135,7 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       */}
 
       <div className={`flex min-h-screen overflow-x-hidden ${currentTheme.background}`}>
-        {/* ✅ FIX: overflow-x-hidden en el wrapper raíz evita scroll horizontal
+        {/* FIX: overflow-x-hidden en el wrapper raíz evita scroll horizontal
             causado por cualquier elemento que se desborde del viewport */}
 
         {/* Sidebar móvil (drawer) */}
@@ -177,7 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Contenido principal */}
         <div className="flex flex-1 flex-col md:pl-72 print:pl-0 min-w-0">
-          {/* ✅ FIX: min-w-0 en el contenedor flex evita que hijos con contenido
+          {/* FIX: min-w-0 en el contenedor flex evita que hijos con contenido
               largo ignoren el límite del padre y desborden horizontalmente */}
 
           <header className={`sticky top-0 z-40 flex h-20 items-center border-b ${currentTheme.border} ${currentTheme.card} px-4 sm:px-6 lg:px-8 print:hidden`}>
@@ -190,7 +190,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
 
             <div className="flex flex-1 items-center justify-between ml-4 md:ml-0 min-w-0">
-              {/* ✅ FIX: min-w-0 + truncate asegura que el título no desborde */}
+              {/* FIX: min-w-0 + truncate asegura que el título no desborde */}
               <h2 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-slate-400 truncate pr-4 min-w-0">
                 {pathname === '/admin/configuracion' 
                   ? 'Configuración' 
@@ -206,7 +206,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </header>
 
           <main className="p-4 sm:p-8 print:p-0 print:m-0 overflow-x-hidden">
-            {/* ✅ FIX: overflow-x-hidden en main como segunda capa de protección */}
+            {/* FIX: overflow-x-hidden en main como segunda capa de protección */}
             {children}
           </main>
         </div>
