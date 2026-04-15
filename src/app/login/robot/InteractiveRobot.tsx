@@ -166,7 +166,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       stopSpeaking();
       if (window.innerWidth < 768) {
         const isTiny = window.innerWidth <= 390;
-        gsap.to(containerRef.current, { y: isTiny ? 90 : 145, duration: 0.4, ease: 'power2.out' });
+        gsap.to(containerRef.current, { y: isTiny ? 120 : 145, duration: 0.4, ease: 'power2.out' });
       }
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, handsRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;
@@ -189,7 +189,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
       stopSpeaking();
       if (window.innerWidth < 768) {
         const isTiny = window.innerWidth <= 390;
-        gsap.to(containerRef.current, { y: isTiny ? 140 : 250, duration: 0.4, ease: 'power2.out' });
+        gsap.to(containerRef.current, { y: isTiny ? 225 : 250, duration: 0.4, ease: 'power2.out' });
       }
       gsap.killTweensOf([bodyWrapperRef.current, eyesRef.current, leftHandRef.current, rightHandRef.current]);
       isBusyRef.current = true;

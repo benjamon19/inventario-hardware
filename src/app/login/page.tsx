@@ -99,7 +99,7 @@ export default function LoginPage() {
       </div>
 
       {/* Wrapper con margen superior para empujar el centro visual y acomodar al robot */}
-      <div ref={wrapperRef} className="w-full max-w-md relative z-10 mt-16 md:mt-24 max-[390px]:mt-10">
+      <div ref={wrapperRef} className="w-full max-w-md relative z-10 mt-16 md:mt-32 max-[390px]:mt-10">
         <div className={`w-full rounded-2xl border ${currentTheme.border} ${currentTheme.card} shadow-xl overflow-visible backdrop-blur-sm`}>
 
           <InteractiveRobot ref={robotRef} />
