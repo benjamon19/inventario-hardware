@@ -11,7 +11,8 @@ import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePresence } from '@/hooks/usePresence';
-import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios'; // <-- IMPORTAMOS EL ACTION AQUI
+import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
+import { registrarLog } from '@/lib/logger';
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
@@ -38,8 +39,8 @@ export default function UsuariosPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
         fetchUsuarios(); 
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transacciones' }, () => {
-        fetchUsuarios(); 
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'auditoria_logs' }, () => {
+        fetchUsuarios(); // Escuchamos cambios en la bitácora también
       })
       .subscribe();
 
@@ -63,19 +64,21 @@ export default function UsuariosPage() {
       return;
     }
 
-    const { data: transaccionesData } = await supabase
-      .from('transacciones')
-      .select('operador_id, timestamp');
+    // Buscamos la actividad desde la nueva tabla de auditoría para las stats
+    const { data: logsData } = await supabase
+      .from('auditoria_logs')
+      .select('usuario_id, created_at')
+      .eq('entidad', 'HARDWARE');
 
     const perfilesConStats = perfilesData?.map(perfil => {
-      const misMovimientos = transaccionesData?.filter(t => t.operador_id === perfil.id) || [];
+      const misMovimientos = logsData?.filter(l => l.usuario_id === perfil.id) || [];
       const ordenados = [...misMovimientos].sort((a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       return {
         ...perfil,
         totalMovimientos: misMovimientos.length,
-        ultimaActividad: ordenados.length > 0 ? ordenados[0].timestamp : null
+        ultimaActividad: ordenados.length > 0 ? ordenados[0].created_at : null
       };
     }) || [];
 
@@ -83,10 +86,29 @@ export default function UsuariosPage() {
     setLoading(false);
   };
 
-  const cambiarRol = async (userId: string, nuevoRol: string) => {
-    setUpdatingId(userId);
-    const { error } = await supabase.from('perfiles').update({ rol: nuevoRol }).eq('id', userId);
-    if (error) alert('No se pudo actualizar el rol: ' + error.message);
+  const cambiarRol = async (perfil: any, nuevoRol: string) => {
+    setUpdatingId(perfil.id);
+    
+    // 1. Actualizar en la DB
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ rol: nuevoRol })
+      .eq('id', perfil.id);
+
+    if (error) {
+      alert('No se pudo actualizar el rol: ' + error.message);
+    } else {
+      // 2. Registrar en la bitácora de auditoría
+      await registrarLog('EDITAR', 'USUARIO', perfil.id, {
+        email_afectado: perfil.email,
+        rol_anterior: perfil.rol,
+        rol_nuevo: nuevoRol
+      });
+      
+      // 3. Recarga local inmediata
+      fetchUsuarios();
+    }
+    
     setUpdatingId(null);
   };
 
@@ -95,7 +117,6 @@ export default function UsuariosPage() {
     setIsCreating(true);
     setCreateMsg(null);
 
-    // USAMOS LA NUEVA FUNCIÓN DEL SERVIDOR
     const res = await crearUsuarioDesdeAdmin(newEmail, newPassword);
 
     if (!res.success) {
@@ -104,14 +125,20 @@ export default function UsuariosPage() {
       return;
     }
 
-    setCreateMsg({ type: 'success', text: 'Usuario creado y enlazado correctamente.' });
+    // Registramos la creación en el log
+    await registrarLog('CREAR', 'USUARIO', null, {
+      email_creado: newEmail,
+      detalle: 'Usuario registrado desde panel administrativo'
+    });
+
+    setCreateMsg({ type: 'success', text: 'Usuario creado exitosamente.' });
     
     setTimeout(() => {
       setIsModalOpen(false);
       setNewEmail('');
       setNewPassword('');
       setCreateMsg(null);
-      fetchUsuarios(); // Refresca la tabla al instante
+      fetchUsuarios();
     }, 1500);
 
     setIsCreating(false);
@@ -275,7 +302,7 @@ export default function UsuariosPage() {
                         {perfil.rol !== 'OPERADOR' && (
                           <button
                             disabled={updatingId === perfil.id}
-                            onClick={() => cambiarRol(perfil.id, 'OPERADOR')}
+                            onClick={() => cambiarRol(perfil.id === perfil.id ? perfil : null, 'OPERADOR')}
                             className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
                           >
                             Hacer Operador
@@ -284,7 +311,7 @@ export default function UsuariosPage() {
                         {perfil.rol !== 'ADMIN' && (
                           <button
                             disabled={updatingId === perfil.id}
-                            onClick={() => cambiarRol(perfil.id, 'ADMIN')}
+                            onClick={() => cambiarRol(perfil, 'ADMIN')}
                             className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
                           >
                             Hacer Admin
@@ -347,21 +374,21 @@ export default function UsuariosPage() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
-                      <UserPlus className="h-6 w-6" />
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                      <UserPlus className="h-7 w-7" />
                     </div>
                     <div>
                       <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">
                         Nuevo Usuario
                       </Dialog.Title>
-                      <p className="mt-1 text-sm text-slate-500 font-medium">
+                      <p className="mt-2.5 text-sm text-slate-500 font-medium">
                         Ingresa el correo y contraseña.
                       </p>
                     </div>
                   </div>
 
-                  <form onSubmit={crearUsuario} className="space-y-4 text-left">
+                  <form onSubmit={crearUsuario} className="mt-8 space-y-4 text-left">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">Correo Electrónico</label>
                       <div className="relative">
@@ -387,7 +414,7 @@ export default function UsuariosPage() {
                           minLength={6}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-colors"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                           placeholder="Mínimo 6 caracteres"
                         />
                       </div>
