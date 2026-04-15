@@ -58,18 +58,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-white">
-      <div className="flex h-24 shrink-0 items-center gap-3 px-6 pt-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200">
-          <Package className="h-5 w-5" />
+      {/* Cabecera Sidebar: 25% más chica */}
+      <div className="flex shrink-0 items-start gap-2.5 px-3 xl:px-4 pt-4 pb-2">
+        <div className="flex h-6 w-6 xl:h-8 xl:w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-200 mt-0.5">
+          <Package className="h-3 w-3 xl:h-4 xl:w-4" />
         </div>
-        <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg md:text-xl leading-tight">
+        <span className="font-extrabold tracking-tight text-slate-900 text-xs lg:text-sm xl:text-base leading-tight wrap-break-word">
           Bodega Área Informática
         </span>
       </div>
       
-      <div className="flex flex-1 flex-col justify-between overflow-y-auto">
-        <nav className="space-y-1.5 px-4 py-4">
-          <p className="px-3 pb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menú Principal</p>
+      <div className="flex flex-1 flex-col justify-between overflow-y-auto mt-2">
+        {/* Navegación: Paddings, textos e íconos reducidos */}
+        <nav className="space-y-1 px-2 xl:px-3 py-3">
+          <p className="px-2 pb-2 text-[9px] xl:text-[10px] font-bold uppercase tracking-widest text-slate-400">Menú Principal</p>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -78,43 +80,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.name}
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 ${
+                className={`flex items-center gap-2 xl:gap-2.5 rounded-lg xl:rounded-xl px-3 py-2 xl:py-2.5 text-[11px] lg:text-xs font-semibold transition-all duration-200 ${
                   isActive 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1' 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200 translate-x-1' 
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                {item.name}
+                <Icon className="h-3.5 w-3.5 xl:h-4 xl:w-4 shrink-0" />
+                <span className="truncate">{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-4 pb-6">
+        {/* Footer Sidebar */}
+        <div className="px-2 xl:px-3 pb-4">
           <Link
             href="/admin/configuracion"
             onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 mb-3 ${
+            className={`flex items-center gap-2 xl:gap-2.5 rounded-lg xl:rounded-xl px-3 py-2 xl:py-2.5 text-[11px] lg:text-xs font-semibold transition-all duration-200 mb-2 ${
               pathname === '/admin/configuracion'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
             }`}
           >
-            <Settings className="h-5 w-5" />
-            Configuración
+            <Settings className="h-3.5 w-3.5 xl:h-4 xl:w-4 shrink-0" />
+            <span className="truncate">Configuración</span>
           </Link>
           
-          <div className="border-t border-slate-100 pt-3">
+          <div className="border-t border-slate-100 pt-2">
             <button 
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 setShowLogoutModal(true);
               }}
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-red-500 hover:bg-red-50 cursor-pointer transition-colors group"
+              className="flex w-full items-center gap-2 xl:gap-2.5 rounded-lg xl:rounded-xl px-3 py-2 xl:py-2.5 text-[11px] lg:text-xs font-bold text-red-500 hover:bg-red-50 cursor-pointer transition-colors group"
             >
-              <LogOut className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-              Cerrar Sesión
+              <LogOut className="h-3.5 w-3.5 xl:h-4 xl:w-4 shrink-0 group-hover:-translate-x-1 transition-transform" />
+              <span className="truncate">Cerrar Sesión</span>
             </button>
           </div>
         </div>
@@ -124,21 +127,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <>
-      {/*
-        FIX: Se eliminó el bloque <style> con `zoom: 0.8` en móvil.
-        Ese zoom desincronizaba window.innerWidth con el viewport real,
-        causando que el portal del menú se posicionara fuera de pantalla
-        y estirara el layout horizontalmente en dispositivos móviles.
-        
-        Si necesitas escalar la UI en pantallas pequeñas, usa transform: scale()
-        sobre el contenedor interno en lugar de zoom en html/body.
-      */}
-
       <div className={`flex min-h-screen overflow-x-hidden ${currentTheme.background}`}>
-        {/* FIX: overflow-x-hidden en el wrapper raíz evita scroll horizontal
-            causado por cualquier elemento que se desborde del viewport */}
-
-        {/* Sidebar móvil (drawer) */}
+        
+        {/* Sidebar móvil (drawer) - Ancho reducido a w-48 */}
         <Transition show={isMobileMenuOpen} as={Fragment}>
           <Dialog as="div" className="relative z-50 md:hidden" onClose={setIsMobileMenuOpen}>
             <Transition.Child
@@ -162,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 leaveFrom="translate-x-0"
                 leaveTo="-translate-x-full"
               >
-                <Dialog.Panel className="relative flex w-72 flex-col bg-white shadow-2xl overflow-hidden rounded-r-3xl">
+                <Dialog.Panel className="relative flex w-48 flex-col bg-white shadow-2xl overflow-hidden rounded-r-2xl">
                   <SidebarContent />
                 </Dialog.Panel>
               </Transition.Child>
@@ -170,48 +161,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Dialog>
         </Transition>
 
-        {/* Sidebar escritorio */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r ${currentTheme.border} ${currentTheme.card} hidden md:flex flex-col print:hidden`}>
+        {/* Sidebar escritorio - Anchos reducidos: w-44, w-48, w-56 */}
+        <aside className={`fixed inset-y-0 left-0 z-50 hidden md:flex flex-col border-r ${currentTheme.border} ${currentTheme.card} w-44 lg:w-48 xl:w-56 print:hidden`}>
           <SidebarContent />
         </aside>
 
-        {/* Contenido principal */}
-        <div className="flex flex-1 flex-col md:pl-72 print:pl-0 min-w-0">
-          {/* FIX: min-w-0 en el contenedor flex evita que hijos con contenido
-              largo ignoren el límite del padre y desborden horizontalmente */}
-
-          <header className={`sticky top-0 z-40 flex h-20 items-center border-b ${currentTheme.border} ${currentTheme.card} px-4 sm:px-6 lg:px-8 print:hidden`}>
+        {/* Contenido principal - Paddings alineados al nuevo sidebar */}
+        <div className="flex flex-1 flex-col min-w-0 md:pl-44 lg:pl-48 xl:pl-56 print:pl-0">
+          
+          {/* Header Responsivo - Alturas reducidas: h-12, h-14 */}
+          <header className={`sticky top-0 z-40 flex items-center border-b ${currentTheme.border} ${currentTheme.card} px-3 sm:px-5 lg:px-6 h-12 xl:h-14 print:hidden`}>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 md:hidden hover:bg-slate-100 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-700 md:hidden hover:bg-slate-100 transition-colors cursor-pointer"
               onClick={() => setIsMobileMenuOpen(true)}
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
-            <div className="flex flex-1 items-center justify-between ml-4 md:ml-0 min-w-0">
-              {/* FIX: min-w-0 + truncate asegura que el título no desborde */}
-              <h2 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-slate-400 truncate pr-4 min-w-0">
+            <div className="flex flex-1 items-center justify-between ml-3 md:ml-0 min-w-0">
+              <h2 className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 truncate pr-4 min-w-0">
                 {pathname === '/admin/configuracion' 
                   ? 'Configuración' 
                   : menuItems.find(i => i.href === pathname)?.name || 'Administración'}
               </h2>
               
               <div className="flex shrink-0 items-center">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-full font-bold text-sm border shadow-sm select-none ${userAvatar.styles}`}>
+                <div className={`flex h-7 w-7 xl:h-8 xl:w-8 items-center justify-center rounded-full font-bold text-[10px] xl:text-xs border shadow-sm select-none ${userAvatar.styles}`}>
                   {userAvatar.initial}
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="p-4 sm:p-8 print:p-0 print:m-0 overflow-x-hidden">
-            {/* FIX: overflow-x-hidden en main como segunda capa de protección */}
+          <main className="p-4 sm:p-6 lg:p-8 print:p-0 print:m-0 overflow-x-hidden">
             {children}
           </main>
         </div>
 
-        {/* Modal Cerrar Sesión */}
         <Transition show={showLogoutModal} as={Fragment}>
           <Dialog as="div" className="relative z-100" onClose={() => setShowLogoutModal(false)}>
             <Transition.Child

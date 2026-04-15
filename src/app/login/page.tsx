@@ -133,7 +133,7 @@ export default function LoginPage() {
                     onFocus={() => robotRef.current?.playFocusEmail()}
                     onBlur={() => robotRef.current?.playBlurEmail()}
                     className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all max-[390px]:py-2 max-[390px]:text-xs"
-                    placeholder="user@ejemplo.com"
+                    placeholder="ejemplo@empresa.com"
                     autoComplete="email"
                   />
                 </div>

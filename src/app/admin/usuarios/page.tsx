@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { 
   Users, Shield, Search,
-  CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package
+  CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
+  UserPlus, X, Mail, Lock, AlertCircle
 } from 'lucide-react';
+import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePresence } from '@/hooks/usePresence';
+import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios'; // <-- IMPORTAMOS EL ACTION AQUI
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
@@ -16,24 +19,27 @@ export default function UsuariosPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Hook de presencia (Usuarios Online)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [createMsg, setCreateMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
   const onlineUsers = usePresence();
 
-  // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState<'TODOS' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
 
   useEffect(() => {
     fetchUsuarios();
 
-    // 🔴 SUSCRIPCIÓN EN TIEMPO REAL (Actualiza stats y nuevos usuarios automáticamente)
     const channel = supabase
       .channel('usuarios_page_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
-        fetchUsuarios(); // Si cambia un rol o entra un nuevo usuario
+        fetchUsuarios(); 
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transacciones' }, () => {
-        fetchUsuarios(); // Si alguien escanea algo, actualiza su "última actividad"
+        fetchUsuarios(); 
       })
       .subscribe();
 
@@ -81,11 +87,36 @@ export default function UsuariosPage() {
     setUpdatingId(userId);
     const { error } = await supabase.from('perfiles').update({ rol: nuevoRol }).eq('id', userId);
     if (error) alert('No se pudo actualizar el rol: ' + error.message);
-    // No necesitamos llamar a fetchUsuarios() aquí porque el realtime lo hará por nosotros
     setUpdatingId(null);
   };
 
-  // Filtrado
+  const crearUsuario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreating(true);
+    setCreateMsg(null);
+
+    // USAMOS LA NUEVA FUNCIÓN DEL SERVIDOR
+    const res = await crearUsuarioDesdeAdmin(newEmail, newPassword);
+
+    if (!res.success) {
+      setCreateMsg({ type: 'error', text: res.error || 'Error desconocido' });
+      setIsCreating(false);
+      return;
+    }
+
+    setCreateMsg({ type: 'success', text: 'Usuario creado y enlazado correctamente.' });
+    
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setNewEmail('');
+      setNewPassword('');
+      setCreateMsg(null);
+      fetchUsuarios(); // Refresca la tabla al instante
+    }, 1500);
+
+    setIsCreating(false);
+  };
+
   const filteredUsuarios = usuarios.filter(perfil => {
     const matchSearch = perfil.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchRol = filterRol === 'TODOS' || perfil.rol === filterRol;
@@ -104,15 +135,21 @@ export default function UsuariosPage() {
 
   return (
     <div className="space-y-6 relative">
-      {/* Header unificado con las demás vistas */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
-        <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal en tiempo real.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
+          <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal en tiempo real.</p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all w-full sm:w-auto shrink-0 cursor-pointer"
+        >
+          <UserPlus className="h-4 w-4" />
+          Nuevo Usuario
+        </button>
       </div>
 
-      {/* Barra de herramientas */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-        {/* Buscador */}
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -124,7 +161,6 @@ export default function UsuariosPage() {
           />
         </div>
 
-        {/* Filtro por rol */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
           {roles.map(rol => (
             <button
@@ -140,7 +176,6 @@ export default function UsuariosPage() {
           ))}
         </div>
 
-        {/* Contador */}
         {!loading && (
           <span className="ml-auto text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-1.5 rounded-full whitespace-nowrap">
             {filteredUsuarios.length} de {usuarios.length} usu.
@@ -148,7 +183,6 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      {/* Grid de usuarios (Alineado a 3 columnas en pantallas grandes) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
@@ -266,7 +300,6 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      {/* Info niveles */}
       <div className="flex items-start gap-3 rounded-3xl bg-blue-50 border border-blue-100 p-5 mt-8">
         <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
@@ -276,6 +309,122 @@ export default function UsuariosPage() {
           </p>
         </div>
       </div>
+
+      <Transition show={isModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => !isCreating && setIsModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/60" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
+                  <div className="absolute right-5 top-5">
+                    <button
+                      type="button"
+                      disabled={isCreating}
+                      className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors disabled:opacity-50"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                      <UserPlus className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">
+                        Nuevo Usuario
+                      </Dialog.Title>
+                      <p className="mt-1 text-sm text-slate-500 font-medium">
+                        Ingresa el correo y contraseña.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={crearUsuario} className="space-y-4 text-left">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">Correo Electrónico</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="email"
+                          required
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-colors"
+                          placeholder="ejemplo@empresa.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ml-1">Contraseña</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="password"
+                          required
+                          minLength={6}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-colors"
+                          placeholder="Mínimo 6 caracteres"
+                        />
+                      </div>
+                    </div>
+
+                    {createMsg && (
+                      <div className={`flex items-start gap-2 rounded-xl p-3 border mt-4 ${
+                        createMsg.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'
+                      }`}>
+                        {createMsg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
+                        <p className="text-xs font-semibold leading-relaxed">{createMsg.text}</p>
+                      </div>
+                    )}
+
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        disabled={isCreating || !newEmail || !newPassword}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-md shadow-blue-200 hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {isCreating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Creando...
+                          </>
+                        ) : (
+                          'Registrar Usuario'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

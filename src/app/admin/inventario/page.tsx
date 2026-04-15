@@ -112,7 +112,7 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
             </div>
 
             <div className="flex-1 space-y-6 min-w-0">
-              {/* ✅ FIX: min-w-0 evita desborde del contenido de texto */}
+              {/* FIX: min-w-0 evita desborde del contenido de texto */}
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight wrap-break-word">
                   {item.modelo}
