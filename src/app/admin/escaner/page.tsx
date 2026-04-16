@@ -129,6 +129,7 @@ export default function AdminScannerPage() {
       return;
     }
     
+    // 1. Guardar en transacciones
     const { error: transError } = await supabase
       .from('transacciones')
       .insert([{
@@ -139,6 +140,7 @@ export default function AdminScannerPage() {
         timestamp: new Date().toISOString()
       }]);
 
+    // 2. Actualizar estado del hardware
     const nuevoEstado = tipo === 'SALIDA' ? 'EN_USO' : 'DISPONIBLE';
     const { error: hwError } = await supabase
       .from('hardware')
@@ -146,6 +148,19 @@ export default function AdminScannerPage() {
       .eq('sku', selectedItem.sku);
 
     if (!transError && !hwError) {
+      // --- NUEVO: Registro en Auditoría ---
+      await supabase.from('auditoria_logs').insert([{
+        accion: tipo, // Guardará 'INGRESO' o 'SALIDA'
+        entidad: 'HARDWARE',
+        usuario_id: user.id,
+        detalles: {
+          sku: selectedItem.sku,
+          modelo: selectedItem.modelo,
+          notas: `Cambio de estado desde Escáner. Nuevo estado: ${nuevoEstado}`
+        }
+      }]);
+      // ------------------------------------
+
       setStatusMsg({ type: 'success', text: `${tipo} registrado con éxito.` });
       setSelectedItem(null);
       setIsScanning(true);

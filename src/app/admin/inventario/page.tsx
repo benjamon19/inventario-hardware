@@ -599,78 +599,80 @@ export default function InventarioPage() {
         </button>
       </div>
 
-        {/* =========================================================
-          BARRA DE BÚSQUEDA Y FILTROS
-          ========================================================= */}
-      <div className="space-y-3">
-        {/* Búsqueda */}
-        <div className="relative w-full sm:max-w-sm min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Buscar por SKU, Modelo o Ubicación..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
-          />
-        </div>
+          {/* =========================================================
+            BARRA DE BÚSQUEDA Y FILTROS
+            ========================================================= */}
+          <div className="space-y-3">
+            {/* Búsqueda */}
+            <div className="relative w-full sm:max-w-sm min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Filtrar por modelo o SKU..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
+              />
+            </div>
 
-        {/* Filtros de categoría */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setFilterCategoria('')}
-            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              !filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            Todas
-          </button>
-          {categorias.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
-              }`}
-            >
-              {cat.nombre}
-            </button>
-          ))}
-        </div>
-
-        {/* Filtros de estado */}
-        {estados.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap pb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">Estado:</span>
-            {estados.map(est => {
-              const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
-              const badge = colorClasses[est.color] ?? colorClasses.slate;
-              const active = filterEstado === est.nombre;
-              
-              return (
+            {/* Filtros de categoría — flex-wrap para que pasen hacia abajo */}
+            {!loading && categorias.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap pb-1">
                 <button
-                  key={est.id}
-                  onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                    active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
+                  onClick={() => setFilterCategoria('')}
+                  className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                    !filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
-                  {est.nombre}
+                  Todas
                 </button>
-              );
-            })}
-            {filterEstado && (
-              <button
-                onClick={() => setFilterEstado('')}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 whitespace-nowrap"
-              >
-                Limpiar
-              </button>
+                {categorias.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
+                    className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                      filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
+                    }`}
+                  >
+                    {cat.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Filtros de estado */}
+            {!loading && estados.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap pb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">Estado:</span>
+                {estados.map(est => {
+                  const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
+                  const badge = colorClasses[est.color] ?? colorClasses.slate;
+                  const active = filterEstado === est.nombre;
+                  
+                  return (
+                    <button
+                      key={est.id}
+                      onClick={() => setFilterEstado(active ? '' : est.nombre)}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                        active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
+                      {est.nombre}
+                    </button>
+                  );
+                })}
+                {filterEstado && (
+                  <button
+                    onClick={() => setFilterEstado('')}
+                    className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 whitespace-nowrap"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
 
       {/* Tabla y Vistas Responsivas */}
       <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
