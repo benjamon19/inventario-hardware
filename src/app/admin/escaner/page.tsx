@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ScanLine, 
   Search, 
@@ -12,7 +13,8 @@ import {
   CheckCircle2,
   History,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowLeftRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -22,6 +24,11 @@ import { es } from 'date-fns/locale';
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminScannerPage() {
+  const router = useRouter();
+  
+  // --- NUEVO: Estado del Modo ---
+  const [scanMode, setScanMode] = useState<'TRANSACTION' | 'SEARCH'>('TRANSACTION');
+
   const [manualSku, setManualSku] = useState('');
   const [isScanning, setIsScanning] = useState(true);
   
@@ -29,7 +36,6 @@ export default function AdminScannerPage() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  // Estados para la paginación de actividad
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -65,7 +71,6 @@ export default function AdminScannerPage() {
     const start = page * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE - 1;
 
-    // Al ser Admin, traemos todos los movimientos recientes (sin filtrar por operador)
     const { data, count } = await supabase
       .from('transacciones')
       .select(`
@@ -84,8 +89,13 @@ export default function AdminScannerPage() {
   const processSku = async (sku: string) => {
     if (!sku) return;
 
-    // AUTO-OCULTAR TECLADO
-    inputRef.current?.blur();
+    inputRef.current?.blur(); // Ocultar teclado
+
+    // --- NUEVO: Si estamos en modo búsqueda, saltar al inventario ---
+    if (scanMode === 'SEARCH') {
+      router.push(`/admin/inventario?sku=${sku}`);
+      return;
+    }
 
     setLoading(true);
     setStatusMsg(null);
@@ -110,18 +120,11 @@ export default function AdminScannerPage() {
 
   const registrarMovimiento = async (tipo: 'INGRESO' | 'SALIDA') => {
     setLoading(true);
-    
     const { data } = await supabase.auth.getUser();
     const user = data?.user;
 
-    if (!user) {
-      setStatusMsg({ type: 'error', text: 'Error: Se perdió la sesión. Recarga la página.' });
-      setLoading(false);
-      return;
-    }
-
-    if (!selectedItem) {
-      setStatusMsg({ type: 'error', text: 'Error: No hay ningún equipo seleccionado.' });
+    if (!user || !selectedItem) {
+      setStatusMsg({ type: 'error', text: 'Error de sesión o selección.' });
       setLoading(false);
       return;
     }
@@ -147,7 +150,6 @@ export default function AdminScannerPage() {
       setSelectedItem(null);
       setIsScanning(true);
       setManualSku(''); 
-      // Refrescar lista de movimientos volviendo a la página 0
       setCurrentPage(0);
       fetchActivity(0);
     } else {
@@ -159,7 +161,27 @@ export default function AdminScannerPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
-      {/* ÁREA DE ESCÁNER REDUCIDA PARA C61 */}
+      
+      {/* --- NUEVO: TABS DE MODO --- */}
+      <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
+        <button
+          onClick={() => { setScanMode('TRANSACTION'); setSelectedItem(null); setIsScanning(true); }}
+          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${
+            scanMode === 'TRANSACTION' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <ArrowLeftRight className="h-4 w-4" /> Mover Stock
+        </button>
+        <button
+          onClick={() => { setScanMode('SEARCH'); setSelectedItem(null); setIsScanning(true); }}
+          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${
+            scanMode === 'SEARCH' ? 'bg-white text-violet-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Search className="h-4 w-4" /> Buscar Detalles
+        </button>
+      </div>
+
       <div className="overflow-hidden rounded-2xl bg-white shadow-md shadow-slate-200/50 border border-slate-100">
         {isScanning ? (
           <div className="relative h-44 bg-slate-900 w-full">
@@ -172,11 +194,16 @@ export default function AdminScannerPage() {
               components={{ finder: false }}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 pointer-events-none">
-              <div className="h-28 w-28 border-2 border-dashed border-blue-500 rounded-2xl animate-pulse flex items-center justify-center bg-black/10">
-                 <ScanLine className="h-8 w-8 text-blue-500 drop-shadow-md" />
+              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-black/10 ${
+                scanMode === 'SEARCH' ? 'border-violet-500' : 'border-blue-500'
+              }`}>
+                 {scanMode === 'SEARCH' 
+                   ? <Search className="h-8 w-8 text-violet-500 drop-shadow-md" />
+                   : <ScanLine className="h-8 w-8 text-blue-500 drop-shadow-md" />
+                 }
               </div>
               <p className="mt-2 text-[11px] font-medium bg-black/60 px-3 py-1 rounded-full text-white shadow-sm">
-                Enfoca el código
+                {scanMode === 'SEARCH' ? 'Enfoca para buscar' : 'Enfoca para mover'}
               </p>
             </div>
           </div>
@@ -217,14 +244,13 @@ export default function AdminScannerPage() {
           </div>
         )}
 
-        {/* Buscador Manual Compacto */}
         <div className="border-t border-slate-50 p-2.5 bg-slate-50/50 relative z-10">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input 
               ref={inputRef}
               type="text" 
-              placeholder="Pistola o manual..."
+              placeholder={scanMode === 'SEARCH' ? "Ingresa SKU para buscar..." : "Pistola o manual..."}
               value={manualSku}
               onChange={(e) => setManualSku(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
@@ -235,7 +261,6 @@ export default function AdminScannerPage() {
         </div>
       </div>
 
-      {/* Feedback de estado */}
       {statusMsg && (
         <div className={`flex items-center gap-2 rounded-xl p-3 border animate-in slide-in-from-top-2 ${
           statusMsg.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'
@@ -246,52 +271,54 @@ export default function AdminScannerPage() {
       )}
 
       {/* ÚLTIMOS MOVIMIENTOS GLOBALES PAGINADOS */}
-      <div className="space-y-2 mt-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <History className="h-3 w-3 text-slate-400" />
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad Bodega</h3>
+      {scanMode === 'TRANSACTION' && (
+        <div className="space-y-2 mt-4 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <History className="h-3 w-3 text-slate-400" />
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad Bodega</h3>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(p => p - 1)} 
+                disabled={currentPage === 0}
+                className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 disabled:opacity-30 disabled:bg-slate-50 shadow-sm cursor-pointer"
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </button>
+              <span className="text-[10px] font-bold text-slate-400">{currentPage + 1}</span>
+              <button 
+                onClick={() => setCurrentPage(p => p + 1)} 
+                disabled={!hasMore}
+                className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 disabled:opacity-30 disabled:bg-slate-50 shadow-sm cursor-pointer"
+              >
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(p => p - 1)} 
-              disabled={currentPage === 0}
-              className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 disabled:opacity-30 disabled:bg-slate-50 shadow-sm"
-            >
-              <ChevronLeft className="h-3 w-3" />
-            </button>
-            <span className="text-[10px] font-bold text-slate-400">{currentPage + 1}</span>
-            <button 
-              onClick={() => setCurrentPage(p => p + 1)} 
-              disabled={!hasMore}
-              className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 disabled:opacity-30 disabled:bg-slate-50 shadow-sm"
-            >
-              <ChevronRight className="h-3 w-3" />
-            </button>
+          <div className="space-y-2">
+            {recentActivity.map((mov) => (
+              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2">
+                <div className="flex items-start gap-2 flex-1">
+                  <div className={`shrink-0 mt-0.5 rounded-md p-1.5 ${mov.tipo === 'SALIDA' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    {mov.tipo === 'SALIDA' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-slate-900 leading-tight">{mov.hardware?.modelo}</p>
+                    <p className="text-[9px] text-slate-400 font-medium mt-1">{format(new Date(mov.timestamp), "HH:mm '•' d MMM", { locale: es })}</p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-[9px] font-mono font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border mt-0.5">{mov.sku}</span>
+              </div>
+            ))}
+            {recentActivity.length === 0 && (
+              <div className="text-center py-4 text-xs text-slate-400 italic">No hay movimientos registrados</div>
+            )}
           </div>
         </div>
-        
-        <div className="space-y-2">
-          {recentActivity.map((mov) => (
-            <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2">
-              <div className="flex items-start gap-2 flex-1">
-                <div className={`shrink-0 mt-0.5 rounded-md p-1.5 ${mov.tipo === 'SALIDA' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                  {mov.tipo === 'SALIDA' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-slate-900 leading-tight">{mov.hardware?.modelo}</p>
-                  <p className="text-[9px] text-slate-400 font-medium mt-1">{format(new Date(mov.timestamp), "HH:mm '•' d MMM", { locale: es })}</p>
-                </div>
-              </div>
-              <span className="shrink-0 text-[9px] font-mono font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border mt-0.5">{mov.sku}</span>
-            </div>
-          ))}
-          {recentActivity.length === 0 && (
-            <div className="text-center py-4 text-xs text-slate-400 italic">No hay movimientos registrados</div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

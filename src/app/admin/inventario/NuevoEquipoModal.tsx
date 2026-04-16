@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -9,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 // --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Estado = { id: string; nombre: string; color: string };
+type Ubicacion = { id: string; nombre: string };
 
 const colorClasses: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
@@ -21,7 +21,7 @@ const colorClasses: Record<string, string> = {
 const colorOptions = ['emerald', 'blue', 'amber', 'red', 'violet', 'slate'];
 
 // =============================================
-// Sub-componente: Editor inline para dropdown
+// Sub-componente: Editor inline para categorías/estados
 // =============================================
 type InlineEditorProps = {
   items: { id: string; nombre: string; [key: string]: any }[];
@@ -49,7 +49,11 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }:
     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Opciones actuales</p>
       {items.map(item => (
-        <div key={item.id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer" onClick={() => { onSelect?.(item.nombre); onClose(); }}>
+        <div
+          key={item.id}
+          className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
+          onClick={() => { onSelect?.(item.nombre); onClose(); }}
+        >
           <div className="flex items-center gap-2">
             {extraField?.type === 'color-pick' && (
               <span className={`w-2.5 h-2.5 rounded-full border ${colorClasses[item[extraField.key]] ?? 'bg-slate-200'}`} />
@@ -118,6 +122,81 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }:
 }
 
 // =============================================
+// Sub-componente: Editor inline para ubicaciones
+// =============================================
+type UbicacionEditorProps = {
+  items: Ubicacion[];
+  onAdd: (nombre: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onSelect: (nombre: string) => void;
+  onClose: () => void;
+};
+
+function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: UbicacionEditorProps) {
+  const [newNombre, setNewNombre] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    if (!newNombre.trim()) return;
+    setSaving(true);
+    await onAdd(newNombre.trim());
+    setNewNombre('');
+    setSaving(false);
+  };
+
+  return (
+    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Ubicaciones registradas</p>
+      {items.length === 0 && (
+        <p className="text-xs text-slate-400 italic px-2 py-1">Sin ubicaciones aún.</p>
+      )}
+      {items.map(item => (
+        <div
+          key={item.id}
+          className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
+          onClick={() => { onSelect(item.nombre); onClose(); }}
+        >
+          <div className="flex items-center gap-2">
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <div className="border-t border-slate-100 pt-2 space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
+        <input
+          type="text"
+          placeholder="Ej: Pasillo A, Estante 2..."
+          value={newNombre}
+          onChange={e => setNewNombre(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={saving || !newNombre.trim()}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
+          </button>
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer">
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
 // Componente Modal Exportado
 // =============================================
 type Props = {
@@ -126,36 +205,40 @@ type Props = {
   onSuccess: () => void;
   categorias: Categoria[];
   estados: Estado[];
+  ubicaciones: Ubicacion[];
   addCategoria: (nombre: string, extra: Record<string, string>) => Promise<void>;
   deleteCategoria: (id: string) => Promise<void>;
   addEstado: (nombre: string, extra: Record<string, string>) => Promise<void>;
   deleteEstado: (id: string) => Promise<void>;
+  addUbicacion: (nombre: string) => Promise<void>;
+  deleteUbicacion: (id: string) => Promise<void>;
 };
 
 export default function NuevoEquipoModal({
-  isOpen, onClose, onSuccess, categorias, estados,
-  addCategoria, deleteCategoria, addEstado, deleteEstado
+  isOpen, onClose, onSuccess,
+  categorias, estados, ubicaciones,
+  addCategoria, deleteCategoria,
+  addEstado, deleteEstado,
+  addUbicacion, deleteUbicacion,
 }: Props) {
   const [loading, setLoading] = useState(false);
-  
-  // Datos comunes
+
   const [formData, setFormData] = useState({
     categoria: '',
     modelo: '',
     estado: '',
-    ubicacion: '', // <--- CAMBIO: Agregado campo ubicación
+    ubicacion: '',
   });
 
-  // Datos dinámicos para múltiples registros
   const [cantidad, setCantidad] = useState(1);
   const [equipos, setEquipos] = useState<{ id: number; sku: string; descripcion: string }[]>([]);
 
   const [showCatEditor, setShowCatEditor] = useState(false);
   const [showEstEditor, setShowEstEditor] = useState(false);
+  const [showUbicEditor, setShowUbicEditor] = useState(false);
 
   const generarSKU = (prefijo: string) => `${prefijo}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // Reiniciar estado cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       const defaultCat = categorias[0]?.nombre ?? '';
@@ -163,38 +246,30 @@ export default function NuevoEquipoModal({
         categoria: defaultCat,
         modelo: '',
         estado: estados[0]?.nombre ?? '',
-        ubicacion: '', // <--- CAMBIO: Resetear ubicación
+        ubicacion: '',
       });
       setCantidad(1);
-      
       const prefijo = categorias.find(c => c.nombre === defaultCat)?.prefijo ?? 'HW';
       setEquipos([{ id: Date.now(), sku: generarSKU(prefijo), descripcion: '' }]);
-      
       setShowCatEditor(false);
       setShowEstEditor(false);
+      setShowUbicEditor(false);
     }
   }, [isOpen, categorias, estados]);
 
-  // Si cambia la categoría, regenerar los prefijos de los SKUs
   useEffect(() => {
     const cat = categorias.find(c => c.nombre === formData.categoria);
     if (cat) {
-      setEquipos(prev => prev.map(eq => ({
-        ...eq,
-        sku: generarSKU(cat.prefijo)
-      })));
+      setEquipos(prev => prev.map(eq => ({ ...eq, sku: generarSKU(cat.prefijo) })));
     }
   }, [formData.categoria, categorias]);
 
-  // Controlar la cantidad de equipos a registrar
   const handleCantidadChange = (nuevaCantidad: number) => {
     if (nuevaCantidad < 1 || nuevaCantidad > 20) return;
     setCantidad(nuevaCantidad);
-    
     setEquipos(prev => {
       const cat = categorias.find(c => c.nombre === formData.categoria);
       const prefijo = cat?.prefijo ?? 'HW';
-      
       if (nuevaCantidad > prev.length) {
         const toAdd = nuevaCantidad - prev.length;
         const nuevos = Array.from({ length: toAdd }).map((_, i) => ({
@@ -216,26 +291,18 @@ export default function NuevoEquipoModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.modelo.trim()) return;
-
     setLoading(true);
-    
     const toInsert = equipos.map(eq => ({
       sku: eq.sku.trim(),
       categoria: formData.categoria,
       modelo: formData.modelo.trim(),
       estado: formData.estado,
-      ubicacion: formData.ubicacion.trim() || null, // <--- CAMBIO: Agregado a payload
+      ubicacion: formData.ubicacion.trim() || null,
       descripcion: eq.descripcion.trim() || null,
     }));
-
     const { error } = await supabase.from('hardware').insert(toInsert);
-    
-    if (!error) {
-      onSuccess(); 
-      onClose();   
-    } else {
-      alert('Error al guardar: ' + error.message);
-    }
+    if (!error) { onSuccess(); onClose(); }
+    else alert('Error al guardar: ' + error.message);
     setLoading(false);
   };
 
@@ -250,7 +317,7 @@ export default function NuevoEquipoModal({
           <div className="absolute inset-0 overflow-hidden">
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
               <Transition.Child as={Fragment} enter="transform transition ease-in-out duration-400 sm:duration-500" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in-out duration-400 sm:duration-500" leaveFrom="translate-x-0" leaveTo="translate-x-full">
-                <Dialog.Panel className="pointer-events-auto w-screen sm:max-w-md flex">
+                <Dialog.Panel className="pointer-events-auto w-full sm:max-w-md flex">
                   <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
                     {/* Cabecera */}
                     <div className="px-6 sm:px-8 py-7 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -271,7 +338,7 @@ export default function NuevoEquipoModal({
                             </label>
                             <button
                               type="button"
-                              onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); }}
+                              onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); setShowUbicEditor(false); }}
                               className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" /> Personalizar
@@ -307,7 +374,7 @@ export default function NuevoEquipoModal({
                             <button
                               type="button"
                               onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); }}
+                              onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); setShowUbicEditor(false); }}
                               className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" /> Personalizar
@@ -348,21 +415,43 @@ export default function NuevoEquipoModal({
                           />
                         </div>
 
-                        {/* CAMBIO: Ubicación */}
-                        <div className="space-y-1.5">
-                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                            <MapPin className="h-3.5 w-3.5" /> Ubicación / Estante <span className="lowercase font-normal text-[10px] ml-1">(Opcional)</span>
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Ej: Pasillo 4, Estante A..."
+                        {/* Ubicación — desplegable editable igual que categoría/estado */}
+                        <div className="space-y-1.5 relative">
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                              <MapPin className="h-3.5 w-3.5" /> Ubicación / Estante
+                              <span className="lowercase font-normal text-[10px] ml-1">(Opcional)</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => { setShowUbicEditor(v => !v); setShowCatEditor(false); setShowEstEditor(false); }}
+                              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                            >
+                              <Pencil className="h-3 w-3" /> Gestionar
+                            </button>
+                          </div>
+                          <select
                             value={formData.ubicacion}
                             onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
-                          />
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                          >
+                            <option value="">Sin asignar</option>
+                            {ubicaciones.map(u => (
+                              <option key={u.id} value={u.nombre}>{u.nombre}</option>
+                            ))}
+                          </select>
+                          {showUbicEditor && (
+                            <UbicacionEditor
+                              items={ubicaciones}
+                              onAdd={addUbicacion}
+                              onDelete={deleteUbicacion}
+                              onSelect={(nombre) => setFormData(prev => ({ ...prev, ubicacion: nombre }))}
+                              onClose={() => setShowUbicEditor(false)}
+                            />
+                          )}
                         </div>
 
-                        {/* CANTIDAD */}
+                        {/* Cantidad */}
                         <div className="pt-2">
                           <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -379,13 +468,11 @@ export default function NuevoEquipoModal({
                         <div className="border-t border-slate-100 pt-2 space-y-6">
                           {equipos.map((eq, index) => (
                             <div key={eq.id} className={cantidad > 1 ? "relative p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-6" : "space-y-6"}>
-                              
                               {cantidad > 1 && (
                                 <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
                                   {index + 1}
                                 </div>
                               )}
-
                               {/* SKU */}
                               <div className="space-y-1.5">
                                 <div className="flex justify-between items-end mb-1">
@@ -402,7 +489,6 @@ export default function NuevoEquipoModal({
                                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all font-mono text-slate-700 font-bold tracking-wider"
                                 />
                               </div>
-
                               {/* Descripción */}
                               <div className="space-y-1.5">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -417,7 +503,6 @@ export default function NuevoEquipoModal({
                                 />
                                 {cantidad === 1 && <p className="text-[11px] text-slate-400 px-1">Opcional — detalla el motivo de ingreso, estado de mantención, etc.</p>}
                               </div>
-                              
                             </div>
                           ))}
                         </div>

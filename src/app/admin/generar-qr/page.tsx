@@ -445,38 +445,40 @@ export default function GenerarQRPage() {
             </div>
           )}
 
-          {/* Paginación */}
-          {!loading && filteredItems.length > ITEMS_PER_PAGE && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-slate-500 font-medium">
-                Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> equipos
-              </p>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                  .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                    if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((p, idx) =>
-                    p === '...' ? (
-                      <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
-                    ) : (
-                      <button key={p} onClick={() => setCurrentPage(p as number)} className={`min-w-2rem h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
-                        {p}
-                      </button>
-                    )
-                  )}
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+          {/* =========================================================
+            3. PAGINACIÓN (Estilo QR)
+            ========================================================= */}
+        {!loading && filteredItems.length > ITEMS_PER_PAGE && (
+          <div className="border-t border-slate-100 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+            <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+              Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> equipos
+            </p>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                  ) : (
+                    <button key={p} onClick={() => setCurrentPage(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                      {p}
+                    </button>
+                  )
+                )}
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
-          )}
+          </div>
+        )}
         </div>
 
         {multiMode && selectedIds.size > 0 && <div className="h-24" />}

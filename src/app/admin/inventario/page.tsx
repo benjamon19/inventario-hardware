@@ -8,7 +8,7 @@ import {
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
   X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle,
   ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight,
-  MapPin
+  MapPin, Pencil
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import NuevoEquipoModal from './NuevoEquipoModal';
@@ -16,6 +16,7 @@ import NuevoEquipoModal from './NuevoEquipoModal';
 // --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Estado = { id: string; nombre: string; color: string };
+type Ubicacion = { id: string; nombre: string };
 type HardwareItem = {
   id: string;
   sku: string;
@@ -61,6 +62,81 @@ const getIconoCategoria = (nombre: string, size: 'sm' | 'lg' = 'sm') => {
 };
 
 const ITEMS_PER_PAGE = 15;
+
+// =============================================
+// Sub-componente: Editor inline para ubicaciones
+// =============================================
+type UbicacionEditorProps = {
+  items: Ubicacion[];
+  onAdd: (nombre: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onSelect: (nombre: string) => void;
+  onClose: () => void;
+};
+
+function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: UbicacionEditorProps) {
+  const [newNombre, setNewNombre] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    if (!newNombre.trim()) return;
+    setSaving(true);
+    await onAdd(newNombre.trim());
+    setNewNombre('');
+    setSaving(false);
+  };
+
+  return (
+    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Ubicaciones registradas</p>
+      {items.length === 0 && (
+        <p className="text-xs text-slate-400 italic px-2 py-1">Sin ubicaciones aún.</p>
+      )}
+      {items.map(item => (
+        <div
+          key={item.id}
+          className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
+          onClick={() => { onSelect(item.nombre); onClose(); }}
+        >
+          <div className="flex items-center gap-2">
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <div className="border-t border-slate-100 pt-2 space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
+        <input
+          type="text"
+          placeholder="Ej: Pasillo A, Estante 2..."
+          value={newNombre}
+          onChange={e => setNewNombre(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={saving || !newNombre.trim()}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
+          </button>
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer">
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // =============================================
 // Sub-componente: Vista detalle estilo producto
@@ -112,7 +188,6 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
             </div>
 
             <div className="flex-1 space-y-6 min-w-0">
-              {/* FIX: min-w-0 evita desborde del contenido de texto */}
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight wrap-break-word">
                   {item.modelo}
@@ -208,19 +283,25 @@ export default function InventarioPage() {
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
 
+  // FIX MENÚ: usamos un ref para saber si estamos en desktop al momento del click,
+  // sin depender de breakpoints CSS que el zoom puede romper.
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
-  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [menuIsDesktop, setMenuIsDesktop] = useState(false);
 
   const [editItem, setEditItem] = useState<HardwareItem | null>(null);
-  const [editFormData, setEditFormData] = useState({ modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: '' });
+  const [editFormData, setEditFormData] = useState({
+    modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: ''
+  });
   const [editLoading, setEditLoading] = useState(false);
+  const [showUbicacionEditorInEdit, setShowUbicacionEditorInEdit] = useState(false);
 
   const [deleteItem, setDeleteItem] = useState<HardwareItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -228,19 +309,50 @@ export default function InventarioPage() {
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
 
+  // --- NUEVO: AUTO-ABRIR DETALLE DESDE EL ESCÁNER ---
+  useEffect(() => {
+    // Solo ejecutamos si ya cargaron los items y estamos en el navegador
+    if (items.length > 0 && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const skuToOpen = params.get('sku');
+      
+      if (skuToOpen) {
+        // Buscamos el equipo exacto
+        const foundItem = items.find(i => i.sku === skuToOpen);
+        if (foundItem) {
+          // Lo abrimos como si le hubieran hecho click
+          setDetalleItem(foundItem);
+          
+          // Limpiamos la URL silenciosamente para que no se vuelva a abrir si recargas la página
+          window.history.replaceState(null, '', '/admin/inventario');
+        }
+      }
+    }
+  }, [items]);
+
+  // Cerrar menú con Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpenId(null); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   const fetchAll = async () => {
     setLoading(true);
-    const [{ data: hw }, { data: cats }, { data: ests }] = await Promise.all([
+    const [{ data: hw }, { data: cats }, { data: ests }, { data: ubics }] = await Promise.all([
       supabase.from('hardware').select('*').order('updated_at', { ascending: false }),
       supabase.from('categorias').select('*').order('nombre'),
       supabase.from('estados').select('*').order('nombre'),
+      supabase.from('ubicaciones').select('*').order('nombre'),
     ]);
     if (hw) setItems(hw);
     if (cats) setCategorias(cats);
     if (ests) setEstados(ests);
+    if (ubics) setUbicaciones(ubics);
     setLoading(false);
   };
 
+  // --- CRUD Categorías, Estados ---
   const addCategoria = async (nombre: string, extra: Record<string, string>) => {
     const prefijo = (extra.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
     const { data } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
@@ -260,6 +372,16 @@ export default function InventarioPage() {
     setEstados(prev => prev.filter(e => e.id !== id));
   };
 
+  // --- CRUD Ubicaciones ---
+  const addUbicacion = async (nombre: string) => {
+    const { data } = await supabase.from('ubicaciones').insert([{ nombre }]).select().single();
+    if (data) setUbicaciones(prev => [...prev, data]);
+  };
+  const deleteUbicacion = async (id: string) => {
+    await supabase.from('ubicaciones').delete().eq('id', id);
+    setUbicaciones(prev => prev.filter(u => u.id !== id));
+  };
+
   const openEdit = (item: HardwareItem) => {
     setEditItem(item);
     setEditFormData({
@@ -270,6 +392,7 @@ export default function InventarioPage() {
       descripcion: item.descripcion ?? '',
       ubicacion: item.ubicacion ?? '',
     });
+    setShowUbicacionEditorInEdit(false);
     setMenuOpenId(null);
     setDetalleItem(null);
   };
@@ -315,23 +438,29 @@ export default function InventarioPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // ✅ FIX: Función de posición del menú que NO usa window.innerWidth
-  // para calcular `right`, ya que con zoom esa medida es incorrecta.
-  // En cambio usamos getBoundingClientRect() directamente.
+  // FIX MENÚ: Usamos 900px como threshold real de "desktop" (no 768px de Tailwind md:)
+  // para que en notebook 1350x800 sin zoom funcione bien. El threshold coincide
+  // con cuando el drawer mobile vs dropdown desktop se ve mejor.
+  const DESKTOP_THRESHOLD = 900;
+
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
     e.stopPropagation();
     if (menuOpenId === itemId) { setMenuOpenId(null); return; }
-    const r = e.currentTarget.getBoundingClientRect();
-    const menuHeight = 110;
-    const spaceBelow = window.innerHeight - r.bottom;
-    setMenuPos({
-      top: spaceBelow < (menuHeight + 20)
-        ? r.top + window.scrollY - menuHeight - 8
-        : r.bottom + window.scrollY + 4,
-      // ✅ FIX: Calculamos `right` desde el borde derecho del botón al borde derecho del viewport
-      // usando documentElement.clientWidth (no se ve afectado por zoom CSS)
-      right: document.documentElement.clientWidth - r.right,
-    });
+
+    const isDesktop = window.innerWidth >= DESKTOP_THRESHOLD;
+    setMenuIsDesktop(isDesktop);
+
+    if (isDesktop) {
+      const r = e.currentTarget.getBoundingClientRect();
+      const menuHeight = 110;
+      const spaceBelow = window.innerHeight - r.bottom;
+      setMenuPos({
+        top: spaceBelow < (menuHeight + 20)
+          ? r.top + window.scrollY - menuHeight - 8
+          : r.bottom + window.scrollY + 4,
+        right: document.documentElement.clientWidth - r.right,
+      });
+    }
     setMenuOpenId(itemId);
   };
 
@@ -384,8 +513,7 @@ export default function InventarioPage() {
   }
 
   return (
-    <div className="space-y-6 relative overflow-x-hidden">
-      {/* ✅ FIX: overflow-x-hidden en el wrapper de la página */}
+    <div className="space-y-4 relative overflow-x-hidden">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -401,24 +529,28 @@ export default function InventarioPage() {
         </button>
       </div>
 
-      {/* Búsqueda + Filtros */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {/* ✅ FIX: min-w-0 en el wrapper del input */}
-        <div className="relative w-full sm:flex-1 sm:max-w-sm min-w-0">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        {/* =========================================================
+          BARRA DE BÚSQUEDA Y FILTROS
+          ========================================================= */}
+      <div className="space-y-3">
+
+        {/* Búsqueda (Estilo QR) */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar por SKU, Modelo o Ubicación..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Filtros de categoría — scroll horizontal en mobile/notebook */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setFilterCategoria('')}
-            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
+            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               !filterCategoria
                 ? 'bg-slate-900 text-white border-slate-900'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
@@ -430,7 +562,7 @@ export default function InventarioPage() {
             <button
               key={cat.id}
               onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
+              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 filterCategoria === cat.nombre
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
@@ -440,43 +572,44 @@ export default function InventarioPage() {
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Filtros de estado */}
-      {estados.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap -mt-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
-          {estados.map(est => {
-            const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
-            const badge = colorClasses[est.color] ?? colorClasses.slate;
-            const active = filterEstado === est.nombre;
-            return (
+        {/* Filtros de estado — scroll horizontal también */}
+        {estados.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap shrink-0">Estado:</span>
+            {estados.map(est => {
+              const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
+              const badge = colorClasses[est.color] ?? colorClasses.slate;
+              const active = filterEstado === est.nombre;
+              return (
+                <button
+                  key={est.id}
+                  onClick={() => setFilterEstado(active ? '' : est.nombre)}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
+                  {est.nombre}
+                </button>
+              );
+            })}
+            {filterEstado && (
               <button
-                key={est.id}
-                onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
-                  active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
-                }`}
+                onClick={() => setFilterEstado('')}
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer whitespace-nowrap shrink-0"
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                {est.nombre}
+                Limpiar
               </button>
-            );
-          })}
-          {filterEstado && (
-            <button onClick={() => setFilterEstado('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
-              Limpiar
-            </button>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Tabla y Vistas Responsivas */}
       <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        
-        {/* =========================================================
-            1. VISTA MÓVIL (Tarjetas tipo App)
-            ========================================================= */}
+
+        {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (
             <div className="py-20 text-center text-slate-400">
@@ -497,7 +630,6 @@ export default function InventarioPage() {
               >
                 <div className="flex justify-between items-start gap-3 mb-3">
                   <div className="flex items-start gap-3 min-w-0">
-                    {/* ✅ FIX: min-w-0 en el contenedor flex del texto */}
                     <div className="rounded-xl bg-slate-100 p-2.5 text-slate-600 shrink-0">
                       {getIconoCategoria(item.categoria)}
                     </div>
@@ -524,7 +656,7 @@ export default function InventarioPage() {
                     <MoreVertical className="h-5 w-5" />
                   </button>
                 </div>
-                
+
                 <div className="flex items-center justify-between pl-13">
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getBadgeClass(item.estado)}`}>
                     {item.estado}
@@ -538,11 +670,9 @@ export default function InventarioPage() {
           )}
         </div>
 
-        {/* =========================================================
-            2. VISTA ESCRITORIO (Tabla Tradicional)
-            ========================================================= */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        {/* Vista Escritorio */}
+        <div className="hidden md:block w-full overflow-x-auto min-w-0">
+          <table className="w-full text-left text-sm table-fixed min-w-800px">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
               <tr>
                 <th className="px-6 py-4 text-slate-900">Equipo / Modelo</th>
@@ -617,9 +747,7 @@ export default function InventarioPage() {
           </table>
         </div>
 
-        {/* =========================================================
-            3. PAGINACIÓN
-            ========================================================= */}
+        {/* Paginación */}
         {!loading && filteredItems.length > ITEMS_PER_PAGE && (
           <div className="border-t border-slate-100 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
             <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
@@ -629,7 +757,6 @@ export default function InventarioPage() {
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
                 <ChevronLeft className="h-4 w-4" />
               </button>
-
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
                 .reduce<(number | '...')[]>((acc, p, idx, arr) => {
@@ -645,7 +772,6 @@ export default function InventarioPage() {
                     </button>
                   )
                 )}
-
               <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -665,84 +791,109 @@ export default function InventarioPage() {
         }}
         categorias={categorias}
         estados={estados}
+        ubicaciones={ubicaciones}
         addCategoria={addCategoria}
         deleteCategoria={deleteCategoria}
         addEstado={addEstado}
         deleteEstado={deleteEstado}
+        addUbicacion={addUbicacion}
+        deleteUbicacion={deleteUbicacion}
       />
 
       {/* =========================================================
-          PORTAL: Menú Dropdown / Drawer Móvil
-          ✅ FIX: Unificamos el cálculo de posición usando openMenu()
-          que usa document.documentElement.clientWidth en vez de
-          window.innerWidth, lo cual no se ve afectado por zoom CSS.
+          PORTAL: Menú Dropdown (desktop) / Drawer Móvil
+          
+          FIX NOTEBOOK: usamos menuIsDesktop (calculado con 900px threshold
+          en el momento del click) en lugar de CSS md: que depende del zoom.
+          Esto garantiza que el estilo correcto se aplique independiente
+          del nivel de zoom del navegador.
           ========================================================= */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none">
-            
+
             {/* Overlay */}
             <Transition.Child
               as={Fragment}
-              enter="ease-out duration-300"
+              enter="ease-out duration-200"
               enterFrom="opacity-0"
               enterTo="opacity-100"
-              leave="ease-in duration-200"
+              leave="ease-in duration-150"
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div 
-                className="absolute inset-0 bg-slate-900/40 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none pointer-events-auto" 
-                onClick={() => setMenuOpenId(null)} 
+              <div
+                className="absolute inset-0 pointer-events-auto"
+                style={{ background: menuIsDesktop ? 'transparent' : 'rgba(15,23,42,0.4)' }}
+                onClick={() => setMenuOpenId(null)}
               />
             </Transition.Child>
-            
-            {/* Menú */}
+
+            {/* Menú — condicional: drawer móvil o dropdown desktop */}
             <Transition.Child
               as={Fragment}
-              enter="transition transform ease-out duration-300"
-              enterFrom="translate-y-full md:translate-y-0 md:opacity-0 md:scale-95"
-              enterTo="translate-y-0 md:opacity-100 md:scale-100"
-              leave="transition transform ease-in duration-200"
-              leaveFrom="translate-y-0 md:opacity-100 md:scale-100"
-              leaveTo="translate-y-full md:translate-y-0 md:opacity-0 md:scale-95"
+              enter={menuIsDesktop ? "ease-out duration-150" : "ease-out duration-300"}
+              enterFrom={menuIsDesktop ? "opacity-0 scale-95" : "translate-y-full opacity-0"}
+              enterTo={menuIsDesktop ? "opacity-100 scale-100" : "translate-y-0 opacity-100"}
+              leave={menuIsDesktop ? "ease-in duration-100" : "ease-in duration-200"}
+              leaveFrom={menuIsDesktop ? "opacity-100 scale-100" : "translate-y-0 opacity-100"}
+              leaveTo={menuIsDesktop ? "opacity-0 scale-95" : "translate-y-full opacity-0"}
             >
-              <div
-                className="absolute bg-white shadow-2xl overflow-hidden pointer-events-auto
-                           bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-slate-200 pb-8 pt-2 px-4
-                           md:bottom-auto md:left-auto md:w-44 md:rounded-2xl md:border md:p-0 md:py-1.5"
-                style={
-                  typeof window !== 'undefined' && window.innerWidth >= 768 
-                    ? { top: menuPos.top, right: menuPos.right } 
-                    : {}
-                }
-              >
-                {/* Pill de arrastre visual (solo móvil) */}
-                <div className="mx-auto mt-2 mb-5 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
-
-                <button
-                  onClick={() => { 
-                    const item = items.find(i => i.id === menuOpenId); 
-                    if (item) openEdit(item); 
-                    setMenuOpenId(null); 
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-4 md:py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors rounded-2xl md:rounded-none"
+              {menuIsDesktop ? (
+                /* Dropdown desktop */
+                <div
+                  className="absolute bg-white shadow-xl overflow-hidden pointer-events-auto w-44 rounded-2xl border border-slate-200 py-1.5"
+                  style={{ top: menuPos.top, right: menuPos.right }}
                 >
-                  <Edit2 className="h-5 w-5 md:h-4 md:w-4 text-slate-400" /> Editar equipo
-                </button>
-                
-                <div className="my-1 border-t border-slate-100 hidden md:block" />
-                
-                <button
-                  onClick={() => { 
-                    const item = items.find(i => i.id === menuOpenId); 
-                    if (item) { setDeleteItem(item); setMenuOpenId(null); } 
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-4 md:py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors mt-2 md:mt-0 rounded-2xl md:rounded-none"
-                >
-                  <Trash2 className="h-5 w-5 md:h-4 md:w-4" /> Eliminar
-                </button>
-              </div>
+                  <button
+                    onClick={() => {
+                      const item = items.find(i => i.id === menuOpenId);
+                      if (item) openEdit(item);
+                      setMenuOpenId(null);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    <Edit2 className="h-4 w-4 text-slate-400" /> Editar equipo
+                  </button>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    onClick={() => {
+                      const item = items.find(i => i.id === menuOpenId);
+                      if (item) { setDeleteItem(item); setMenuOpenId(null); }
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" /> Eliminar
+                  </button>
+                </div>
+              ) : (
+                /* Drawer móvil */
+                <div className="absolute bottom-0 left-0 right-0 bg-white shadow-2xl overflow-hidden pointer-events-auto rounded-t-3xl border-t border-slate-200 pb-safe">
+                  {/* Pill visual */}
+                  <div className="mx-auto mt-3 mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
+                  <div className="px-4 pb-6 space-y-1">
+                    <button
+                      onClick={() => {
+                        const item = items.find(i => i.id === menuOpenId);
+                        if (item) openEdit(item);
+                        setMenuOpenId(null);
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors rounded-2xl"
+                    >
+                      <Edit2 className="h-5 w-5 text-slate-400" /> Editar equipo
+                    </button>
+                    <button
+                      onClick={() => {
+                        const item = items.find(i => i.id === menuOpenId);
+                        if (item) { setDeleteItem(item); setMenuOpenId(null); }
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-4 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors rounded-2xl"
+                    >
+                      <Trash2 className="h-5 w-5" /> Eliminar
+                    </button>
+                  </div>
+                </div>
+              )}
             </Transition.Child>
           </div>
         </Transition>,
@@ -795,11 +946,39 @@ export default function InventarioPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        <MapPin className="h-3 w-3" /> Ubicación / Estante
-                      </label>
-                      <input type="text" value={editFormData.ubicacion} onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" placeholder="Ej: Pasillo A, Estante 2"/>
+                    {/* Ubicación editable en modal editar */}
+                    <div className="space-y-1.5 relative">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                          <MapPin className="h-3 w-3" /> Ubicación / Estante
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowUbicacionEditorInEdit(v => !v)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                        >
+                          <Pencil className="h-3 w-3" /> Gestionar
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <select
+                          value={editFormData.ubicacion}
+                          onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })}
+                          className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                        >
+                          <option value="">Sin asignar</option>
+                          {ubicaciones.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+                        </select>
+                      </div>
+                      {showUbicacionEditorInEdit && (
+                        <UbicacionEditor
+                          items={ubicaciones}
+                          onAdd={addUbicacion}
+                          onDelete={deleteUbicacion}
+                          onSelect={(nombre) => setEditFormData(prev => ({ ...prev, ubicacion: nombre }))}
+                          onClose={() => setShowUbicacionEditorInEdit(false)}
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-1.5">
