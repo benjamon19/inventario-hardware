@@ -508,29 +508,23 @@ export default function InventarioPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // FIX MENÚ: Usamos 900px como threshold real de "desktop" (no 768px de Tailwind md:)
-  // para que en notebook 1350x800 sin zoom funcione bien. El threshold coincide
-  // con cuando el drawer mobile vs dropdown desktop se ve mejor.
-  const DESKTOP_THRESHOLD = 900;
-
+  // FIX: Función de posición del menú que NO usa window.innerWidth
+  // para calcular `right`, ya que con zoom esa medida es incorrecta.
+  // En cambio usamos getBoundingClientRect() directamente.
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
     e.stopPropagation();
     if (menuOpenId === itemId) { setMenuOpenId(null); return; }
-
-    const isDesktop = window.innerWidth >= DESKTOP_THRESHOLD;
-    setMenuIsDesktop(isDesktop);
-
-    if (isDesktop) {
-      const r = e.currentTarget.getBoundingClientRect();
-      const menuHeight = 110;
-      const spaceBelow = window.innerHeight - r.bottom;
-      setMenuPos({
-        top: spaceBelow < (menuHeight + 20)
-          ? r.top + window.scrollY - menuHeight - 8
-          : r.bottom + window.scrollY + 4,
-        right: document.documentElement.clientWidth - r.right,
-      });
-    }
+    const r = e.currentTarget.getBoundingClientRect();
+    const menuHeight = 110;
+    const spaceBelow = window.innerHeight - r.bottom;
+    setMenuPos({
+      top: spaceBelow < (menuHeight + 20)
+        ? r.top + window.scrollY - menuHeight - 8
+        : r.bottom + window.scrollY + 4,
+      // FIX: Calculamos `right` desde el borde derecho del botón al borde derecho del viewport
+      // usando documentElement.clientWidth (no se ve afectado por zoom CSS)
+      right: document.documentElement.clientWidth - r.right,
+    });
     setMenuOpenId(itemId);
   };
 
@@ -583,7 +577,8 @@ export default function InventarioPage() {
   }
 
   return (
-    <div className="space-y-4 relative overflow-x-hidden">
+    <div className="space-y-6 relative overflow-x-hidden">
+      {/* FIX: overflow-x-hidden en el wrapper de la página */}
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -603,7 +598,8 @@ export default function InventarioPage() {
           BARRA DE BÚSQUEDA Y FILTROS
           ========================================================= */}
       <div className="space-y-3">
-        {/* Búsqueda */}
+        
+        {/* 1. Búsqueda */}
         <div className="relative w-full sm:max-w-sm min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
@@ -615,12 +611,14 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* Filtros de categoría */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* 2. Filtros de categoría — flex-wrap para que bajen en vez de ir al lado */}
+        <div className="flex items-center gap-2 flex-wrap pb-1">
           <button
             onClick={() => setFilterCategoria('')}
             className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              !filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+              !filterCategoria
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
             }`}
           >
             Todas
@@ -630,7 +628,9 @@ export default function InventarioPage() {
               key={cat.id}
               onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
               className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
+                filterCategoria === cat.nombre
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
               }`}
             >
               {cat.nombre}
@@ -638,10 +638,12 @@ export default function InventarioPage() {
           ))}
         </div>
 
-        {/* Filtros de estado */}
+        {/* 3. Filtros de estado */}
         {estados.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap pb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">Estado:</span>
+            
+            {/* Mapeo correcto de los botones de color */}
             {estados.map(est => {
               const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
               const badge = colorClasses[est.color] ?? colorClasses.slate;
@@ -660,6 +662,8 @@ export default function InventarioPage() {
                 </button>
               );
             })}
+
+            {/* Botón de limpiar SEPARADO del map */}
             {filterEstado && (
               <button
                 onClick={() => setFilterEstado('')}
@@ -696,6 +700,7 @@ export default function InventarioPage() {
               >
                 <div className="flex justify-between items-start gap-3 mb-3">
                   <div className="flex items-start gap-3 min-w-0">
+                    {/* FIX: min-w-0 en el contenedor flex del texto */}
                     <div className="rounded-xl bg-slate-100 p-2.5 text-slate-600 shrink-0">
                       {getIconoCategoria(item.categoria)}
                     </div>
@@ -867,12 +872,10 @@ export default function InventarioPage() {
       />
 
       {/* =========================================================
-          PORTAL: Menú Dropdown (desktop) / Drawer Móvil
-          
-          FIX NOTEBOOK: usamos menuIsDesktop (calculado con 900px threshold
-          en el momento del click) en lugar de CSS md: que depende del zoom.
-          Esto garantiza que el estilo correcto se aplique independiente
-          del nivel de zoom del navegador.
+          PORTAL: Menú Dropdown / Drawer Móvil
+          FIX: Unificamos el cálculo de posición usando openMenu()
+          que usa document.documentElement.clientWidth en vez de
+          window.innerWidth, lo cual no se ve afectado por zoom CSS.
           ========================================================= */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
