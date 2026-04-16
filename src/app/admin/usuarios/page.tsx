@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { 
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
-  UserPlus, X, Mail, Lock, AlertCircle
+  UserPlus, X, Mail, Lock, AlertCircle, Plus
 } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
@@ -433,15 +433,18 @@ export default function UsuariosPage() {
                       <button
                         type="submit"
                         disabled={isCreating || !newEmail || !newPassword}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-md shadow-blue-200 hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isCreating ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Creando...
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span>Creando...</span>
                           </>
                         ) : (
-                          'Registrar Usuario'
+                          <>
+                            <Plus className="h-5 w-5" />
+                            <span>Registrar Usuario</span>
+                          </>
                         )}
                       </button>
                     </div>
