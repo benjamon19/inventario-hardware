@@ -309,6 +309,27 @@ export default function InventarioPage() {
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
 
+  // --- NUEVO: AUTO-ABRIR DETALLE DESDE EL ESCÁNER ---
+  useEffect(() => {
+    // Solo ejecutamos si ya cargaron los items y estamos en el navegador
+    if (items.length > 0 && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const skuToOpen = params.get('sku');
+      
+      if (skuToOpen) {
+        // Buscamos el equipo exacto
+        const foundItem = items.find(i => i.sku === skuToOpen);
+        if (foundItem) {
+          // Lo abrimos como si le hubieran hecho click
+          setDetalleItem(foundItem);
+          
+          // Limpiamos la URL silenciosamente para que no se vuelva a abrir si recargas la página
+          window.history.replaceState(null, '', '/admin/inventario');
+        }
+      }
+    }
+  }, [items]);
+
   // Cerrar menú con Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpenId(null); };
