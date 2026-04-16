@@ -221,7 +221,6 @@ export default function NuevoEquipoModal({
     if (!formData.modelo.trim()) return;
     setLoading(true);
 
-    // 1. Definir los datos para la tabla hardware
     const toInsert = equipos.map(eq => ({
       sku: eq.sku.trim(),
       categoria: formData.categoria,
@@ -231,14 +230,11 @@ export default function NuevoEquipoModal({
       descripcion: eq.descripcion.trim() || null,
     }));
 
-    // 2. Insertar el hardware y obtener los datos insertados (.select)
     const { data: insertedData, error } = await supabase.from('hardware').insert(toInsert).select();
     
     if (!error && insertedData) { 
-      // 3. Obtener el usuario que está operando
       const { data: { user } } = await supabase.auth.getUser();
 
-      // 4. Crear los logs de auditoría para cada equipo nuevo
       const logsToInsert = insertedData.map(eq => ({
         accion: 'CREAR',
         entidad: 'HARDWARE',
@@ -256,7 +252,7 @@ export default function NuevoEquipoModal({
       onSuccess(); 
       onClose(); 
     } else {
-      alert('Error al guardar: ' + error.message);
+      alert('Error al guardar: ' + (error?.message || 'Error desconocido'));
     }
     setLoading(false);
   };

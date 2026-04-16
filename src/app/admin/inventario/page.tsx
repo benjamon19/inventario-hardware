@@ -439,11 +439,9 @@ export default function InventarioPage() {
     setEditLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
-
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
     
     if (!error) {
-      // Registrar el cambio, detallando si cambió el estado
       await supabase.from('auditoria_logs').insert([{
         accion: 'EDITAR',
         entidad: 'HARDWARE',
@@ -467,14 +465,10 @@ export default function InventarioPage() {
     if (!deleteItem) return;
     setDeleteLoading(true);
 
-    // 1. Obtener usuario
     const { data: { user } } = await supabase.auth.getUser();
-
-    // 2. Ejecutar eliminación
     const { error } = await supabase.from('hardware').delete().eq('id', deleteItem.id);
 
     if (!error) {
-      // 3. Registrar el log de eliminación antes de limpiar el estado
       await supabase.from('auditoria_logs').insert([{
         accion: 'ELIMINAR',
         entidad: 'HARDWARE',
@@ -609,9 +603,8 @@ export default function InventarioPage() {
           BARRA DE BÚSQUEDA Y FILTROS
           ========================================================= */}
       <div className="space-y-3">
-
-        {/* Búsqueda (Estilo QR) */}
-        <div className="relative max-w-sm">
+        {/* Búsqueda */}
+        <div className="relative w-full sm:max-w-sm min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
@@ -623,13 +616,11 @@ export default function InventarioPage() {
         </div>
 
         {/* Filtros de categoría */}
-        <div className="flex items-center gap-2 flex-wrap pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setFilterCategoria('')}
-            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
-              !filterCategoria
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              !filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
             }`}
           >
             Todas
@@ -638,10 +629,8 @@ export default function InventarioPage() {
             <button
               key={cat.id}
               onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
-                filterCategoria === cat.nombre
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
+              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
               }`}
             >
               {cat.nombre}
@@ -652,16 +641,17 @@ export default function InventarioPage() {
         {/* Filtros de estado */}
         {estados.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap pb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">Estado:</span>
             {estados.map(est => {
               const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
               const badge = colorClasses[est.color] ?? colorClasses.slate;
               const active = filterEstado === est.nombre;
+              
               return (
                 <button
                   key={est.id}
                   onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
                   }`}
                 >
@@ -673,7 +663,7 @@ export default function InventarioPage() {
             {filterEstado && (
               <button
                 onClick={() => setFilterEstado('')}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 whitespace-nowrap"
               >
                 Limpiar
               </button>
