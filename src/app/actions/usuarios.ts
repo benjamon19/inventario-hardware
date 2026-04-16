@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 export async function crearUsuarioDesdeAdmin(email: string, password: string) {
   try {
     // 1. Crea el usuario en Authentication de forma silenciosa.
-    // y crea la fila en la tabla 'perfiles'.
+    // y crea la fila en la tabla "perfiles".
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
