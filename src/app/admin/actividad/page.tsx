@@ -100,13 +100,19 @@ export default function ActividadPage() {
   };
 
   const filteredMovimientos = movimientos.filter(mov => {
+    const term = searchTerm.toLowerCase();
+    
+    // Usamos || '' para evitar errores si algún campo viene null
     const matchSearch =
-      mov.hardware?.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mov.perfiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mov.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mov.detalles?.email_afectado?.toLowerCase().includes(searchTerm.toLowerCase());
+      (mov.hardware?.modelo?.toLowerCase() || '').includes(term) ||
+      (mov.perfiles?.email?.toLowerCase() || '').includes(term) ||
+      (mov.sku?.toLowerCase() || '').includes(term) ||
+      (mov.detalles?.notas?.toLowerCase() || '').includes(term) ||
+      (mov.detalles?.email_afectado?.toLowerCase() || '').includes(term);
+
     const matchTipo = filterTipo === 'TODOS' || mov.tipo === filterTipo;
     const matchUsuario = !filterUsuario || mov.operador_id === filterUsuario;
+    
     return matchSearch && matchTipo && matchUsuario;
   });
 
