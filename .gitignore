@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backups y dumps locales de Supabase
+backup_produccion_datos.sql
+esquema_prod.sql
+*.sql
