@@ -400,7 +400,7 @@ export default function InventarioPage() {
   const addUbicacion = async (nombre: string) => {
     // IMPORTANTE: Asegúrate de que el nombre de la tabla sea 'ubicaciones'
     const { data, error } = await supabase
-      .from('ubicaciones') 
+      .from('ubicacion') 
       .insert([{ nombre }])
       .select()
       .single();
