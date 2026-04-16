@@ -283,7 +283,7 @@ export default function InventarioPage() {
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
-  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [ubicacion, setUbicacion] = useState<Ubicacion[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -343,45 +343,81 @@ export default function InventarioPage() {
       supabase.from('hardware').select('*').order('updated_at', { ascending: false }),
       supabase.from('categorias').select('*').order('nombre'),
       supabase.from('estados').select('*').order('nombre'),
-      supabase.from('ubicaciones').select('*').order('nombre'),
+      supabase.from('ubicacion').select('*').order('nombre'),
     ]);
     if (hw) setItems(hw);
     if (cats) setCategorias(cats);
     if (ests) setEstados(ests);
-    if (ubics) setUbicaciones(ubics);
+    if (ubics) setUbicacion(ubics);
     setLoading(false);
   };
 
   // --- CRUD Categorías, Estados ---
-  const addCategoria = async (nombre: string, extra: Record<string, string>) => {
-    const prefijo = (extra.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
-    const { data } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
+  const addCategoria = async (nombre: string, extra?: Record<string, string>) => {
+    // Si extra no existe, intentamos sacar el prefijo del nombre
+    const prefijo = (extra?.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
+    
+    const { data, error } = await supabase
+      .from('categorias')
+      .insert([{ nombre, prefijo }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error al añadir categoría:", error.message);
+      return;
+    }
     if (data) setCategorias(prev => [...prev, data]);
   };
+
   const deleteCategoria = async (id: string) => {
-    await supabase.from('categorias').delete().eq('id', id);
-    setCategorias(prev => prev.filter(c => c.id !== id));
+    const { error } = await supabase.from('categorias').delete().eq('id', id);
+    if (!error) setCategorias(prev => prev.filter(c => c.id !== id));
   };
-  const addEstado = async (nombre: string, extra: Record<string, string>) => {
-    const color = extra.color ?? 'slate';
-    const { data } = await supabase.from('estados').insert([{ nombre: nombre.toUpperCase(), color }]).select().single();
+
+  const addEstado = async (nombre: string, extra?: Record<string, string>) => {
+    const color = extra?.color ?? 'slate';
+    
+    const { data, error } = await supabase
+      .from('estados')
+      .insert([{ nombre: nombre.toUpperCase(), color }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error al añadir estado:", error.message);
+      return;
+    }
     if (data) setEstados(prev => [...prev, data]);
   };
+
   const deleteEstado = async (id: string) => {
-    await supabase.from('estados').delete().eq('id', id);
-    setEstados(prev => prev.filter(e => e.id !== id));
+    const { error } = await supabase.from('estados').delete().eq('id', id);
+    if (!error) setEstados(prev => prev.filter(e => e.id !== id));
   };
 
   // --- CRUD Ubicaciones ---
   const addUbicacion = async (nombre: string) => {
-    const { data } = await supabase.from('ubicaciones').insert([{ nombre }]).select().single();
-    if (data) setUbicaciones(prev => [...prev, data]);
-  };
-  const deleteUbicacion = async (id: string) => {
-    await supabase.from('ubicaciones').delete().eq('id', id);
-    setUbicaciones(prev => prev.filter(u => u.id !== id));
+    // IMPORTANTE: Asegúrate de que el nombre de la tabla sea 'ubicaciones'
+    const { data, error } = await supabase
+      .from('ubicaciones') 
+      .insert([{ nombre }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error al añadir ubicación:", error.message);
+      return;
+    }
+    if (data) setUbicacion(prev => [...prev, data]);
   };
 
+  const deleteUbicacion = async (id: string) => {
+    const { error } = await supabase.from('ubicaciones').delete().eq('id', id);
+    if (!error) setUbicacion(prev => prev.filter(u => u.id !== id));
+  };
+
+  // --- Edición ---
   const openEdit = (item: HardwareItem) => {
     setEditItem(item);
     setEditFormData({
@@ -791,7 +827,7 @@ export default function InventarioPage() {
         }}
         categorias={categorias}
         estados={estados}
-        ubicaciones={ubicaciones}
+        ubicaciones={ubicacion}
         addCategoria={addCategoria}
         deleteCategoria={deleteCategoria}
         addEstado={addEstado}
@@ -967,12 +1003,12 @@ export default function InventarioPage() {
                           className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
                         >
                           <option value="">Sin asignar</option>
-                          {ubicaciones.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+                          {ubicacion.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
                         </select>
                       </div>
                       {showUbicacionEditorInEdit && (
                         <UbicacionEditor
-                          items={ubicaciones}
+                          items={ubicacion}
                           onAdd={addUbicacion}
                           onDelete={deleteUbicacion}
                           onSelect={(nombre) => setEditFormData(prev => ({ ...prev, ubicacion: nombre }))}
