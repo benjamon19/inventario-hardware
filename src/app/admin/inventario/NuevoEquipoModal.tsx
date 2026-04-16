@@ -21,18 +21,19 @@ const colorClasses: Record<string, string> = {
 const colorOptions = ['emerald', 'blue', 'amber', 'red', 'violet', 'slate'];
 
 // =============================================
-// Sub-componente: Editor inline para categorías/estados
+// Sub-componente: Editor inline para categorías/estados/ubicaciones
 // =============================================
 type InlineEditorProps = {
   items: { id: string; nombre: string; [key: string]: any }[];
-  onAdd: (nombre: string, extra: Record<string, string>) => Promise<void>;
+  onAdd: (nombre: string, extra?: Record<string, string>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onSelect?: (nombre: string) => void;
   extraField?: { key: string; label: string; type: 'text' | 'color-pick'; options?: string[] };
   onClose: () => void;
+  title: string;
 };
 
-function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }: InlineEditorProps) {
+function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, title }: InlineEditorProps) {
   const [newNombre, setNewNombre] = useState('');
   const [newExtra, setNewExtra] = useState(extraField?.options?.[0] ?? '');
   const [saving, setSaving] = useState(false);
@@ -47,42 +48,43 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }:
 
   return (
     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Opciones actuales</p>
-      {items.map(item => (
-        <div
-          key={item.id}
-          className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
-          onClick={() => { onSelect?.(item.nombre); onClose(); }}
-        >
-          <div className="flex items-center gap-2">
-            {extraField?.type === 'color-pick' && (
-              <span className={`w-2.5 h-2.5 rounded-full border ${colorClasses[item[extraField.key]] ?? 'bg-slate-200'}`} />
-            )}
-            <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">{title}</p>
+      <div className="max-h-40 overflow-y-auto space-y-1">
+        {items.map(item => (
+          <div
+            key={item.id}
+            className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
+            onClick={() => { onSelect?.(item.nombre); onClose(); }}
           >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ))}
+            <div className="flex items-center gap-2">
+              {extraField?.type === 'color-pick' && (
+                <span className={`w-2.5 h-2.5 rounded-full border ${colorClasses[item[extraField.key]] ?? 'bg-slate-200'}`} />
+              )}
+              <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+              className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
 
       <div className="border-t border-slate-100 pt-2 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Nueva opción</p>
         <input
           type="text"
           placeholder="Nombre..."
           value={newNombre}
           onChange={e => setNewNombre(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
         />
         {extraField?.type === 'text' && (
           <input
             type="text"
-            placeholder={`${extraField.label} (ej: LAP)`}
+            placeholder={`${extraField.label}`}
             value={newExtra}
             onChange={e => setNewExtra(e.target.value.toUpperCase())}
             maxLength={5}
@@ -122,81 +124,6 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose }:
 }
 
 // =============================================
-// Sub-componente: Editor inline para ubicaciones
-// =============================================
-type UbicacionEditorProps = {
-  items: Ubicacion[];
-  onAdd: (nombre: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-  onSelect: (nombre: string) => void;
-  onClose: () => void;
-};
-
-function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: UbicacionEditorProps) {
-  const [newNombre, setNewNombre] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const handleAdd = async () => {
-    if (!newNombre.trim()) return;
-    setSaving(true);
-    await onAdd(newNombre.trim());
-    setNewNombre('');
-    setSaving(false);
-  };
-
-  return (
-    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Ubicaciones registradas</p>
-      {items.length === 0 && (
-        <p className="text-xs text-slate-400 italic px-2 py-1">Sin ubicaciones aún.</p>
-      )}
-      {items.map(item => (
-        <div
-          key={item.id}
-          className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
-          onClick={() => { onSelect(item.nombre); onClose(); }}
-        >
-          <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg p-1 hover:bg-red-50 text-red-400 cursor-pointer"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ))}
-      <div className="border-t border-slate-100 pt-2 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
-        <input
-          type="text"
-          placeholder="Ej: Pasillo A, Estante 2..."
-          value={newNombre}
-          onChange={e => setNewNombre(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
-        />
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={saving || !newNombre.trim()}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
-          >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
-          </button>
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer">
-            Listo
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// =============================================
 // Componente Modal Exportado
 // =============================================
 type Props = {
@@ -206,9 +133,10 @@ type Props = {
   categorias: Categoria[];
   estados: Estado[];
   ubicaciones: Ubicacion[];
-  addCategoria: (nombre: string, extra: Record<string, string>) => Promise<void>;
+  // Aquí está el truco: agregamos el signo '?' a extra
+  addCategoria: (nombre: string, extra?: Record<string, string>) => Promise<void>;
   deleteCategoria: (id: string) => Promise<void>;
-  addEstado: (nombre: string, extra: Record<string, string>) => Promise<void>;
+  addEstado: (nombre: string, extra?: Record<string, string>) => Promise<void>;
   deleteEstado: (id: string) => Promise<void>;
   addUbicacion: (nombre: string) => Promise<void>;
   deleteUbicacion: (id: string) => Promise<void>;
@@ -292,17 +220,25 @@ export default function NuevoEquipoModal({
     e.preventDefault();
     if (!formData.modelo.trim()) return;
     setLoading(true);
+
+    // Los datos se insertan en la tabla 'hardware'
     const toInsert = equipos.map(eq => ({
       sku: eq.sku.trim(),
       categoria: formData.categoria,
       modelo: formData.modelo.trim(),
       estado: formData.estado,
-      ubicacion: formData.ubicacion.trim() || null,
+      ubicacion: formData.ubicacion || null, // Guardamos el nombre de la ubicación
       descripcion: eq.descripcion.trim() || null,
     }));
+
     const { error } = await supabase.from('hardware').insert(toInsert);
-    if (!error) { onSuccess(); onClose(); }
-    else alert('Error al guardar: ' + error.message);
+    
+    if (!error) { 
+      onSuccess(); 
+      onClose(); 
+    } else {
+      alert('Error al guardar: ' + error.message);
+    }
     setLoading(false);
   };
 
@@ -317,7 +253,7 @@ export default function NuevoEquipoModal({
           <div className="absolute inset-0 overflow-hidden">
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
               <Transition.Child as={Fragment} enter="transform transition ease-in-out duration-400 sm:duration-500" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in-out duration-400 sm:duration-500" leaveFrom="translate-x-0" leaveTo="translate-x-full">
-                <Dialog.Panel className="pointer-events-auto w-full sm:max-w-md flex">
+                <Dialog.Panel className="pointer-events-auto w-screen sm:max-w-md flex">
                   <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
                     {/* Cabecera */}
                     <div className="px-6 sm:px-8 py-7 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -355,11 +291,12 @@ export default function NuevoEquipoModal({
                           </select>
                           {showCatEditor && (
                             <InlineEditor
+                              title="Categorías actuales"
                               items={categorias}
                               onAdd={addCategoria}
                               onDelete={deleteCategoria}
                               onSelect={(nombre) => setFormData(prev => ({ ...prev, categoria: nombre }))}
-                              extraField={{ key: 'prefijo', label: 'Prefijo SKU', type: 'text' }}
+                              extraField={{ key: 'prefijo', label: 'Prefijo SKU (ej: LAP)', type: 'text' }}
                               onClose={() => setShowCatEditor(false)}
                             />
                           )}
@@ -373,7 +310,6 @@ export default function NuevoEquipoModal({
                             </label>
                             <button
                               type="button"
-                              onMouseDown={(e) => e.preventDefault()}
                               onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); setShowUbicEditor(false); }}
                               className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
@@ -391,6 +327,7 @@ export default function NuevoEquipoModal({
                           </select>
                           {showEstEditor && (
                             <InlineEditor
+                              title="Estados actuales"
                               items={estados}
                               onAdd={addEstado}
                               onDelete={deleteEstado}
@@ -415,7 +352,7 @@ export default function NuevoEquipoModal({
                           />
                         </div>
 
-                        {/* Ubicación — desplegable editable igual que categoría/estado */}
+                        {/* Ubicación — Ahora vinculado a la tabla 'ubicaciones' */}
                         <div className="space-y-1.5 relative">
                           <div className="flex items-center justify-between">
                             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -441,9 +378,10 @@ export default function NuevoEquipoModal({
                             ))}
                           </select>
                           {showUbicEditor && (
-                            <UbicacionEditor
+                            <InlineEditor
+                              title="Ubicaciones en bodega"
                               items={ubicaciones}
-                              onAdd={addUbicacion}
+                              onAdd={async (nombre) => await addUbicacion(nombre)}
                               onDelete={deleteUbicacion}
                               onSelect={(nombre) => setFormData(prev => ({ ...prev, ubicacion: nombre }))}
                               onClose={() => setShowUbicEditor(false)}
@@ -465,6 +403,7 @@ export default function NuevoEquipoModal({
                           </div>
                         </div>
 
+                        {/* Listado de equipos (SKU y Notas) */}
                         <div className="border-t border-slate-100 pt-2 space-y-6">
                           {equipos.map((eq, index) => (
                             <div key={eq.id} className={cantidad > 1 ? "relative p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-6" : "space-y-6"}>
@@ -473,12 +412,9 @@ export default function NuevoEquipoModal({
                                   {index + 1}
                                 </div>
                               )}
-                              {/* SKU */}
                               <div className="space-y-1.5">
                                 <div className="flex justify-between items-end mb-1">
-                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                    Código SKU <span className="text-red-500">*</span>
-                                  </label>
+                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
                                   <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                                 </div>
                                 <input
@@ -489,19 +425,15 @@ export default function NuevoEquipoModal({
                                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all font-mono text-slate-700 font-bold tracking-wider"
                                 />
                               </div>
-                              {/* Descripción */}
                               <div className="space-y-1.5">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                  Descripción / Notas {cantidad > 1 && <span className="lowercase font-normal">(Opcional)</span>}
-                                </label>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
                                 <textarea
                                   value={eq.descripcion}
                                   onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
-                                  placeholder={cantidad > 1 ? "Ej: Número de serie, detalle particular..." : "Ej: En mantención por falla en pantalla. Motivo de ingreso a bodega..."}
+                                  placeholder={cantidad > 1 ? "Número de serie o detalle..." : "Motivo de ingreso, estado de mantención..."}
                                   rows={3}
                                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all resize-none text-slate-700"
                                 />
-                                {cantidad === 1 && <p className="text-[11px] text-slate-400 px-1">Opcional — detalla el motivo de ingreso, estado de mantención, etc.</p>}
                               </div>
                             </div>
                           ))}
