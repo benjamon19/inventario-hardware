@@ -437,19 +437,59 @@ export default function InventarioPage() {
     e.preventDefault();
     if (!editItem) return;
     setEditLoading(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
-    if (!error) { await fetchAll(); setEditItem(null); }
-    else alert('Error al editar: ' + error.message);
+    
+    if (!error) {
+      // Registrar el cambio, detallando si cambió el estado
+      await supabase.from('auditoria_logs').insert([{
+        accion: 'EDITAR',
+        entidad: 'HARDWARE',
+        usuario_id: user?.id,
+        detalles: {
+          sku: editFormData.sku,
+          modelo: editFormData.modelo,
+          notas: `Edición de datos. Estado: ${editItem.estado} -> ${editFormData.estado}`
+        }
+      }]);
+
+      await fetchAll(); 
+      setEditItem(null); 
+    } else {
+      alert('Error al editar: ' + error.message);
+    }
     setEditLoading(false);
   };
 
   const handleDelete = async () => {
     if (!deleteItem) return;
     setDeleteLoading(true);
-    await supabase.from('hardware').delete().eq('id', deleteItem.id);
-    await fetchAll();
-    setDeleteItem(null);
-    setDetalleItem(null);
+
+    // 1. Obtener usuario
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 2. Ejecutar eliminación
+    const { error } = await supabase.from('hardware').delete().eq('id', deleteItem.id);
+
+    if (!error) {
+      // 3. Registrar el log de eliminación antes de limpiar el estado
+      await supabase.from('auditoria_logs').insert([{
+        accion: 'ELIMINAR',
+        entidad: 'HARDWARE',
+        usuario_id: user?.id,
+        detalles: {
+          sku: deleteItem.sku,
+          modelo: deleteItem.modelo,
+          notas: `Equipo eliminado definitivamente del inventario`
+        }
+      }]);
+
+      await fetchAll();
+      setDeleteItem(null);
+      setDetalleItem(null);
+    }
     setDeleteLoading(false);
   };
 
@@ -582,11 +622,11 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* Filtros de categoría — scroll horizontal en mobile/notebook */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* Filtros de categoría */}
+        <div className="flex items-center gap-2 flex-wrap pb-1">
           <button
             onClick={() => setFilterCategoria('')}
-            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
               !filterCategoria
                 ? 'bg-slate-900 text-white border-slate-900'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
@@ -598,7 +638,7 @@ export default function InventarioPage() {
             <button
               key={cat.id}
               onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
                 filterCategoria === cat.nombre
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
@@ -609,10 +649,10 @@ export default function InventarioPage() {
           ))}
         </div>
 
-        {/* Filtros de estado — scroll horizontal también */}
+        {/* Filtros de estado */}
         {estados.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap shrink-0">Estado:</span>
+          <div className="flex items-center gap-2 flex-wrap pb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
             {estados.map(est => {
               const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
               const badge = colorClasses[est.color] ?? colorClasses.slate;
@@ -621,7 +661,7 @@ export default function InventarioPage() {
                 <button
                   key={est.id}
                   onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
                     active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
                   }`}
                 >
@@ -633,7 +673,7 @@ export default function InventarioPage() {
             {filterEstado && (
               <button
                 onClick={() => setFilterEstado('')}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer whitespace-nowrap shrink-0"
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer"
               >
                 Limpiar
               </button>

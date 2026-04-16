@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Sistema de control de ingreso y salida de equipos",
 };
 
-// ↓ Esto previene el zoom automático de Safari en iOS al enfocar inputs
+// Esto previene el zoom automático de Safari en iOS al enfocar inputs
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
