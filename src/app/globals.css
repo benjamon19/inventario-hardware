@@ -1,33 +1,19 @@
 @import "tailwindcss";
+/* src/app/globals.css */
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* 1. Forzamos el esquema de color light por defecto. 
-  Esto hará que el cursor del mouse sea oscuro sobre los inputs.
-*/
 :root {
-  color-scheme: light;
-}
-
-/* 2. Solo cuando exista la clase .dark, permitimos el esquema oscuro.
-  Esto cambia el cursor del mouse a blanco automáticamente para que contraste con el fondo negro.
-*/
-.dark {
-  color-scheme: dark;
-}
-
-/* 3. Estilos base para el body */
-body {
-  @apply bg-slate-50 text-slate-900 transition-colors duration-300;
-}
-
-/* Simplificamos la selección: si el html tiene .dark, el body cambia.
-  Usar :where o directamente .dark body funciona perfecto.
-*/
-.dark body {
-  @apply bg-zinc-950 text-zinc-100;
+  /* Esto obliga al navegador a usar controles (scroll, cursores, checks) claros */
+  color-scheme: light !important;
 }
 
 html {
-  overflow-y: scroll;
+  /* Forzamos a que no herede nada del sistema */
+  background-color: #f8fafc; /* bg-slate-50 */
+  color: #0f172a; /* text-slate-900 */
+}
+
+/* Forzar el cursor de texto (caret) a ser siempre oscuro en los inputs */
+input, textarea {
+  caret-color: #0f172a !important; 
+  color: #0f172a !important;
 }

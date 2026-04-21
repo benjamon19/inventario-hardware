@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeScript } from "@/components/ThemeScript"; // <-- IMPORTANTE
 import { MultiSessionWarning } from "@/components/MultiSessionWarning";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,11 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // suppressHydrationWarning es OBLIGATORIO para evitar errores de consola
-    <html lang="es" suppressHydrationWarning>
-      <head>
-        <ThemeScript />
-      </head>
+    <html lang="es">
       <body className={`${inter.className} antialiased min-h-screen relative`}>
         {children}
         <MultiSessionWarning />
