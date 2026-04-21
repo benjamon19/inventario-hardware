@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { useScanner } from '@/hooks/useScanner';
 import { Camera, XCircle, CheckCircle2, ArrowDownToLine, ArrowUpFromLine, PlusCircle } from 'lucide-react';
-import { currentTheme } from '@/config/theme';
+import { t as currentTheme } from '@/config/theme';
 import { supabase } from '@/lib/supabase';
 
 gsap.registerPlugin(useGSAP);
