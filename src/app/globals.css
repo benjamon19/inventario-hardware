@@ -1,11 +1,6 @@
 @import "tailwindcss";
 /* src/app/globals.css */
 
-:root {
-  /* Esto obliga al navegador a usar controles (scroll, cursores, checks) claros */
-  color-scheme: light !important;
-}
-
 html {
   /* Forzamos a que no herede nada del sistema */
   background-color: #f8fafc; /* bg-slate-50 */

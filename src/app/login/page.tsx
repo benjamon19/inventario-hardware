@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, LogIn, Loader2, Eye, EyeOff } from 'lucide-react';
-import { t } from '@/config/theme'; // <-- CAMBIADO A 't'
 import { procesarLogin } from './actions';
 import InteractiveRobot, { RobotHandle } from './robot/InteractiveRobot';
 
@@ -19,7 +18,6 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // ── Escala JS para evitar hydration mismatch y adaptar a Capturadores ──
   useEffect(() => {
     const applyScale = () => {
       if (!wrapperRef.current) return;
@@ -75,19 +73,17 @@ export default function LoginPage() {
   };
 
   return (
-    <main className={`flex min-h-screen items-center justify-center ${t.background} p-4 sm:p-6 relative overflow-hidden transition-colors duration-300`}>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6 relative overflow-hidden transition-colors duration-300">
 
-      {/* ── Fondo animado (Ajustado para que las luces no molesten en dark) ── */}
+      {/* ── Fondo animado ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]"></div>
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-amber-400/10 blur-3xl animate-[pulse_4s_ease-in-out_infinite]" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-sky-400/10 blur-3xl animate-[pulse_4s_ease-in-out_infinite_1s]" />
         
-        {/* Estrellas/puntos de fondo */}
         <div className="absolute top-[20%] left-[20%] w-2 h-2 bg-sky-400/60 rounded-full blur-[1px] animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
         <div className="absolute bottom-[30%] right-[25%] w-3 h-3 bg-amber-400/50 rounded-full blur-[2px] animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite_1s]" />
         
-        {/* Aros giratorios (ajustados para dark mode) */}
         <div className="absolute top-[18%] md:top-[15%] left-1/2 -translate-x-1/2 w-44 h-44 md:w-56 md:h-56 rounded-full border border-amber-300/15 animate-[spin_10s_linear_infinite]">
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-400/80 shadow-[0_0_8px_2px_rgba(251,191,36,0.5)]" />
         </div>
@@ -97,30 +93,30 @@ export default function LoginPage() {
       </div>
 
       <div ref={wrapperRef} className="w-full max-w-md relative z-10 mt-16 md:mt-32 max-[390px]:mt-10">
-        <div className={`w-full rounded-3xl border ${t.border} ${t.card} shadow-2xl overflow-visible backdrop-blur-md`}>
+        <div className="w-full rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-visible backdrop-blur-md">
 
           <InteractiveRobot ref={robotRef} />
 
           {/* Header */}
-          <div className={`flex flex-col items-center justify-center gap-1.5 md:gap-2 border-b pt-14 pb-5 md:pt-16 md:pb-6 rounded-t-3xl max-[390px]:pt-12 max-[390px]:pb-4 ${t.borderSubtle} ${t.cardElevated}`}>
-            <h1 className={`text-lg md:text-xl font-bold max-[390px]:text-base ${t.text}`}>Sistema Inventario</h1>
-            <p className={`text-[10px] md:text-xs font-medium uppercase tracking-widest max-[390px]:text-[9px] ${t.textSubtle}`}>Bodega Informática</p>
+          <div className="flex flex-col items-center justify-center gap-1.5 md:gap-2 border-b border-slate-100 pt-14 pb-5 md:pt-16 md:pb-6 rounded-t-3xl max-[390px]:pt-12 max-[390px]:pb-4 bg-slate-50/50">
+            <h1 className="text-lg md:text-xl font-bold max-[390px]:text-base text-slate-900">Sistema Inventario</h1>
+            <p className="text-[10px] md:text-xs font-medium uppercase tracking-widest max-[390px]:text-[9px] text-slate-500">Bodega Informática</p>
           </div>
 
           {/* Formulario */}
           <div className="p-6 md:p-8 max-[390px]:p-5">
             <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
               {errorMsg && (
-                <div className="rounded-xl bg-red-50 dark:bg-red-950/30 p-2.5 md:p-3 border border-red-200 dark:border-red-900/50 text-xs md:text-sm text-red-600 dark:text-red-400 text-center font-bold">
+                <div className="rounded-xl bg-red-50 p-2.5 md:p-3 border border-red-200 text-xs md:text-sm text-red-600 text-center font-bold">
                   {errorMsg}
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className={`text-xs md:text-sm font-bold ml-1 ${t.textMuted}`}>Correo Electrónico</label>
+                <label className="text-xs md:text-sm font-bold ml-1 text-slate-500">Correo Electrónico</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Mail className={`h-4 w-4 md:h-5 md:w-5 ${t.textSubtle}`} />
+                    <Mail className="h-4 w-4 md:h-5 md:w-5 text-slate-400" />
                   </div>
                   <input
                     type="email"
@@ -129,7 +125,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => robotRef.current?.playFocusEmail()}
                     onBlur={() => robotRef.current?.playBlurEmail()}
-                    className={`block w-full rounded-xl border py-2.5 md:py-3 pl-9 md:pl-10 pr-3 text-sm outline-none transition-all max-[390px]:py-2 max-[390px]:text-xs ${t.input}`}
+                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
                     placeholder="ejemplo@empresa.com"
                     autoComplete="email"
                   />
@@ -137,10 +133,10 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className={`text-xs md:text-sm font-bold ml-1 ${t.textMuted}`}>Contraseña</label>
+                <label className="text-xs md:text-sm font-bold ml-1 text-slate-500">Contraseña</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Lock className={`h-4 w-4 md:h-5 md:w-5 ${t.textSubtle}`} />
+                    <Lock className="h-4 w-4 md:h-5 md:w-5 text-slate-400" />
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -149,14 +145,14 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => robotRef.current?.playFocusPassword(!showPassword)}
                     onBlur={() => robotRef.current?.playBlurPassword()}
-                    className={`block w-full rounded-xl border py-2.5 md:py-3 pl-9 md:pl-10 pr-10 md:pr-12 text-sm outline-none transition-all max-[390px]:py-2 max-[390px]:text-xs ${t.input}`}
+                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-10 md:pr-12 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
                     placeholder="••••••••"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
-                    className={`absolute inset-y-0 right-0 pr-3 flex items-center transition-colors ${t.textSubtle} hover:${t.textMuted}`}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center transition-colors text-slate-400 hover:text-slate-600"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4 md:h-5 md:w-5" /> : <Eye className="h-4 w-4 md:h-5 md:w-5" />}
@@ -167,7 +163,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`group mt-2 md:mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 md:py-4 text-xs md:text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-70 shadow-lg cursor-pointer max-[390px]:py-2.5 ${t.primary}`}
+                className="group mt-2 md:mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 md:py-4 text-xs md:text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-70 shadow-lg shadow-blue-100 cursor-pointer max-[390px]:py-2.5 hover:bg-blue-700"
               >
                 {isLoading
                   ? <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
