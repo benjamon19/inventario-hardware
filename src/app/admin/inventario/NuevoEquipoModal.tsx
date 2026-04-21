@@ -21,7 +21,7 @@ const colorClasses: Record<string, string> = {
 const colorOptions = ['emerald', 'blue', 'amber', 'red', 'violet', 'slate'];
 
 // =============================================
-// Sub-componente: Editor inline para categorías/estados/ubicaciones
+// Sub-componente: Editor inline
 // =============================================
 type InlineEditorProps = {
   items: { id: string; nombre: string; [key: string]: any }[];
@@ -38,6 +38,9 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
   const [newExtra, setNewExtra] = useState(extraField?.options?.[0] ?? '');
   const [saving, setSaving] = useState(false);
 
+  // Items ordenados alfabéticamente en el editor
+  const sortedItems = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   const handleAdd = async () => {
     if (!newNombre.trim()) return;
     setSaving(true);
@@ -50,7 +53,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">{title}</p>
       <div className="max-h-40 overflow-y-auto space-y-1">
-        {items.map(item => (
+        {sortedItems.map(item => (
           <div
             key={item.id}
             className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
@@ -133,7 +136,6 @@ type Props = {
   categorias: Categoria[];
   estados: Estado[];
   ubicaciones: Ubicacion[];
-  // Aquí está el truco: agregamos el signo '?' a extra
   addCategoria: (nombre: string, extra?: Record<string, string>) => Promise<void>;
   deleteCategoria: (id: string) => Promise<void>;
   addEstado: (nombre: string, extra?: Record<string, string>) => Promise<void>;
@@ -165,15 +167,21 @@ export default function NuevoEquipoModal({
   const [showEstEditor, setShowEstEditor] = useState(false);
   const [showUbicEditor, setShowUbicEditor] = useState(false);
 
+  // Listas ordenadas alfabéticamente
+  const sortedCategorias = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedEstados = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedUbicaciones = [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   const generarSKU = (prefijo: string) => `${prefijo}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   useEffect(() => {
     if (isOpen) {
-      const defaultCat = categorias[0]?.nombre ?? '';
+      const defaultCat = sortedCategorias[0]?.nombre ?? '';
+      const defaultEst = sortedEstados[0]?.nombre ?? '';
       setFormData({
         categoria: defaultCat,
         modelo: '',
-        estado: estados[0]?.nombre ?? '',
+        estado: defaultEst,
         ubicacion: '',
       });
       setCantidad(1);
@@ -214,6 +222,25 @@ export default function NuevoEquipoModal({
 
   const updateEquipo = (id: number, field: 'sku' | 'descripcion', value: string) => {
     setEquipos(prev => prev.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
+  };
+
+  // Wrapper para addCategoria que auto-selecciona la nueva categoría
+  const handleAddCategoria = async (nombre: string, extra?: Record<string, string>) => {
+    await addCategoria(nombre, extra);
+    // Auto-seleccionar la nueva categoría recién creada
+    setFormData(prev => ({ ...prev, categoria: nombre }));
+  };
+
+  // Wrapper para addEstado que auto-selecciona el nuevo estado
+  const handleAddEstado = async (nombre: string, extra?: Record<string, string>) => {
+    await addEstado(nombre, extra);
+    setFormData(prev => ({ ...prev, estado: nombre.toUpperCase() }));
+  };
+
+  // Wrapper para addUbicacion que auto-selecciona la nueva ubicación
+  const handleAddUbicacion = async (nombre: string) => {
+    await addUbicacion(nombre);
+    setFormData(prev => ({ ...prev, ubicacion: nombre }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -281,7 +308,7 @@ export default function NuevoEquipoModal({
                     <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
                       <form onSubmit={handleSubmit} className="space-y-6 pb-12">
 
-                        {/* Categoría */}
+                        {/* 1. Categoría */}
                         <div className="space-y-1.5 relative">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -300,15 +327,15 @@ export default function NuevoEquipoModal({
                             onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
-                            {categorias.map(c => (
+                            {sortedCategorias.map(c => (
                               <option key={c.id} value={c.nombre}>{c.nombre}</option>
                             ))}
                           </select>
                           {showCatEditor && (
                             <InlineEditor
                               title="Categorías actuales"
-                              items={categorias}
-                              onAdd={addCategoria}
+                              items={sortedCategorias}
+                              onAdd={handleAddCategoria}
                               onDelete={deleteCategoria}
                               onSelect={(nombre) => setFormData(prev => ({ ...prev, categoria: nombre }))}
                               extraField={{ key: 'prefijo', label: 'Prefijo SKU (ej: LAP)', type: 'text' }}
@@ -317,7 +344,7 @@ export default function NuevoEquipoModal({
                           )}
                         </div>
 
-                        {/* Estado */}
+                        {/* 2. Estado */}
                         <div className="space-y-1.5 relative">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -336,15 +363,15 @@ export default function NuevoEquipoModal({
                             onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
-                            {estados.map(e => (
+                            {sortedEstados.map(e => (
                               <option key={e.id} value={e.nombre}>{e.nombre}</option>
                             ))}
                           </select>
                           {showEstEditor && (
                             <InlineEditor
                               title="Estados actuales"
-                              items={estados}
-                              onAdd={addEstado}
+                              items={sortedEstados}
+                              onAdd={handleAddEstado}
                               onDelete={deleteEstado}
                               onSelect={(nombre) => setFormData(prev => ({ ...prev, estado: nombre }))}
                               extraField={{ key: 'color', label: 'Color del badge', type: 'color-pick', options: colorOptions }}
@@ -353,7 +380,7 @@ export default function NuevoEquipoModal({
                           )}
                         </div>
 
-                        {/* Modelo */}
+                        {/* 3. Modelo */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                             Modelo del Equipo <span className="text-red-500">*</span>
@@ -367,7 +394,7 @@ export default function NuevoEquipoModal({
                           />
                         </div>
 
-                        {/* Ubicación — Ahora vinculado a la tabla 'ubicaciones' */}
+                        {/* 4. Ubicación */}
                         <div className="space-y-1.5 relative">
                           <div className="flex items-center justify-between">
                             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -388,15 +415,15 @@ export default function NuevoEquipoModal({
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             <option value="">Sin asignar</option>
-                            {ubicaciones.map(u => (
+                            {sortedUbicaciones.map(u => (
                               <option key={u.id} value={u.nombre}>{u.nombre}</option>
                             ))}
                           </select>
                           {showUbicEditor && (
                             <InlineEditor
                               title="Ubicaciones en bodega"
-                              items={ubicaciones}
-                              onAdd={async (nombre) => await addUbicacion(nombre)}
+                              items={sortedUbicaciones}
+                              onAdd={async (nombre) => await handleAddUbicacion(nombre)}
                               onDelete={deleteUbicacion}
                               onSelect={(nombre) => setFormData(prev => ({ ...prev, ubicacion: nombre }))}
                               onClose={() => setShowUbicEditor(false)}

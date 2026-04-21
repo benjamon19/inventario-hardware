@@ -29,7 +29,6 @@ type HardwareItem = {
   updated_at?: string;
 };
 
-// --- Helpers de color para badges de estado ---
 const colorClasses: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
   blue: 'bg-blue-50 text-blue-700 border-blue-100',
@@ -48,7 +47,6 @@ const colorDotClasses: Record<string, string> = {
   slate: 'bg-slate-400',
 };
 
-// --- Icono por categoría ---
 const getIconoCategoria = (nombre: string, size: 'sm' | 'lg' = 'sm') => {
   const cls = size === 'lg' ? 'h-12 w-12' : 'h-4 w-4';
   const n = nombre.toLowerCase();
@@ -62,7 +60,7 @@ const getIconoCategoria = (nombre: string, size: 'sm' | 'lg' = 'sm') => {
 };
 
 // =============================================
-// Sub-componente: Editor inline para ubicaciones
+// UbicacionEditor
 // =============================================
 type UbicacionEditorProps = {
   items: Ubicacion[];
@@ -76,6 +74,8 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
   const [newNombre, setNewNombre] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const sortedItems = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   const handleAdd = async () => {
     if (!newNombre.trim()) return;
     setSaving(true);
@@ -87,10 +87,10 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
   return (
     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Ubicaciones registradas</p>
-      {items.length === 0 && (
+      {sortedItems.length === 0 && (
         <p className="text-xs text-slate-400 italic px-2 py-1">Sin ubicaciones aún.</p>
       )}
-      {items.map(item => (
+      {sortedItems.map(item => (
         <div
           key={item.id}
           className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 group cursor-pointer"
@@ -137,7 +137,7 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
 }
 
 // =============================================
-// Sub-componente: Vista detalle estilo producto
+// DetalleView
 // =============================================
 type DetalleViewProps = {
   item: HardwareItem;
@@ -277,8 +277,8 @@ export default function InventarioPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategoria, setFilterCategoria] = useState<string>('');
   const [filterEstado, setFilterEstado] = useState<string>('');
+  const [filterUbicacion, setFilterUbicacion] = useState<string>(''); // ← NUEVO
   
-  // 1. Estados de Paginación y Ref
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const topRef = useRef<HTMLDivElement>(null);
@@ -306,25 +306,27 @@ export default function InventarioPage() {
   const [deleteItem, setDeleteItem] = useState<HardwareItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => { fetchAll(); }, []);
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
+  // Listas con orden alfabético
+  const sortedCategorias = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedEstados = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedUbicaciones = [...ubicacion].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  // Efecto para calcular itemsPerPage dinámicamente según el dispositivo
+  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado, filterUbicacion]);
+
   useEffect(() => {
     const handleResize = () => {
-      // Validamos si estamos en un dispositivo pequeño (menor a 768px, estándar de Tailwind para md:)
       if (window.innerWidth < 768) {
-        setItemsPerPage(5); // 5 es ideal para mantener la vista limpia en móvil
+        setItemsPerPage(5);
       } else {
-        // En escritorio/pantallas grandes, calculamos dinámicamente según el alto
         const availableHeight = window.innerHeight - 380;
-        const estimatedRowHeight = 70; // Alto estimado de la fila/tarjeta
+        const estimatedRowHeight = 70;
         const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
-        setItemsPerPage(Math.max(5, calculatedItems)); // Mínimo 5 por seguridad
+        setItemsPerPage(Math.max(5, calculatedItems));
       }
     };
 
-    handleResize(); // Cálculo inicial
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -396,7 +398,7 @@ export default function InventarioPage() {
   };
 
   const deleteUbicacion = async (id: string) => {
-    const { error } = await supabase.from('ubicaciones').delete().eq('id', id);
+    const { error } = await supabase.from('ubicacion').delete().eq('id', id);
     if (!error) setUbicacion(prev => prev.filter(u => u.id !== id));
   };
 
@@ -447,7 +449,8 @@ export default function InventarioPage() {
       item.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat = !filterCategoria || item.categoria === filterCategoria;
     const matchEst = !filterEstado || item.estado === filterEstado;
-    return matchSearch && matchCat && matchEst;
+    const matchUbic = !filterUbicacion || item.ubicacion === filterUbicacion; // ← NUEVO
+    return matchSearch && matchCat && matchEst && matchUbic;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
@@ -456,13 +459,11 @@ export default function InventarioPage() {
     currentPage * itemsPerPage
   );
 
-  // 2. Lógica de Cambio de Página
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // 3. Función Reutilizable de Paginación
   const renderPaginacion = () => {
     if (loading || filteredItems.length <= itemsPerPage) return null;
     return (
@@ -570,7 +571,6 @@ export default function InventarioPage() {
   }
 
   return (
-    // 4. Implementación ref={topRef}
     <div ref={topRef} className="space-y-4 relative overflow-x-hidden">
 
       {/* Header */}
@@ -600,8 +600,8 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* Filtros categoría - Ahora hacia abajo */}
-        {!loading && categorias.length > 0 && (
+        {/* Filtros categoría */}
+        {!loading && sortedCategorias.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setFilterCategoria('')}
@@ -613,7 +613,7 @@ export default function InventarioPage() {
             >
               Todas
             </button>
-            {categorias.map(cat => (
+            {sortedCategorias.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
@@ -630,13 +630,10 @@ export default function InventarioPage() {
         )}
 
         {/* Filtros estado */}
-        {!loading && estados.length > 0 && (
-          // Añadimos px-1 para que el ring de la izquierda no se pegue al borde
+        {!loading && sortedEstados.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap px-1"> 
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
-              Estado:
-            </span>
-            {estados.map(est => {
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
+            {sortedEstados.map(est => {
               const dot    = colorDotClasses[est.color] ?? 'bg-slate-400';
               const badge  = colorClasses[est.color]    ?? colorClasses.slate;
               const active = filterEstado === est.nombre;
@@ -665,12 +662,45 @@ export default function InventarioPage() {
             )}
           </div>
         )}
+
+        {/* Filtro por estante/ubicación — NUEVO */}
+        {!loading && sortedUbicaciones.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap px-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> Estante:
+            </span>
+            {sortedUbicaciones.map(ubic => {
+              const active = filterUbicacion === ubic.nombre;
+              return (
+                <button
+                  key={ubic.id}
+                  onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
+                    active
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'
+                  }`}
+                >
+                  <MapPin className="h-3 w-3" />
+                  {ubic.nombre}
+                </button>
+              );
+            })}
+            {filterUbicacion && (
+              <button 
+                onClick={() => setFilterUbicacion('')} 
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 4. Implementación renderPaginacion (Arriba) */}
       {renderPaginacion()}
 
-      {/* Tabla y Vistas Responsivas */}
+      {/* Tabla */}
       <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
@@ -811,7 +841,6 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* 4. Implementación renderPaginacion (Abajo) */}
       {renderPaginacion()}
 
       {/* Modal Nuevo Equipo */}
@@ -834,12 +863,10 @@ export default function InventarioPage() {
         deleteUbicacion={deleteUbicacion}
       />
 
-      {/* PORTAL: Menú Dropdown (desktop) / Drawer Móvil */}
+      {/* PORTAL: Menú Dropdown / Drawer Móvil */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none">
-
-            {/* Overlay */}
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-200"
@@ -856,7 +883,6 @@ export default function InventarioPage() {
               />
             </Transition.Child>
 
-            {/* Menú — condicional: drawer móvil o dropdown desktop */}
             <Transition.Child
               as={Fragment}
               enter={menuIsDesktop ? "ease-out duration-150" : "ease-out duration-300"}
@@ -867,7 +893,6 @@ export default function InventarioPage() {
               leaveTo={menuIsDesktop ? "opacity-0 scale-95" : "translate-y-full opacity-0"}
             >
               {menuIsDesktop ? (
-                /* Dropdown desktop */
                 <div
                   className="absolute bg-white shadow-xl overflow-hidden pointer-events-auto w-44 rounded-2xl border border-slate-200 py-1.5"
                   style={{ top: menuPos.top, right: menuPos.right }}
@@ -894,7 +919,6 @@ export default function InventarioPage() {
                   </button>
                 </div>
               ) : (
-                /* Drawer móvil */
                 <div className="absolute bottom-0 left-0 right-0 bg-white shadow-2xl overflow-hidden pointer-events-auto rounded-t-3xl border-t border-slate-200 pb-safe">
                   <div className="mx-auto mt-3 mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
                   <div className="px-4 pb-6 space-y-1">
@@ -959,7 +983,7 @@ export default function InventarioPage() {
                           Categoría <span className="text-red-500">*</span>
                         </label>
                         <select value={editFormData.categoria} onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
-                          {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                          {sortedCategorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                         </select>
                       </div>
                       <div className="space-y-1.5">
@@ -967,12 +991,11 @@ export default function InventarioPage() {
                           Estado <span className="text-red-500">*</span>
                         </label>
                         <select value={editFormData.estado} onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
-                          {estados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+                          {sortedEstados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
                         </select>
                       </div>
                     </div>
 
-                    {/* Ubicación editable en modal editable */}
                     <div className="space-y-1.5 relative">
                       <div className="flex items-center justify-between">
                         <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -993,7 +1016,7 @@ export default function InventarioPage() {
                           className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
                         >
                           <option value="">Sin asignar</option>
-                          {ubicacion.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+                          {sortedUbicaciones.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
                         </select>
                       </div>
                       {showUbicacionEditorInEdit && (
@@ -1018,7 +1041,7 @@ export default function InventarioPage() {
                       <textarea
                         value={editFormData.descripcion}
                         onChange={e => setEditFormData({ ...editFormData, descripcion: e.target.value })}
-                        placeholder="Ej: En mantención por falla en batería. Entregado el 10/01..."
+                        placeholder="Ej: En mantención por falla en batería..."
                         rows={3}
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all resize-none text-slate-700"
                       />

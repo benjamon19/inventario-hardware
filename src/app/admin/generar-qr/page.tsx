@@ -8,12 +8,13 @@ import { Transition } from '@headlessui/react';
 import {
   Search, Printer, Package, QrCode, Laptop, Monitor, Cpu,
   HardDrive, Tablet, Keyboard, Loader2, ChevronLeft, ChevronRight,
-  CheckSquare, Square, X, Layers,
+  CheckSquare, Square, X, Layers, MapPin,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
+type Ubicacion = { id: string; nombre: string };
 
 const colorClasses: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
@@ -50,13 +51,14 @@ export default function GenerarQRPage() {
   const [disponibles, setDisponibles] = useState<any[]>([]);
   const [categorias,  setCategorias]  = useState<Categoria[]>([]);
   const [estados,     setEstados]     = useState<Estado[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]); // ← NUEVO
   const [loading,     setLoading]     = useState(true);
 
   const [searchTerm,      setSearchTerm]      = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterEstado,    setFilterEstado]    = useState('');
+  const [filterUbicacion, setFilterUbicacion] = useState(''); // ← NUEVO
   
-  // --- ESTADOS DE PAGINACIÓN Y REFS ---
   const [currentPage,     setCurrentPage]     = useState(1);
   const [itemsPerPage,    setItemsPerPage]    = useState(15);
   const topRef = useRef<HTMLDivElement>(null);
@@ -64,17 +66,24 @@ export default function GenerarQRPage() {
   const [multiMode,   setMultiMode]   = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Listas ordenadas alfabéticamente
+  const sortedCategorias  = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedEstados     = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedUbicaciones = [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
-      const [{ data: hw }, { data: cats }, { data: ests }] = await Promise.all([
+      const [{ data: hw }, { data: cats }, { data: ests }, { data: ubics }] = await Promise.all([
         supabase.from('hardware').select('*').order('updated_at', { ascending: false }),
         supabase.from('categorias').select('*').order('nombre'),
         supabase.from('estados').select('*').order('nombre'),
+        supabase.from('ubicacion').select('*').order('nombre'),
       ]);
-      if (hw)   setDisponibles(hw);
-      if (cats) setCategorias(cats);
-      if (ests) setEstados(ests);
+      if (hw)    setDisponibles(hw);
+      if (cats)  setCategorias(cats);
+      if (ests)  setEstados(ests);
+      if (ubics) setUbicaciones(ubics);
       setLoading(false);
     };
     fetchAll();
@@ -91,13 +100,12 @@ export default function GenerarQRPage() {
     }
   }, []);
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado, filterUbicacion]);
 
-  // --- EFECTO PARA PAGINACIÓN DINÁMICA ---
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setItemsPerPage(5); // Vista móvil: pocos ítems
+        setItemsPerPage(5);
       } else {
         const availableHeight = window.innerHeight - 380;
         const estimatedRowHeight = 70;
@@ -151,9 +159,10 @@ export default function GenerarQRPage() {
     const matchSearch =
       eq.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       eq.sku?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCat = !filterCategoria || eq.categoria === filterCategoria;
-    const matchEst = !filterEstado    || eq.estado    === filterEstado;
-    return matchSearch && matchCat && matchEst;
+    const matchCat  = !filterCategoria  || eq.categoria === filterCategoria;
+    const matchEst  = !filterEstado     || eq.estado    === filterEstado;
+    const matchUbic = !filterUbicacion  || eq.ubicacion === filterUbicacion; // ← NUEVO
+    return matchSearch && matchCat && matchEst && matchUbic;
   });
 
   const totalPages     = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
@@ -169,13 +178,11 @@ export default function GenerarQRPage() {
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
 
-  // --- FUNCIÓN DE CAMBIO DE PÁGINA Y AUTO-SCROLL ---
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // --- RENDERIZADO DE PAGINACIÓN ---
   const renderPaginacion = () => {
     if (loading || filteredItems.length <= itemsPerPage) return null;
     return (
@@ -211,7 +218,6 @@ export default function GenerarQRPage() {
     );
   };
 
-  // Qué lista renderizar en impresión
   const listaImpresion = multiMode ? itemsParaImprimir : (item ? [item] : []);
 
   return (
@@ -239,7 +245,6 @@ export default function GenerarQRPage() {
             display: block !important;
           }
 
-          /* CLASE CORREGIDA: Forzamos el salto directo en la etiqueta */
           .etiqueta {
             height: 100vh;
             width: 100;
@@ -251,16 +256,13 @@ export default function GenerarQRPage() {
             box-sizing: border-box;
             background: white;
             font-family: system-ui, sans-serif;
-            overflow: hidden; /* Evita desbordes fantasmas */
-            
-            /* Lógica de saltos de página */
+            overflow: hidden;
             page-break-after: always;
             break-after: page;
             page-break-inside: avoid;
             break-inside: avoid;
           }
 
-          /* Eliminamos el salto de página en la última etiqueta para que no escupa una en blanco al final */
           .etiqueta:last-child {
             page-break-after: auto;
             break-after: auto;
@@ -268,16 +270,14 @@ export default function GenerarQRPage() {
         }
       `}</style>
 
-      {/* ETIQUETAS PARA IMPRIMIR CORREGIDO */}
+      {/* ETIQUETAS PARA IMPRIMIR */}
       {listaImpresion.length > 0 && (
         <div className="print-only">
           {listaImpresion.map((eq) => (
             <div key={eq.id} className="etiqueta">
-              {/* QR */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 0 }}>
                 <QRCodeSVG value={eq.sku} level="H" includeMargin={false} style={{ width: '100%', height: '100%' }} />
               </div>
-              {/* Textos */}
               <div style={{ flexShrink: 0, textAlign: 'center', width: '100%', marginTop: '2mm' }}>
                 <p style={{ color: 'black', fontSize: 'clamp(14px, 5vw, 48px)', fontWeight: 900, margin: 0, lineHeight: 1.1, letterSpacing: '0.05em' }}>{eq.sku}</p>
                 <p style={{ fontSize: 'clamp(10px, 3vw, 28px)', fontWeight: 700, color: '#444', margin: '2px 0 0 0', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.modelo}</p>
@@ -313,7 +313,7 @@ export default function GenerarQRPage() {
           </div>
         </div>
 
-        {/* Vista previa — solo modo individual */}
+        {/* Vista previa — modo individual */}
         {!multiMode && item && (
           <div className="grid md:grid-cols-2 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="bg-white p-8 rounded-3xl border border-slate-200 flex flex-col items-center justify-center gap-6">
@@ -334,6 +334,7 @@ export default function GenerarQRPage() {
                   <li><strong>Categoría:</strong> {item.categoria}</li>
                   <li><strong>Modelo:</strong> {item.modelo}</li>
                   <li><strong>Estado:</strong> {item.estado}</li>
+                  {item.ubicacion && <li><strong>Estante:</strong> {item.ubicacion}</li>}
                   {item.descripcion && <li><strong>Notas:</strong> <span className="font-normal">{item.descripcion}</span></li>}
                 </ul>
               </div>
@@ -347,10 +348,9 @@ export default function GenerarQRPage() {
           </div>
         )}
 
-        {/* Listado con TopRef */}
+        {/* Listado */}
         <div ref={topRef} className="space-y-4">
 
-          {/* Cabecera */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
               <h2 className="text-base font-bold text-slate-700">Todos los equipos</h2>
@@ -373,7 +373,6 @@ export default function GenerarQRPage() {
             </button>
           </div>
 
-          {/* Banner modo múltiple */}
           {multiMode && (
             <div className="flex items-center gap-3 flex-wrap bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3">
               <span className="text-sm font-bold text-violet-800">
@@ -407,7 +406,7 @@ export default function GenerarQRPage() {
           </div>
 
           {/* Filtros categoría */}
-          {!loading && categorias.length > 0 && (
+          {!loading && sortedCategorias.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setFilterCategoria('')}
@@ -415,7 +414,7 @@ export default function GenerarQRPage() {
               >
                 Todas
               </button>
-              {categorias.map(cat => (
+              {sortedCategorias.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
@@ -428,10 +427,10 @@ export default function GenerarQRPage() {
           )}
 
           {/* Filtros estado */}
-          {!loading && estados.length > 0 && (
+          {!loading && sortedEstados.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
-              {estados.map(est => {
+              {sortedEstados.map(est => {
                 const dot    = colorDotClasses[est.color] ?? 'bg-slate-400';
                 const badge  = colorClasses[est.color]    ?? colorClasses.slate;
                 const active = filterEstado === est.nombre;
@@ -448,6 +447,37 @@ export default function GenerarQRPage() {
               })}
               {filterEstado && (
                 <button onClick={() => setFilterEstado('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Filtro por estante/ubicación — NUEVO */}
+          {!loading && sortedUbicaciones.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Estante:
+              </span>
+              {sortedUbicaciones.map(ubic => {
+                const active = filterUbicacion === ubic.nombre;
+                return (
+                  <button
+                    key={ubic.id}
+                    onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
+                      active
+                        ? 'bg-teal-600 text-white border-teal-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'
+                    }`}
+                  >
+                    <MapPin className="h-3 w-3" />
+                    {ubic.nombre}
+                  </button>
+                );
+              })}
+              {filterUbicacion && (
+                <button onClick={() => setFilterUbicacion('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
                   Limpiar
                 </button>
               )}
@@ -494,9 +524,16 @@ export default function GenerarQRPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-slate-900 text-sm truncate">{equipo.modelo}</p>
                       <p className="font-mono text-[11px] text-slate-400 truncate">{equipo.sku}</p>
-                      <span className={`inline-block mt-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${getBadgeClass(equipo.estado)}`}>
-                        {equipo.estado}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold border ${getBadgeClass(equipo.estado)}`}>
+                          {equipo.estado}
+                        </span>
+                        {equipo.ubicacion && (
+                          <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5">
+                            <MapPin className="h-2.5 w-2.5 shrink-0" /> {equipo.ubicacion}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <QrCode className={`h-4 w-4 shrink-0 transition-colors ${
                       multiMode
@@ -517,7 +554,7 @@ export default function GenerarQRPage() {
         {multiMode && selectedIds.size > 0 && <div className="h-24" />}
       </div>
 
-      {/* BARRA STICKY BATCH ANIMADA */}
+      {/* BARRA STICKY BATCH */}
       <Transition
         show={multiMode && selectedIds.size > 0}
         as={Fragment}
@@ -529,11 +566,7 @@ export default function GenerarQRPage() {
         leaveTo="opacity-0 translate-y-10 scale-95"
       >
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center pointer-events-none print:hidden">
-          
-          {/* Contenedor principal: Full redondo (rounded-full) */}
           <div className="pointer-events-auto w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 sm:gap-5 bg-white px-5 py-3 sm:pl-7 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200">
-            
-            {/* Sección de Textos */}
             <div className="flex flex-col justify-center">
               <p className="text-sm font-bold text-slate-800 leading-tight">
                 {selectedIds.size} seleccionada{selectedIds.size > 1 ? 's' : ''}
@@ -542,11 +575,7 @@ export default function GenerarQRPage() {
                 {selectedIds.size} etiqueta{selectedIds.size > 1 ? 's' : ''} lista para imprimir
               </p>
             </div>
-            
-            {/* Barra vertical gris (se mantiene siempre) */}
             <div className="w-px h-8 bg-slate-200 shrink-0" />
-            
-            {/* Sección de Acciones */}
             <div className="flex items-center gap-1 sm:gap-2">
               <button 
                 onClick={imprimir} 
@@ -556,7 +585,6 @@ export default function GenerarQRPage() {
                 <span className="hidden sm:inline">Imprimir todas</span>
                 <span className="sm:hidden">Imprimir</span>
               </button>
-              
               <button 
                 onClick={deseleccionarTodos} 
                 title="Limpiar selección" 
@@ -565,7 +593,6 @@ export default function GenerarQRPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
           </div>
         </div>
       </Transition>

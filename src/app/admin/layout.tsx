@@ -12,14 +12,29 @@ import {
 import { supabase } from '@/lib/supabase';
 import { usePresence } from '@/hooks/usePresence';
 
+// Tu definición de breakpoints:
+// Pantalla grande: >= 1350px
+// Pantalla mediana: 768px - 1349px
+// Celular: < 768px
+const MOBILE_BREAKPOINT = 768;
+const SIDEBAR_PREF_KEY = 'ti_bodega_sidebar_expanded';
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
-  
+
+  // Inicializamos desde localStorage para evitar el "rebote" visual al montar
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() => {
+    // Durante SSR no hay window, devolvemos true como default
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem(SIDEBAR_PREF_KEY);
+    // Si hay preferencia guardada la usamos, si no, default true
+    return saved !== null ? saved === 'true' : true;
+  });
+
   const [userAvatar, setUserAvatar] = useState({ 
     initial: 'B', 
     styles: 'bg-blue-100 text-blue-700 border-blue-200' 
@@ -42,6 +57,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
     fetchUser();
   }, []);
+
+  // Persistir preferencia cada vez que cambia
+  const toggleSidebar = () => {
+    setIsSidebarExpanded(prev => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_PREF_KEY, String(next));
+      return next;
+    });
+  };
   
   const menuItems = useMemo(() => [
     { name: 'Panel Principal', href: '/admin',             icon: LayoutDashboard },
@@ -141,7 +165,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen w-full bg-slate-50 transition-colors duration-300">
       
-      {/* Sidebar móvil */}
+      {/* Sidebar móvil — solo visible en < 768px */}
       <Transition show={isMobileMenuOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50 md:hidden" onClose={setIsMobileMenuOpen}>
           <Transition.Child
@@ -169,7 +193,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </Dialog>
       </Transition>
 
-      {/* Sidebar escritorio */}
+      {/* Sidebar escritorio — visible en >= 768px */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 hidden md:flex flex-col border-r border-slate-200 bg-white
         ${isSidebarExpanded ? 'w-52' : 'w-16'}
@@ -190,8 +214,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             type="button"
             className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer text-slate-500 hover:bg-slate-50"
             onClick={() => {
-              if (window.innerWidth < 768) setIsMobileMenuOpen(true);
-              else setIsSidebarExpanded(prev => !prev);
+              // En móvil abre el drawer, en desktop colapsa/expande
+              if (window.innerWidth < MOBILE_BREAKPOINT) {
+                setIsMobileMenuOpen(true);
+              } else {
+                toggleSidebar();
+              }
             }}
           >
             <Menu className="h-5 w-5" />
