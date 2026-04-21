@@ -221,23 +221,38 @@ export default function NuevoEquipoModal({
     if (!formData.modelo.trim()) return;
     setLoading(true);
 
-    // Los datos se insertan en la tabla 'hardware'
     const toInsert = equipos.map(eq => ({
       sku: eq.sku.trim(),
       categoria: formData.categoria,
       modelo: formData.modelo.trim(),
       estado: formData.estado,
-      ubicacion: formData.ubicacion || null, // Guardamos el nombre de la ubicación
+      ubicacion: formData.ubicacion || null,
       descripcion: eq.descripcion.trim() || null,
     }));
 
-    const { error } = await supabase.from('hardware').insert(toInsert);
+    const { data: insertedData, error } = await supabase.from('hardware').insert(toInsert).select();
     
-    if (!error) { 
+    if (!error && insertedData) { 
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const logsToInsert = insertedData.map(eq => ({
+        accion: 'CREAR',
+        entidad: 'HARDWARE',
+        usuario_id: user?.id,
+        detalles: {
+          sku: eq.sku,
+          modelo: eq.modelo,
+          categoria: eq.categoria,
+          notas: eq.descripcion || 'Registro inicial en el sistema'
+        }
+      }));
+
+      await supabase.from('auditoria_logs').insert(logsToInsert);
+
       onSuccess(); 
       onClose(); 
     } else {
-      alert('Error al guardar: ' + error.message);
+      alert('Error al guardar: ' + (error?.message || 'Error desconocido'));
     }
     setLoading(false);
   };

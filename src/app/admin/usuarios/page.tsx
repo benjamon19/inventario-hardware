@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { 
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
-  UserPlus, X, Mail, Lock, AlertCircle, Plus
+  UserPlus, X, Mail, Lock, AlertCircle, Plus,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +32,11 @@ export default function UsuariosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState<'TODOS' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
 
+  // --- ESTADOS DE PAGINACIÓN Y REFS ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const topRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchUsuarios();
 
@@ -48,6 +54,29 @@ export default function UsuariosPage() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // --- Efecto: Cálculo dinámico de ítems por página (Grid Edition) ---
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setItemsPerPage(5); // Móvil: 5 tarjetas
+      } else {
+        // Escritorio: Calculamos filas estimadas por columnas (grid)
+        const availableHeight = window.innerHeight - 320; 
+        const estimatedCardHeight = 180; 
+        const rows = Math.floor(availableHeight / estimatedCardHeight);
+        const cols = window.innerWidth >= 1024 ? 3 : 2; // lg: 3 columnas, md: 2 columnas
+        setItemsPerPage(Math.max(6, rows * cols)); // Mínimo 6 para que se vea bien
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Volver a la página 1 al filtrar o buscar
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRol]);
 
   const fetchUsuarios = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -150,6 +179,54 @@ export default function UsuariosPage() {
     return matchSearch && matchRol;
   });
 
+  // --- LÓGICA DE CORTADO (SLICE) PARA LA PAGINACIÓN ---
+  const totalPages = Math.max(1, Math.ceil(filteredUsuarios.length / itemsPerPage));
+  const paginatedUsuarios = filteredUsuarios.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // --- FUNCIÓN REUTILIZABLE DE PAGINACIÓN ---
+  const renderPaginacion = () => {
+    if (loading || filteredUsuarios.length <= itemsPerPage) return null;
+    return (
+      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredUsuarios.length)}</span> de <span className="font-bold text-slate-700">{filteredUsuarios.length}</span> registros
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+              acc.push(p);
+              return acc;
+            }, [])
+            .map((p, idx) =>
+              p === '...' ? (
+                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+              ) : (
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                  {p}
+                </button>
+              )
+            )}
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const roles = ['TODOS', 'ADMIN', 'OPERADOR', 'PENDIENTE'] as const;
 
   const rolChipClass = (rol: typeof roles[number], active: boolean) => {
@@ -161,7 +238,7 @@ export default function UsuariosPage() {
   };
 
   return (
-    <div className="space-y-6 relative">
+    <div ref={topRef} className="space-y-6 relative pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
@@ -210,19 +287,22 @@ export default function UsuariosPage() {
         )}
       </div>
 
+      {/* Paginación Arriba */}
+      {renderPaginacion()}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
             <p className="font-medium">Cargando personal...</p>
           </div>
-        ) : filteredUsuarios.length === 0 ? (
+        ) : paginatedUsuarios.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
             <Users className="mx-auto h-12 w-12 text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No se encontraron usuarios.</p>
           </div>
         ) : (
-          filteredUsuarios.map((perfil) => {
+          paginatedUsuarios.map((perfil) => {
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
 
             return (
@@ -302,7 +382,7 @@ export default function UsuariosPage() {
                         {perfil.rol !== 'OPERADOR' && (
                           <button
                             disabled={updatingId === perfil.id}
-                            onClick={() => cambiarRol(perfil.id === perfil.id ? perfil : null, 'OPERADOR')}
+                            onClick={() => cambiarRol(perfil, 'OPERADOR')}
                             className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
                           >
                             Hacer Operador
@@ -326,6 +406,9 @@ export default function UsuariosPage() {
           })
         )}
       </div>
+
+      {/* Paginación Abajo */}
+      {renderPaginacion()}
 
       <div className="flex items-start gap-3 rounded-3xl bg-blue-50 border border-blue-100 p-5 mt-8">
         <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
