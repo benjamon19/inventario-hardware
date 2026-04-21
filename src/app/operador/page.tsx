@@ -136,6 +136,19 @@ export default function OperatorPage() {
       .eq('sku', selectedItem.sku);
 
     if (!transError && !hwError) {
+      // --- NUEVO: Registro en Auditoría ---
+      await supabase.from('auditoria_logs').insert([{
+        accion: tipo, // Registra automáticamente 'INGRESO' o 'SALIDA'
+        entidad: 'HARDWARE',
+        usuario_id: user?.id,
+        detalles: {
+          sku: selectedItem.sku,
+          modelo: selectedItem.modelo,
+          notas: `Movimiento vía Escáner. Estado: ${selectedItem.estado} -> ${nuevoEstado}`
+        }
+      }]);
+      // ------------------------------------
+
       setStatusMsg({ type: 'success', text: `${tipo} registrado.` });
       setSelectedItem(null);
       setIsScanning(true);

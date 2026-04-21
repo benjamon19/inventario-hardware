@@ -419,19 +419,53 @@ export default function InventarioPage() {
     e.preventDefault();
     if (!editItem) return;
     setEditLoading(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
-    if (!error) { await fetchAll(); setEditItem(null); }
-    else alert('Error al editar: ' + error.message);
+    
+    if (!error) {
+      await supabase.from('auditoria_logs').insert([{
+        accion: 'EDITAR',
+        entidad: 'HARDWARE',
+        usuario_id: user?.id,
+        detalles: {
+          sku: editFormData.sku,
+          modelo: editFormData.modelo,
+          notas: `Edición de datos. Estado: ${editItem.estado} -> ${editFormData.estado}`
+        }
+      }]);
+
+      await fetchAll(); 
+      setEditItem(null); 
+    } else {
+      alert('Error al editar: ' + error.message);
+    }
     setEditLoading(false);
   };
 
   const handleDelete = async () => {
     if (!deleteItem) return;
     setDeleteLoading(true);
-    await supabase.from('hardware').delete().eq('id', deleteItem.id);
-    await fetchAll();
-    setDeleteItem(null);
-    setDetalleItem(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('hardware').delete().eq('id', deleteItem.id);
+
+    if (!error) {
+      await supabase.from('auditoria_logs').insert([{
+        accion: 'ELIMINAR',
+        entidad: 'HARDWARE',
+        usuario_id: user?.id,
+        detalles: {
+          sku: deleteItem.sku,
+          modelo: deleteItem.modelo,
+          notas: `Equipo eliminado definitivamente del inventario`
+        }
+      }]);
+
+      await fetchAll();
+      setDeleteItem(null);
+      setDetalleItem(null);
+    }
     setDeleteLoading(false);
   };
 
@@ -503,21 +537,17 @@ export default function InventarioPage() {
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
     e.stopPropagation();
     if (menuOpenId === itemId) { setMenuOpenId(null); return; }
-
-    const isDesktop = window.innerWidth >= DESKTOP_THRESHOLD;
-    setMenuIsDesktop(isDesktop);
-
-    if (isDesktop) {
-      const r = e.currentTarget.getBoundingClientRect();
-      const menuHeight = 110;
-      const spaceBelow = window.innerHeight - r.bottom;
-      setMenuPos({
-        top: spaceBelow < (menuHeight + 20)
-          ? r.top + window.scrollY - menuHeight - 8
-          : r.bottom + window.scrollY + 4,
-        right: document.documentElement.clientWidth - r.right,
-      });
-    }
+    const r = e.currentTarget.getBoundingClientRect();
+    const menuHeight = 110;
+    const spaceBelow = window.innerHeight - r.bottom;
+    setMenuPos({
+      top: spaceBelow < (menuHeight + 20)
+        ? r.top + window.scrollY - menuHeight - 8
+        : r.bottom + window.scrollY + 4,
+      // FIX: Calculamos `right` desde el borde derecho del botón al borde derecho del viewport
+      // usando documentElement.clientWidth (no se ve afectado por zoom CSS)
+      right: document.documentElement.clientWidth - r.right,
+    });
     setMenuOpenId(itemId);
   };
 
@@ -604,7 +634,7 @@ export default function InventarioPage() {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setFilterCategoria('')}
-            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               !filterCategoria
                 ? 'bg-slate-900 text-white border-slate-900'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
@@ -616,7 +646,7 @@ export default function InventarioPage() {
             <button
               key={cat.id}
               onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                 filterCategoria === cat.nombre
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
@@ -629,17 +659,20 @@ export default function InventarioPage() {
 
         {/* Filtros de estado */}
         {estados.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap shrink-0">Estado:</span>
+          <div className="flex items-center gap-2 flex-wrap pb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">Estado:</span>
+            
+            {/* Mapeo correcto de los botones de color */}
             {estados.map(est => {
               const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
               const badge = colorClasses[est.color] ?? colorClasses.slate;
               const active = filterEstado === est.nombre;
+              
               return (
                 <button
                   key={est.id}
                   onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`
                   }`}
                 >
@@ -648,10 +681,12 @@ export default function InventarioPage() {
                 </button>
               );
             })}
+
+            {/* Botón de limpiar SEPARADO del map */}
             {filterEstado && (
               <button
                 onClick={() => setFilterEstado('')}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer whitespace-nowrap shrink-0"
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 whitespace-nowrap"
               >
                 Limpiar
               </button>
@@ -686,6 +721,7 @@ export default function InventarioPage() {
               >
                 <div className="flex justify-between items-start gap-3 mb-3">
                   <div className="flex items-start gap-3 min-w-0">
+                    {/* FIX: min-w-0 en el contenedor flex del texto */}
                     <div className="rounded-xl bg-slate-100 p-2.5 text-slate-600 shrink-0">
                       {getIconoCategoria(item.categoria)}
                     </div>
