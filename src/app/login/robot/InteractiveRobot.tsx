@@ -3,7 +3,7 @@
 import { useRef, useImperativeHandle, forwardRef, useEffect, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { t } from '@/config/theme'; // <-- IMPORTANDO TU TEMA
+
 
 export interface RobotHandle {
   playFocusEmail: () => void;
@@ -296,22 +296,21 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   return (
     <div ref={containerRef} className="absolute -top-24 md:-top-32 max-[390px]:-top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
 
-      {/* BURBUJA DE TEXTO (Speech Bubble) Adaptada al Tema */}
+      {/* BURBUJA DE TEXTO (Speech Bubble) */}
       <div
         className={`
           absolute bottom-full mb-3
           left-1/2 -translate-x-1/2
           flex items-center gap-2
-          backdrop-blur-sm border shadow-md
+          backdrop-blur-sm border border-slate-200 bg-white shadow-md
           rounded-2xl px-3 py-1.5 md:px-4 md:py-2
           transition-all duration-300 origin-bottom
-          ${t.card} ${t.border}
           ${isLongOnMobile ? 'w-48 md:w-52 whitespace-normal text-center' : 'whitespace-nowrap'}
           ${showSpeech ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95'}
         `}
       >
         <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
-        <p className={`${t.text} font-bold text-[9px] md:text-[11px] tracking-wide leading-snug`}>
+        <p className="text-slate-900 font-bold text-[9px] md:text-[11px] tracking-wide leading-snug">
           {speech}<span className="text-sky-500 animate-pulse">▍</span>
         </p>
       </div>
