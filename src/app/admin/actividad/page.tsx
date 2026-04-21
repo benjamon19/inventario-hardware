@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Search, ArrowUpRight, ArrowDownLeft, 
   User, Calendar, Package, Loader2, Clock, ChevronLeft, ChevronRight,
-  PlusCircle, Edit3, Trash2, Tag, FileText, Activity
+  PlusCircle, Edit3, Trash2, Tag, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-const ITEMS_PER_PAGE = 15;
 
 type ActionType = 'TODOS' | 'SALIDA' | 'INGRESO' | 'CREACION' | 'EDICION' | 'ELIMINACION' | 'ETIQUETA';
 
@@ -21,9 +19,29 @@ export default function ActividadPage() {
 
   const [filterTipo, setFilterTipo] = useState<ActionType>('TODOS');
   const [filterUsuario, setFilterUsuario] = useState('');
+  
+  // =========================================================
+  // ESTADOS DE PAGINACIÓN Y SCROLL
+  // =========================================================
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [usuarios, setUsuarios] = useState<{ id: string; email: string }[]>([]);
+
+  // Paginación inteligente según el alto de la pantalla
+  useEffect(() => {
+    const calcularItemsPorPagina = () => {
+      // Calculamos cuánto cabe en la pantalla actual
+      const altoDisponible = window.innerHeight - 380;
+      const itemsCalculados = Math.floor(altoDisponible / 110);
+      setItemsPerPage(Math.max(4, itemsCalculados)); // Mínimo 4 items para que no se vea vacío
+    };
+
+    calcularItemsPorPagina();
+    window.addEventListener('resize', calcularItemsPorPagina);
+    return () => window.removeEventListener('resize', calcularItemsPorPagina);
+  }, []);
 
   useEffect(() => {
     fetchActividad();
@@ -33,15 +51,11 @@ export default function ActividadPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'auditoria_logs' },
-        () => {
-          fetchActividad(); 
-        }
+        () => { fetchActividad(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterTipo, filterUsuario]);
@@ -51,10 +65,7 @@ export default function ActividadPage() {
     try {
       const { data: logs, error } = await supabase
         .from('auditoria_logs')
-        .select(`
-          *,
-          perfiles:usuario_id (id, email)
-        `)
+        .select(`*, perfiles:usuario_id (id, email)`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -75,20 +86,14 @@ export default function ActividadPage() {
           operador_id: log.usuario_id,
           perfiles: log.perfiles || { email: 'Sistema' },
           detalles: log.detalles,
-          hardware: {
-            modelo: log.detalles?.modelo || log.detalles?.nombre || null
-          }
+          hardware: { modelo: log.detalles?.modelo || log.detalles?.nombre || null }
         };
       });
 
       setMovimientos(dataFormateada);
 
       const uniqueUsers = Array.from(
-        new Map(
-          dataFormateada
-            .filter(m => m.perfiles?.id)
-            .map(m => [m.perfiles.id, m.perfiles])
-        ).values()
+        new Map(dataFormateada.filter(m => m.perfiles?.id).map(m => [m.perfiles.id, m.perfiles])).values()
       );
       setUsuarios(uniqueUsers as any);
 
@@ -101,20 +106,28 @@ export default function ActividadPage() {
 
   const filteredMovimientos = movimientos.filter(mov => {
     const matchSearch =
-      mov.hardware?.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mov.perfiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mov.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mov.detalles?.email_afectado?.toLowerCase().includes(searchTerm.toLowerCase());
+      (mov.hardware?.modelo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (mov.perfiles?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (mov.sku?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (mov.detalles?.email_afectado?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchTipo = filterTipo === 'TODOS' || mov.tipo === filterTipo;
     const matchUsuario = !filterUsuario || mov.operador_id === filterUsuario;
     return matchSearch && matchTipo && matchUsuario;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredMovimientos.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(filteredMovimientos.length / itemsPerPage));
   const paginatedMovimientos = filteredMovimientos.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
+
+  // =========================================================
+  // FUNCIÓN PARA CAMBIAR DE PÁGINA Y SUBIR
+  // =========================================================
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const tipos = ['TODOS', 'INGRESO', 'SALIDA', 'CREACION', 'EDICION', 'ELIMINACION', 'ETIQUETA'] as const;
   
@@ -135,10 +148,7 @@ export default function ActividadPage() {
     const tipo = mov.tipo;
     const entidad = mov.entidad;
 
-    if (entidad === 'USUARIO') {
-      return { icon: <User className="h-5 w-5" />, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', label: 'Gestión de Usuario' };
-    }
-
+    if (entidad === 'USUARIO') return { icon: <User className="h-5 w-5" />, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', label: 'Gestión de Usuario' };
     switch (tipo) {
       case 'SALIDA': return { icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', label: 'Retiro de equipo' };
       case 'INGRESO': return { icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', label: 'Ingreso de equipo' };
@@ -150,13 +160,53 @@ export default function ActividadPage() {
     }
   };
 
+  // =========================================================
+  // RENDERIZADOR DE PAGINACIÓN (PARA REUTILIZAR ARRIBA Y ABAJO)
+  // =========================================================
+  const renderPaginacion = () => {
+    if (loading || filteredMovimientos.length <= itemsPerPage) return null;
+    return (
+      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm">
+        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredMovimientos.length)}</span> de <span className="font-bold text-slate-700">{filteredMovimientos.length}</span> registros
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+              acc.push(p);
+              return acc;
+            }, [])
+            .map((p, idx) =>
+              p === '...' ? (
+                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+              ) : (
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                  {p}
+                </button>
+              )
+            )}
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6 relative w-full">
+    // Agregamos topRef para que pueda hacer scroll hacia acá
+    <div className="space-y-6 relative w-full" ref={topRef}>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Historial de Actividad</h1>
         <p className="text-sm text-slate-500">Registro detallado en tiempo real de movimientos, cambios y gestiones.</p>
       </div>
 
+      {/* Filtros */}
       <div className="flex flex-col gap-4 w-full">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative w-full sm:max-w-md">
@@ -181,11 +231,6 @@ export default function ActividadPage() {
                 <option key={u.id} value={u.id}>{u.email}</option>
               ))}
             </select>
-            {!loading && (
-              <span className="text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-2 rounded-xl">
-                {filteredMovimientos.length} movs.
-              </span>
-            )}
           </div>
         </div>
 
@@ -202,6 +247,10 @@ export default function ActividadPage() {
         </div>
       </div>
 
+      {/* PAGINACIÓN ARRIBA */}
+      {renderPaginacion()}
+
+      {/* Contenido (Tarjetas de Actividad) */}
       <div className="space-y-4 w-full">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -279,23 +328,8 @@ export default function ActividadPage() {
         )}
       </div>
 
-      {/* Paginación */}
-      {!loading && filteredMovimientos.length > ITEMS_PER_PAGE && (
-        <div className="flex items-center justify-between pt-4 pb-2">
-          <p className="text-xs text-slate-500 font-medium">
-            Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> al <span className="font-bold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, filteredMovimientos.length)}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 border rounded-xl disabled:opacity-30 cursor-pointer">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-xs font-bold text-slate-600">{currentPage} / {totalPages}</span>
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 border rounded-xl disabled:opacity-30 cursor-pointer">
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* PAGINACIÓN ABAJO */}
+      {renderPaginacion()}
     </div>
   );
 }

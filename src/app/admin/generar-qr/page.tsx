@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useRef } from 'react';
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Transition } from '@headlessui/react';
@@ -11,7 +11,6 @@ import {
   CheckSquare, Square, X, Layers,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-
 
 type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -45,8 +44,6 @@ const getIconoCategoria = (nombre: string) => {
   return <Package className="h-5 w-5" />;
 };
 
-const ITEMS_PER_PAGE = 15;
-
 export default function GenerarQRPage() {
   const [sku,         setSku]         = useState('');
   const [item,        setItem]        = useState<any>(null);
@@ -58,7 +55,11 @@ export default function GenerarQRPage() {
   const [searchTerm,      setSearchTerm]      = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterEstado,    setFilterEstado]    = useState('');
+  
+  // --- ESTADOS DE PAGINACIÓN Y REFS ---
   const [currentPage,     setCurrentPage]     = useState(1);
+  const [itemsPerPage,    setItemsPerPage]    = useState(15);
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [multiMode,   setMultiMode]   = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -91,6 +92,24 @@ export default function GenerarQRPage() {
   }, []);
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
+
+  // --- EFECTO PARA PAGINACIÓN DINÁMICA ---
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setItemsPerPage(5); // Vista móvil: pocos ítems
+      } else {
+        const availableHeight = window.innerHeight - 380;
+        const estimatedRowHeight = 70;
+        const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
+        setItemsPerPage(Math.max(5, calculatedItems));
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const buscarEquipo = async () => {
     const { data } = await supabase.from('hardware').select('*').eq('sku', sku.trim()).single();
@@ -137,10 +156,10 @@ export default function GenerarQRPage() {
     return matchSearch && matchCat && matchEst;
   });
 
-  const totalPages     = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const totalPages     = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
   const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
   );
 
   const itemsParaImprimir = disponibles.filter(eq => selectedIds.has(eq.id));
@@ -148,6 +167,48 @@ export default function GenerarQRPage() {
   const getBadgeClass = (estadoNombre: string) => {
     const est = estados.find(e => e.nombre === estadoNombre);
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
+  };
+
+  // --- FUNCIÓN DE CAMBIO DE PÁGINA Y AUTO-SCROLL ---
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // --- RENDERIZADO DE PAGINACIÓN ---
+  const renderPaginacion = () => {
+    if (loading || filteredItems.length <= itemsPerPage) return null;
+    return (
+      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> registros
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+              acc.push(p);
+              return acc;
+            }, [])
+            .map((p, idx) =>
+              p === '...' ? (
+                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+              ) : (
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                  {p}
+                </button>
+              )
+            )}
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   // Qué lista renderizar en impresión
@@ -286,8 +347,8 @@ export default function GenerarQRPage() {
           </div>
         )}
 
-        {/* Listado */}
-        <div className="space-y-4">
+        {/* Listado con TopRef */}
+        <div ref={topRef} className="space-y-4">
 
           {/* Cabecera */}
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -393,6 +454,9 @@ export default function GenerarQRPage() {
             </div>
           )}
 
+          {/* Paginación ARRIBA */}
+          {renderPaginacion()}
+
           {/* Grid */}
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-slate-400">
@@ -445,40 +509,9 @@ export default function GenerarQRPage() {
             </div>
           )}
 
-          {/* =========================================================
-            3. PAGINACIÓN (Estilo QR)
-            ========================================================= */}
-        {!loading && filteredItems.length > ITEMS_PER_PAGE && (
-          <div className="border-t border-slate-100 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
-            <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-              Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> equipos
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, idx) =>
-                  p === '...' ? (
-                    <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
-                  ) : (
-                    <button key={p} onClick={() => setCurrentPage(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
-                      {p}
-                    </button>
-                  )
-                )}
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
+          {/* Paginación ABAJO */}
+          {renderPaginacion()}
+
         </div>
 
         {multiMode && selectedIds.size > 0 && <div className="h-24" />}

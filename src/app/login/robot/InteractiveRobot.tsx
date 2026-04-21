@@ -3,6 +3,7 @@
 import { useRef, useImperativeHandle, forwardRef, useEffect, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { t } from '@/config/theme'; // <-- IMPORTANDO TU TEMA
 
 export interface RobotHandle {
   playFocusEmail: () => void;
@@ -15,7 +16,6 @@ export interface RobotHandle {
   playDespedida: () => Promise<void>;
 }
 
-// Umbral de caracteres a partir del cual el pill pasa a 2 líneas en móvil
 const MOBILE_WRAP_THRESHOLD = 28;
 
 const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
@@ -38,7 +38,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const [isMobile, setIsMobile] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Detectar móvil solo en cliente
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -78,7 +77,6 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
     }, 80);
   };
 
-  // ── ANIMACIONES IDLE ──
   const idleAnimations = [
     () => {
       const phrase = frasesWall[Math.floor(Math.random() * frasesWall.length)];
@@ -296,32 +294,30 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const isLongOnMobile = isMobile && speech.length > MOBILE_WRAP_THRESHOLD;
 
   return (
-    // Agregamos max-[390px]:-top-20 para que no quede tan arriba al ser más chico
     <div ref={containerRef} className="absolute -top-24 md:-top-32 max-[390px]:-top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
 
+      {/* BURBUJA DE TEXTO (Speech Bubble) Adaptada al Tema */}
       <div
         className={`
           absolute bottom-full mb-3
           left-1/2 -translate-x-1/2
           flex items-center gap-2
-          bg-white/95 backdrop-blur-sm
-          border border-slate-200 shadow-md
+          backdrop-blur-sm border shadow-md
           rounded-2xl px-3 py-1.5 md:px-4 md:py-2
           transition-all duration-300 origin-bottom
+          ${t.card} ${t.border}
           ${isLongOnMobile ? 'w-48 md:w-52 whitespace-normal text-center' : 'whitespace-nowrap'}
           ${showSpeech ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95'}
         `}
       >
         <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
-        <p className="text-slate-700 font-bold text-[9px] md:text-[11px] tracking-wide leading-snug">
+        <p className={`${t.text} font-bold text-[9px] md:text-[11px] tracking-wide leading-snug`}>
           {speech}<span className="text-sky-500 animate-pulse">▍</span>
         </p>
       </div>
 
-      {/* Sombra más chica en max-[390px] */}
       <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-20 h-3 md:w-24 md:h-4 max-[390px]:w-14 max-[390px]:h-2 bg-black/20 rounded-full blur-md" />
       
-      {/* Robot enano: max-[390px]:w-28 max-[390px]:h-28 */}
       <svg ref={robotRef} viewBox="0 0 128 128" className="w-36 h-36 md:w-44 md:h-44 max-[390px]:w-28 max-[390px]:h-28 drop-shadow-2xl overflow-visible" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="antennaGlow" cx="50%" cy="50%" r="50%">

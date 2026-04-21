@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 1. Prevenir el flash configurando el esquema de color nativo */
+:root {
+  color-scheme: light dark;
+}
+
+/* 2. Estilos base para el body que reaccionan a la clase .dark inyectada por el script */
+body {
+  @apply bg-slate-50 text-slate-900 transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-zinc-950 text-zinc-100;
+}
+
+html {
+  overflow-y: scroll;
+}

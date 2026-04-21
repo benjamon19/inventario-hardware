@@ -21,12 +21,10 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const ITEMS_PER_PAGE = 5;
-
 export default function AdminScannerPage() {
   const router = useRouter();
   
-  // --- NUEVO: Estado del Modo ---
+  // --- Estado del Modo ---
   const [scanMode, setScanMode] = useState<'TRANSACTION' | 'SEARCH'>('TRANSACTION');
 
   const [manualSku, setManualSku] = useState('');
@@ -36,15 +34,39 @@ export default function AdminScannerPage() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
+  // --- Estados de Paginación Inteligente y Actividad ---
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [totalItems, setTotalItems] = useState(0);
+  const topRef = useRef<HTMLDivElement>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // --- Efecto: Cálculo dinámico de ítems por página ---
   useEffect(() => {
-    fetchActivity(currentPage);
-  }, [currentPage]);
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setItemsPerPage(5); // Móvil
+      } else {
+        // En escritorio calculamos el espacio sobrante (descontando el escáner y cabecera)
+        const availableHeight = window.innerHeight - 500; 
+        const estimatedRowHeight = 60; 
+        const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
+        setItemsPerPage(Math.max(5, calculatedItems));
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- Efecto: Cargar actividad al cambiar de página o cantidad ---
+  useEffect(() => {
+    fetchActivity(currentPage, itemsPerPage);
+  }, [currentPage, itemsPerPage]);
 
   // AUTO-FOCUS
   useEffect(() => {
@@ -67,9 +89,10 @@ export default function AdminScannerPage() {
     }
   }, [manualSku]);
 
-  const fetchActivity = async (page: number) => {
-    const start = page * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE - 1;
+  const fetchActivity = async (page: number, limit: number) => {
+    setLoadingActivity(true);
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
 
     const { data, count } = await supabase
       .from('transacciones')
@@ -82,8 +105,9 @@ export default function AdminScannerPage() {
     
     if (data) {
       setRecentActivity(data);
-      setHasMore(count ? count > end + 1 : false);
+      setTotalItems(count ?? 0);
     }
+    setLoadingActivity(false);
   };
 
   const processSku = async (sku: string) => {
@@ -91,7 +115,7 @@ export default function AdminScannerPage() {
 
     inputRef.current?.blur(); // Ocultar teclado
 
-    // --- NUEVO: Si estamos en modo búsqueda, saltar al inventario ---
+    // --- Estamos en modo búsqueda, saltar al inventario ---
     if (scanMode === 'SEARCH') {
       router.push(`/admin/inventario?sku=${sku}`);
       return;
@@ -150,8 +174,9 @@ export default function AdminScannerPage() {
       setSelectedItem(null);
       setIsScanning(true);
       setManualSku(''); 
-      setCurrentPage(0);
-      fetchActivity(0);
+      // Al registrar, devolvemos a la página 1 para ver el movimiento reciente
+      setCurrentPage(1);
+      fetchActivity(1, itemsPerPage);
     } else {
       setStatusMsg({ type: 'error', text: 'Error al registrar el movimiento.' });
     }
@@ -159,8 +184,52 @@ export default function AdminScannerPage() {
     setLoading(false);
   };
 
+  // --- Lógica de Cambio de Página ---
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // --- Función Reutilizable de Paginación ---
+  const renderPaginacion = () => {
+    if (loadingActivity || totalItems <= itemsPerPage) return null;
+    return (
+      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+              acc.push(p);
+              return acc;
+            }, [])
+            .map((p, idx) =>
+              p === '...' ? (
+                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+              ) : (
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                  {p}
+                </button>
+              )
+            )}
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
+    <div ref={topRef} className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
       
       {/* --- NUEVO: TABS DE MODO --- */}
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
@@ -278,28 +347,17 @@ export default function AdminScannerPage() {
               <History className="h-3 w-3 text-slate-400" />
               <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad Bodega</h3>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setCurrentPage(p => p - 1)} 
-                disabled={currentPage === 0}
-                className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 disabled:opacity-30 disabled:bg-slate-50 shadow-sm cursor-pointer"
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </button>
-              <span className="text-[10px] font-bold text-slate-400">{currentPage + 1}</span>
-              <button 
-                onClick={() => setCurrentPage(p => p + 1)} 
-                disabled={!hasMore}
-                className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 disabled:opacity-30 disabled:bg-slate-50 shadow-sm cursor-pointer"
-              >
-                <ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
           </div>
           
+          {/* Paginación Arriba */}
+          {renderPaginacion()}
+
           <div className="space-y-2">
-            {recentActivity.map((mov) => (
+            {loadingActivity ? (
+               <div className="py-8 flex justify-center">
+                 <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+               </div>
+            ) : recentActivity.map((mov) => (
               <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2">
                 <div className="flex items-start gap-2 flex-1">
                   <div className={`shrink-0 mt-0.5 rounded-md p-1.5 ${mov.tipo === 'SALIDA' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -313,10 +371,14 @@ export default function AdminScannerPage() {
                 <span className="shrink-0 text-[9px] font-mono font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border mt-0.5">{mov.sku}</span>
               </div>
             ))}
-            {recentActivity.length === 0 && (
+            
+            {!loadingActivity && recentActivity.length === 0 && (
               <div className="text-center py-4 text-xs text-slate-400 italic">No hay movimientos registrados</div>
             )}
           </div>
+
+          {/* Paginación Abajo */}
+          {renderPaginacion()}
         </div>
       )}
     </div>

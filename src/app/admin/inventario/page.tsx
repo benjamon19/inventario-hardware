@@ -61,8 +61,6 @@ const getIconoCategoria = (nombre: string, size: 'sm' | 'lg' = 'sm') => {
   return <Package className={cls} />;
 };
 
-const ITEMS_PER_PAGE = 15;
-
 // =============================================
 // Sub-componente: Editor inline para ubicaciones
 // =============================================
@@ -279,7 +277,11 @@ export default function InventarioPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategoria, setFilterCategoria] = useState<string>('');
   const [filterEstado, setFilterEstado] = useState<string>('');
+  
+  // 1. Estados de Paginación y Ref
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
@@ -290,8 +292,6 @@ export default function InventarioPage() {
 
   const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
 
-  // FIX MENÚ: usamos un ref para saber si estamos en desktop al momento del click,
-  // sin depender de breakpoints CSS que el zoom puede romper.
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [menuIsDesktop, setMenuIsDesktop] = useState(false);
@@ -309,28 +309,41 @@ export default function InventarioPage() {
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado]);
 
-  // --- NUEVO: AUTO-ABRIR DETALLE DESDE EL ESCÁNER ---
+  // Efecto para calcular itemsPerPage dinámicamente según el dispositivo
   useEffect(() => {
-    // Solo ejecutamos si ya cargaron los items y estamos en el navegador
+    const handleResize = () => {
+      // Validamos si estamos en un dispositivo pequeño (menor a 768px, estándar de Tailwind para md:)
+      if (window.innerWidth < 768) {
+        setItemsPerPage(5); // 5 es ideal para mantener la vista limpia en móvil
+      } else {
+        // En escritorio/pantallas grandes, calculamos dinámicamente según el alto
+        const availableHeight = window.innerHeight - 380;
+        const estimatedRowHeight = 70; // Alto estimado de la fila/tarjeta
+        const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
+        setItemsPerPage(Math.max(5, calculatedItems)); // Mínimo 5 por seguridad
+      }
+    };
+
+    handleResize(); // Cálculo inicial
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (items.length > 0 && typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const skuToOpen = params.get('sku');
       
       if (skuToOpen) {
-        // Buscamos el equipo exacto
         const foundItem = items.find(i => i.sku === skuToOpen);
         if (foundItem) {
-          // Lo abrimos como si le hubieran hecho click
           setDetalleItem(foundItem);
-          
-          // Limpiamos la URL silenciosamente para que no se vuelva a abrir si recargas la página
           window.history.replaceState(null, '', '/admin/inventario');
         }
       }
     }
   }, [items]);
 
-  // Cerrar menú con Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpenId(null); };
     window.addEventListener('keydown', handleKey);
@@ -352,21 +365,10 @@ export default function InventarioPage() {
     setLoading(false);
   };
 
-  // --- CRUD Categorías, Estados ---
   const addCategoria = async (nombre: string, extra?: Record<string, string>) => {
-    // Si extra no existe, intentamos sacar el prefijo del nombre
     const prefijo = (extra?.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
-    
-    const { data, error } = await supabase
-      .from('categorias')
-      .insert([{ nombre, prefijo }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error al añadir categoría:", error.message);
-      return;
-    }
+    const { data, error } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
+    if (error) { console.error("Error al añadir categoría:", error.message); return; }
     if (data) setCategorias(prev => [...prev, data]);
   };
 
@@ -377,17 +379,8 @@ export default function InventarioPage() {
 
   const addEstado = async (nombre: string, extra?: Record<string, string>) => {
     const color = extra?.color ?? 'slate';
-    
-    const { data, error } = await supabase
-      .from('estados')
-      .insert([{ nombre: nombre.toUpperCase(), color }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error al añadir estado:", error.message);
-      return;
-    }
+    const { data, error } = await supabase.from('estados').insert([{ nombre: nombre.toUpperCase(), color }]).select().single();
+    if (error) { console.error("Error al añadir estado:", error.message); return; }
     if (data) setEstados(prev => [...prev, data]);
   };
 
@@ -396,19 +389,9 @@ export default function InventarioPage() {
     if (!error) setEstados(prev => prev.filter(e => e.id !== id));
   };
 
-  // --- CRUD Ubicaciones ---
   const addUbicacion = async (nombre: string) => {
-    // IMPORTANTE: Asegúrate de que el nombre de la tabla sea 'ubicaciones'
-    const { data, error } = await supabase
-      .from('ubicacion') 
-      .insert([{ nombre }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error al añadir ubicación:", error.message);
-      return;
-    }
+    const { data, error } = await supabase.from('ubicacion').insert([{ nombre }]).select().single();
+    if (error) { console.error("Error al añadir ubicación:", error.message); return; }
     if (data) setUbicacion(prev => [...prev, data]);
   };
 
@@ -417,7 +400,6 @@ export default function InventarioPage() {
     if (!error) setUbicacion(prev => prev.filter(u => u.id !== id));
   };
 
-  // --- Edición ---
   const openEdit = (item: HardwareItem) => {
     setEditItem(item);
     setEditFormData({
@@ -468,15 +450,54 @@ export default function InventarioPage() {
     return matchSearch && matchCat && matchEst;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
   const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
-  // FIX MENÚ: Usamos 900px como threshold real de "desktop" (no 768px de Tailwind md:)
-  // para que en notebook 1350x800 sin zoom funcione bien. El threshold coincide
-  // con cuando el drawer mobile vs dropdown desktop se ve mejor.
+  // 2. Lógica de Cambio de Página
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // 3. Función Reutilizable de Paginación
+  const renderPaginacion = () => {
+    if (loading || filteredItems.length <= itemsPerPage) return null;
+    return (
+      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> registros
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+              acc.push(p);
+              return acc;
+            }, [])
+            .map((p, idx) =>
+              p === '...' ? (
+                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+              ) : (
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                  {p}
+                </button>
+              )
+            )}
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const DESKTOP_THRESHOLD = 900;
 
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
@@ -549,7 +570,8 @@ export default function InventarioPage() {
   }
 
   return (
-    <div className="space-y-4 relative overflow-x-hidden">
+    // 4. Implementación ref={topRef}
+    <div ref={topRef} className="space-y-4 relative overflow-x-hidden">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -565,12 +587,8 @@ export default function InventarioPage() {
         </button>
       </div>
 
-        {/* =========================================================
-          BARRA DE BÚSQUEDA Y FILTROS
-          ========================================================= */}
       <div className="space-y-3">
-
-        {/* Búsqueda (Estilo QR) */}
+        {/* Búsqueda */}
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
@@ -582,7 +600,7 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* Filtros de categoría — scroll horizontal en mobile/notebook */}
+        {/* Filtros de categoría */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setFilterCategoria('')}
@@ -609,7 +627,7 @@ export default function InventarioPage() {
           ))}
         </div>
 
-        {/* Filtros de estado — scroll horizontal también */}
+        {/* Filtros de estado */}
         {estados.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap shrink-0">Estado:</span>
@@ -642,9 +660,11 @@ export default function InventarioPage() {
         )}
       </div>
 
+      {/* 4. Implementación renderPaginacion (Arriba) */}
+      {renderPaginacion()}
+
       {/* Tabla y Vistas Responsivas */}
       <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (
@@ -782,39 +802,10 @@ export default function InventarioPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Paginación */}
-        {!loading && filteredItems.length > ITEMS_PER_PAGE && (
-          <div className="border-t border-slate-100 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
-            <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-              Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> equipos
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                  acc.push(p); return acc;
-                }, [])
-                .map((p, idx) =>
-                  p === '...' ? (
-                    <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
-                  ) : (
-                    <button key={p} onClick={() => setCurrentPage(p as number)} className={`min-w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
-                      {p}
-                    </button>
-                  )
-                )}
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* 4. Implementación renderPaginacion (Abajo) */}
+      {renderPaginacion()}
 
       {/* Modal Nuevo Equipo */}
       <NuevoEquipoModal
@@ -836,14 +827,7 @@ export default function InventarioPage() {
         deleteUbicacion={deleteUbicacion}
       />
 
-      {/* =========================================================
-          PORTAL: Menú Dropdown (desktop) / Drawer Móvil
-          
-          FIX NOTEBOOK: usamos menuIsDesktop (calculado con 900px threshold
-          en el momento del click) en lugar de CSS md: que depende del zoom.
-          Esto garantiza que el estilo correcto se aplique independiente
-          del nivel de zoom del navegador.
-          ========================================================= */}
+      {/* PORTAL: Menú Dropdown (desktop) / Drawer Móvil */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none">
@@ -905,7 +889,6 @@ export default function InventarioPage() {
               ) : (
                 /* Drawer móvil */
                 <div className="absolute bottom-0 left-0 right-0 bg-white shadow-2xl overflow-hidden pointer-events-auto rounded-t-3xl border-t border-slate-200 pb-safe">
-                  {/* Pill visual */}
                   <div className="mx-auto mt-3 mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
                   <div className="px-4 pb-6 space-y-1">
                     <button
