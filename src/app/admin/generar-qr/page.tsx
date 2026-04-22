@@ -453,31 +453,41 @@ export default function GenerarQRPage() {
             </div>
           )}
 
-          {/* Filtro por estante/ubicación — NUEVO */}
+          {/* Filtro por estante/ubicación — VERSIÓN SCROLL HORIZONTAL */}
           {!loading && sortedUbicaciones.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+            <div className="flex items-center gap-3 w-full">
+              {/* Label fijo */}
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0">
                 <MapPin className="h-3 w-3" /> Estante:
               </span>
-              {sortedUbicaciones.map(ubic => {
-                const active = filterUbicacion === ubic.nombre;
-                return (
-                  <button
-                    key={ubic.id}
-                    onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
-                      active
-                        ? 'bg-teal-600 text-white border-teal-600'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'
-                    }`}
-                  >
-                    <MapPin className="h-3 w-3" />
-                    {ubic.nombre}
-                  </button>
-                );
-              })}
+
+              {/* Contenedor con Scroll - La magia ocurre aquí */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 grow">
+                {sortedUbicaciones.map(ubic => {
+                  const active = filterUbicacion === ubic.nombre;
+                  return (
+                    <button
+                      key={ubic.id}
+                      onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                        active
+                          ? 'bg-teal-600 text-white border-teal-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'
+                      }`}
+                    >
+                      <MapPin className="h-3 w-3" />
+                      {ubic.nombre}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Botón de limpiar */}
               {filterUbicacion && (
-                <button onClick={() => setFilterUbicacion('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
+                <button 
+                  onClick={() => setFilterUbicacion('')} 
+                  className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 ml-2"
+                >
                   Limpiar
                 </button>
               )}
