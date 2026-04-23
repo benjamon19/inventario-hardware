@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   description: "Sistema de control de ingreso y salida de equipos",
   icons: {
     icon: "/favicon.ico",
+    apple: "/favicon.ico?v=2",
   },
 };
 

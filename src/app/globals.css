@@ -12,3 +12,17 @@ input, textarea {
   caret-color: #0f172a !important; 
   color: #0f172a !important;
 }
+
+/* =========================================
+   OCULTAR BARRAS DE SCROLL POR COMPLETO
+   ========================================= */
+
+/* Para Firefox */
+* {
+  scrollbar-width: none !important;
+}
+
+/* Para Chrome, Edge, Safari y otros basados en WebKit */
+*::-webkit-scrollbar {
+  display: none !important;
+}

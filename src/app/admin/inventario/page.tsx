@@ -316,13 +316,11 @@ export default function InventarioPage() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setItemsPerPage(5);
+      // En pantallas de >1350 muestra 12, sino muestra 6
+      if (window.innerWidth >= 1350) {
+        setItemsPerPage(12);
       } else {
-        const availableHeight = window.innerHeight - 380;
-        const estimatedRowHeight = 70;
-        const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
-        setItemsPerPage(Math.max(5, calculatedItems));
+        setItemsPerPage(6);
       }
     };
 
@@ -870,10 +868,10 @@ export default function InventarioPage() {
         deleteUbicacion={deleteUbicacion}
       />
 
-      {/* PORTAL: Menú Dropdown / Drawer Móvil */}
+      {/* PORTAL: Menú de Acciones (Pegado abajo y compacto) */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
-          <div className="fixed inset-0 z-50 pointer-events-none">
+          <div className="fixed inset-0 z-50 pointer-events-none flex items-end justify-center">
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-200"
@@ -883,74 +881,53 @@ export default function InventarioPage() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
+              {/* Fondo oscuro sutil */}
               <div
-                className="absolute inset-0 pointer-events-auto"
-                style={{ background: menuIsDesktop ? 'transparent' : 'rgba(15,23,42,0.4)' }}
+                className="absolute inset-0 pointer-events-auto bg-slate-900/10 backdrop-blur-[2px]"
                 onClick={() => setMenuOpenId(null)}
               />
             </Transition.Child>
 
             <Transition.Child
               as={Fragment}
-              enter={menuIsDesktop ? "ease-out duration-150" : "ease-out duration-300"}
-              enterFrom={menuIsDesktop ? "opacity-0 scale-95" : "translate-y-full opacity-0"}
-              enterTo={menuIsDesktop ? "opacity-100 scale-100" : "translate-y-0 opacity-100"}
-              leave={menuIsDesktop ? "ease-in duration-100" : "ease-in duration-200"}
-              leaveFrom={menuIsDesktop ? "opacity-100 scale-100" : "translate-y-0 opacity-100"}
-              leaveTo={menuIsDesktop ? "opacity-0 scale-95" : "translate-y-full opacity-0"}
+              enter="transition ease-out duration-300 transform"
+              enterFrom="translate-y-full"
+              enterTo="translate-y-0"
+              leave="transition ease-in duration-200 transform"
+              leaveFrom="translate-y-0"
+              leaveTo="translate-y-full"
             >
-              {menuIsDesktop ? (
-                <div
-                  className="absolute bg-white shadow-xl overflow-hidden pointer-events-auto w-44 rounded-2xl border border-slate-200 py-1.5"
-                  style={{ top: menuPos.top, right: menuPos.right }}
-                >
+              {/* Contenedor: Pegado abajo (rounded-b-none) y compacto (max-w) */}
+              <div className="relative pointer-events-auto w-full max-w-[320px] bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.1)] rounded-t-4xl border-x border-t border-slate-100 overflow-hidden pb-safe">
+                
+                {/* Tirador estético */}
+                <div className="mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-100" />
+                
+                <div className="px-3 pb-5 pt-1 space-y-1">
                   <button
                     onClick={() => {
                       const item = items.find(i => i.id === menuOpenId);
                       if (item) openEdit(item);
                       setMenuOpenId(null);
                     }}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                    className="flex w-full items-center gap-4 px-5 py-4 text-sm font-bold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors rounded-2xl"
                   >
-                    <Edit2 className="h-4 w-4 text-slate-400" /> Editar equipo
+                    <Edit2 className="h-5 w-5 text-slate-400" /> Editar equipo
                   </button>
-                  <div className="my-1 border-t border-slate-100" />
+                  
+                  <div className="mx-4 border-t border-slate-50" />
+                  
                   <button
                     onClick={() => {
                       const item = items.find(i => i.id === menuOpenId);
                       if (item) { setDeleteItem(item); setMenuOpenId(null); }
                     }}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                    className="flex w-full items-center gap-4 px-5 py-4 text-sm font-bold text-red-600 hover:bg-red-50 cursor-pointer transition-colors rounded-2xl"
                   >
-                    <Trash2 className="h-4 w-4" /> Eliminar
+                    <Trash2 className="h-5 w-5" /> Eliminar equipo
                   </button>
                 </div>
-              ) : (
-                <div className="absolute bottom-0 left-0 right-0 bg-white shadow-2xl overflow-hidden pointer-events-auto rounded-t-3xl border-t border-slate-200 pb-safe">
-                  <div className="mx-auto mt-3 mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
-                  <div className="px-4 pb-6 space-y-1">
-                    <button
-                      onClick={() => {
-                        const item = items.find(i => i.id === menuOpenId);
-                        if (item) openEdit(item);
-                        setMenuOpenId(null);
-                      }}
-                      className="flex w-full items-center gap-3 px-4 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors rounded-2xl"
-                    >
-                      <Edit2 className="h-5 w-5 text-slate-400" /> Editar equipo
-                    </button>
-                    <button
-                      onClick={() => {
-                        const item = items.find(i => i.id === menuOpenId);
-                        if (item) { setDeleteItem(item); setMenuOpenId(null); }
-                      }}
-                      className="flex w-full items-center gap-3 px-4 py-4 text-sm font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors rounded-2xl"
-                    >
-                      <Trash2 className="h-5 w-5" /> Eliminar
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
             </Transition.Child>
           </div>
         </Transition>,

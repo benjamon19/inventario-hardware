@@ -14,7 +14,9 @@ import {
   History,
   ChevronLeft,
   ChevronRight,
-  ArrowLeftRight
+  ArrowLeftRight,
+  MapPin,
+  Layers
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -38,23 +40,19 @@ export default function AdminScannerPage() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
   const [totalItems, setTotalItems] = useState(0);
   const topRef = useRef<HTMLDivElement>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // --- Efecto: Cálculo dinámico de ítems por página ---
+  // --- Efecto: Fijar 12 o 6 ítems según ancho de pantalla ---
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setItemsPerPage(5); // Móvil
+      if (window.innerWidth >= 1350) {
+        setItemsPerPage(12);
       } else {
-        // En escritorio calculamos el espacio sobrante (descontando el escáner y cabecera)
-        const availableHeight = window.innerHeight - 500; 
-        const estimatedRowHeight = 60; 
-        const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
-        setItemsPerPage(Math.max(5, calculatedItems));
+        setItemsPerPage(6);
       }
     };
 
@@ -115,12 +113,7 @@ export default function AdminScannerPage() {
 
     inputRef.current?.blur(); // Ocultar teclado
 
-    // --- Estamos en modo búsqueda, saltar al inventario ---
-    if (scanMode === 'SEARCH') {
-      router.push(`/admin/inventario?sku=${sku}`);
-      return;
-    }
-
+    // QUEDARSE SIEMPRE EN LA PANTALLA (Incluso en modo búsqueda)
     setLoading(true);
     setStatusMsg(null);
     
@@ -174,7 +167,7 @@ export default function AdminScannerPage() {
     if (!transError && !hwError) {
       // --- NUEVO: Registro en Auditoría ---
       await supabase.from('auditoria_logs').insert([{
-        accion: tipo, // Guardará 'INGRESO' o 'SALIDA'
+        accion: tipo,
         entidad: 'HARDWARE',
         usuario_id: user.id,
         detalles: {
@@ -199,24 +192,29 @@ export default function AdminScannerPage() {
     setLoading(false);
   };
 
-  // --- Lógica de Cambio de Página ---
+ // --- Lógica de Cambio de Página ---
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = (newPage: number, isTop: boolean) => {
     setCurrentPage(newPage);
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!isTop) {
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   // --- Función Reutilizable de Paginación ---
-  const renderPaginacion = () => {
+  const renderPaginacion = (posicion: 'top' | 'bottom') => {
     if (loadingActivity || totalItems <= itemsPerPage) return null;
+    
+    const isTop = posicion === 'top';
+    
     return (
-      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+      <div className={`border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center gap-4 bg-white rounded-2xl shadow-sm my-4 ${isTop ? 'justify-between' : 'justify-center'}`}>
         <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
           Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
         </p>
         <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1), isTop)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -230,12 +228,12 @@ export default function AdminScannerPage() {
               p === '...' ? (
                 <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number, isTop)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1), isTop)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -246,7 +244,7 @@ export default function AdminScannerPage() {
   return (
     <div ref={topRef} className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
       
-      {/* --- NUEVO: TABS DE MODO --- */}
+      {/* TABS DE MODO */}
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
         <button
           onClick={() => { setScanMode('TRANSACTION'); setSelectedItem(null); setIsScanning(true); }}
@@ -287,7 +285,7 @@ export default function AdminScannerPage() {
                  }
               </div>
               <p className="mt-2 text-[11px] font-medium bg-black/60 px-3 py-1 rounded-full text-white shadow-sm">
-                {scanMode === 'SEARCH' ? 'Enfoca para buscar' : 'Enfoca para mover'}
+                {scanMode === 'SEARCH' ? 'Enfoca para buscar detalles' : 'Enfoca para mover stock'}
               </p>
             </div>
           </div>
@@ -299,7 +297,7 @@ export default function AdminScannerPage() {
               }`}>
                 {selectedItem.estado}
               </span>
-              <button onClick={() => { setIsScanning(true); setSelectedItem(null); setManualSku(''); }} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+              <button onClick={() => { setIsScanning(true); setSelectedItem(null); setManualSku(''); }} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 transition-colors cursor-pointer">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -307,23 +305,51 @@ export default function AdminScannerPage() {
             <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedItem.modelo}</h2>
             <p className="text-xs font-mono text-slate-500 mt-0.5">SKU: {selectedItem.sku}</p>
 
+            {/* MOSTRAR DETALLES EXTRA SI ESTAMOS EN MODO BÚSQUEDA */}
+            {scanMode === 'SEARCH' && (
+              <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <Layers className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="font-semibold">{selectedItem.categoria}</span>
+                </div>
+                {selectedItem.ubicacion && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="font-semibold">{selectedItem.ubicacion}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button 
-                onClick={() => registrarMovimiento('SALIDA')}
-                disabled={loading || selectedItem.estado === 'EN_USO'}
-                className="flex flex-col items-center gap-1.5 rounded-xl bg-amber-50 p-2.5 text-amber-700 border border-amber-100 hover:bg-amber-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-              >
-                <ArrowUpRight className="h-5 w-5" />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Retirar</span>
-              </button>
-              <button 
-                onClick={() => registrarMovimiento('INGRESO')}
-                disabled={loading || selectedItem.estado === 'DISPONIBLE'}
-                className="flex flex-col items-center gap-1.5 rounded-xl bg-emerald-50 p-2.5 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-              >
-                <ArrowDownLeft className="h-5 w-5" />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Devolver</span>
-              </button>
+              {scanMode === 'TRANSACTION' ? (
+                <>
+                  <button 
+                    onClick={() => registrarMovimiento('SALIDA')}
+                    disabled={loading || selectedItem.estado === 'EN_USO'}
+                    className="flex flex-col items-center gap-1.5 rounded-xl bg-amber-50 p-2.5 text-amber-700 border border-amber-100 hover:bg-amber-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    <ArrowUpRight className="h-5 w-5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Retirar</span>
+                  </button>
+                  <button 
+                    onClick={() => registrarMovimiento('INGRESO')}
+                    disabled={loading || selectedItem.estado === 'DISPONIBLE'}
+                    className="flex flex-col items-center gap-1.5 rounded-xl bg-emerald-50 p-2.5 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    <ArrowDownLeft className="h-5 w-5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Devolver</span>
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => { setIsScanning(true); setSelectedItem(null); setManualSku(''); }}
+                  className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-violet-50 p-3 text-violet-700 border border-violet-100 hover:bg-violet-100 transition-all cursor-pointer shadow-sm"
+                >
+                  <ScanLine className="h-5 w-5" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Escanear otro equipo</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -365,7 +391,7 @@ export default function AdminScannerPage() {
           </div>
           
           {/* Paginación Arriba */}
-          {renderPaginacion()}
+          {renderPaginacion('top')}
 
           <div className="space-y-2">
             {loadingActivity ? (
@@ -373,7 +399,7 @@ export default function AdminScannerPage() {
                  <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
                </div>
             ) : recentActivity.map((mov) => (
-              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2">
+              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-blue-100 transition-colors">
                 <div className="flex items-start gap-2 flex-1">
                   <div className={`shrink-0 mt-0.5 rounded-md p-1.5 ${mov.tipo === 'SALIDA' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
                     {mov.tipo === 'SALIDA' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
@@ -393,7 +419,7 @@ export default function AdminScannerPage() {
           </div>
 
           {/* Paginación Abajo */}
-          {renderPaginacion()}
+          {renderPaginacion('bottom')}
         </div>
       )}
     </div>

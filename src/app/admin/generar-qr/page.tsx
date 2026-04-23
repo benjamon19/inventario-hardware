@@ -51,16 +51,16 @@ export default function GenerarQRPage() {
   const [disponibles, setDisponibles] = useState<any[]>([]);
   const [categorias,  setCategorias]  = useState<Categoria[]>([]);
   const [estados,     setEstados]     = useState<Estado[]>([]);
-  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]); // ← NUEVO
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
   const [loading,     setLoading]     = useState(true);
 
   const [searchTerm,      setSearchTerm]      = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterEstado,    setFilterEstado]    = useState('');
-  const [filterUbicacion, setFilterUbicacion] = useState(''); // ← NUEVO
+  const [filterUbicacion, setFilterUbicacion] = useState('');
   
   const [currentPage,     setCurrentPage]     = useState(1);
-  const [itemsPerPage,    setItemsPerPage]    = useState(15);
+  const [itemsPerPage,    setItemsPerPage]    = useState(12);
   const topRef = useRef<HTMLDivElement>(null);
 
   const [multiMode,   setMultiMode]   = useState(false);
@@ -104,13 +104,10 @@ export default function GenerarQRPage() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setItemsPerPage(5);
+      if (window.innerWidth >= 1350) {
+        setItemsPerPage(12);
       } else {
-        const availableHeight = window.innerHeight - 380;
-        const estimatedRowHeight = 70;
-        const calculatedItems = Math.floor(availableHeight / estimatedRowHeight);
-        setItemsPerPage(Math.max(5, calculatedItems));
+        setItemsPerPage(6);
       }
     };
 
@@ -161,7 +158,7 @@ export default function GenerarQRPage() {
       eq.sku?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat  = !filterCategoria  || eq.categoria === filterCategoria;
     const matchEst  = !filterEstado     || eq.estado    === filterEstado;
-    const matchUbic = !filterUbicacion  || eq.ubicacion === filterUbicacion; // ← NUEVO
+    const matchUbic = !filterUbicacion  || eq.ubicacion === filterUbicacion;
     return matchSearch && matchCat && matchEst && matchUbic;
   });
 
@@ -178,20 +175,25 @@ export default function GenerarQRPage() {
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = (newPage: number, isTop: boolean) => {
     setCurrentPage(newPage);
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!isTop) {
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
-  const renderPaginacion = () => {
+  const renderPaginacion = (posicion: 'top' | 'bottom') => {
     if (loading || filteredItems.length <= itemsPerPage) return null;
+    
+    const isTop = posicion === 'top';
+    
     return (
-      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+      <div className={`border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center gap-4 bg-white rounded-2xl shadow-sm my-4 ${isTop ? 'justify-between' : 'justify-center'}`}>
         <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
           Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> registros
         </p>
         <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1), isTop)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -205,12 +207,12 @@ export default function GenerarQRPage() {
               p === '...' ? (
                 <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number, isTop)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1), isTop)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -453,7 +455,7 @@ export default function GenerarQRPage() {
             </div>
           )}
 
-          {/* Filtro por estante/ubicación — VERSIÓN SCROLL HORIZONTAL */}
+          {/* Filtro por estante/ubicación */}
           {!loading && sortedUbicaciones.length > 0 && (
             <div className="flex items-center gap-3 w-full">
               {/* Label fijo */}
@@ -461,7 +463,7 @@ export default function GenerarQRPage() {
                 <MapPin className="h-3 w-3" /> Estante:
               </span>
 
-              {/* Contenedor con Scroll - La magia ocurre aquí */}
+              {/* Contenedor con Scroll */}
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 grow">
                 {sortedUbicaciones.map(ubic => {
                   const active = filterUbicacion === ubic.nombre;
@@ -495,7 +497,7 @@ export default function GenerarQRPage() {
           )}
 
           {/* Paginación ARRIBA */}
-          {renderPaginacion()}
+          {renderPaginacion('top')}
 
           {/* Grid */}
           {loading ? (
@@ -557,7 +559,7 @@ export default function GenerarQRPage() {
           )}
 
           {/* Paginación ABAJO */}
-          {renderPaginacion()}
+          {renderPaginacion('bottom')}
 
         </div>
 
