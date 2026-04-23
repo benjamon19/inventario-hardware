@@ -15,6 +15,14 @@ import { usePresence } from '@/hooks/usePresence';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
 
+// --- NUEVO: Diccionario para jerarquía de ordenamiento ---
+const PRIORIDAD_ROLES: Record<string, number> = {
+  'SUPER_ADMIN': 1,
+  'ADMIN': 2,
+  'OPERADOR': 3,
+  'PENDIENTE': 4
+};
+
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -89,7 +97,7 @@ export default function UsuariosPage() {
       let query = supabase
         .from('perfiles')
         .select('*', { count: 'exact' })
-        .order('rol', { ascending: true })
+        // Quita el .order('rol') original si lo tenías, ya que lo ordenaremos en JS
         .range(from, to);
 
       if (searchTerm) {
@@ -144,7 +152,26 @@ export default function UsuariosPage() {
         });
       }
 
-      setUsuarios(perfilesConStats);
+      // --- NUEVO: Ordenamiento personalizado (Tú > SUPER_ADMIN > ADMIN > OPERADOR) ---
+      const myId = user?.id || null;
+      const usuariosOrdenados = perfilesConStats.sort((a, b) => {
+        // 1. Tú siempre primero
+        if (a.id === myId) return -1;
+        if (b.id === myId) return 1;
+
+        // 2. Orden por jerarquía de roles
+        const prioridadA = PRIORIDAD_ROLES[a.rol] || 99;
+        const prioridadB = PRIORIDAD_ROLES[b.rol] || 99;
+
+        if (prioridadA !== prioridadB) {
+          return prioridadA - prioridadB;
+        }
+
+        // 3. Orden alfabético si tienen el mismo rol
+        return (a.email || '').localeCompare(b.email || '');
+      });
+
+      setUsuarios(usuariosOrdenados); // Reemplaza el anterior setUsuarios(perfilesConStats)
       setLoading(false);
     };
 
@@ -450,13 +477,16 @@ export default function UsuariosPage() {
                                 <Power className="h-3 w-3" /> Activar
                               </button>
                             ) : (
-                              <button
-                                disabled={updatingId === perfil.id}
-                                onClick={() => cambiarEstado(perfil, 'INACTIVO')}
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
-                              >
-                                <Ban className="h-3 w-3" /> Desactivar
-                              </button>
+                              // --- NUEVO: Evitamos mostrar el botón "Desactivar" a otro SUPER_ADMIN ---
+                              perfil.rol !== 'SUPER_ADMIN' && (
+                                <button
+                                  disabled={updatingId === perfil.id}
+                                  onClick={() => cambiarEstado(perfil, 'INACTIVO')}
+                                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
+                                >
+                                  <Ban className="h-3 w-3" /> Desactivar
+                                </button>
+                              )
                             )}
                           </>
                         )}
