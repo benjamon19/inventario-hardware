@@ -10,7 +10,6 @@ import {
   Menu, ScanLine 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { usePresence } from '@/hooks/usePresence';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -34,8 +33,6 @@ export default function AdminLayoutClient({
     initial: 'B', 
     styles: 'bg-blue-100 text-blue-700 border-blue-200' 
   });
-
-  usePresence();
 
   useEffect(() => {
     const fetchUser = async () => {

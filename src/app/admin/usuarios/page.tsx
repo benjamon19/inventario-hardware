@@ -5,7 +5,7 @@ import {
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
   UserPlus, X, Mail, Lock, AlertCircle, Plus,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Ban, Power
 } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
@@ -20,7 +20,10 @@ export default function UsuariosPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  
+  // --- NUEVO: Guardamos no solo el ID, sino el rol del usuario actual ---
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
@@ -31,20 +34,18 @@ export default function UsuariosPage() {
   const onlineUsers = usePresence();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRol, setFilterRol] = useState<'TODOS' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
+  // Añadimos SUPER_ADMIN a los filtros
+  const [filterRol, setFilterRol] = useState<'TODOS' | 'SUPER_ADMIN' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
 
-  // --- ESTADOS DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // --- Efecto: Cálculo dinámico de ítems por página (Grid Edition Compacto) ---
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setItemsPerPage(6); // Móvil
+        setItemsPerPage(6);
       } else {
-        // Escritorio: Tarjetas más compactas, caben más
         const availableHeight = window.innerHeight - 300; 
         const estimatedCardHeight = 150; 
         const rows = Math.floor(availableHeight / estimatedCardHeight);
@@ -58,7 +59,6 @@ export default function UsuariosPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel('usuarios_page_realtime')
@@ -75,10 +75,8 @@ export default function UsuariosPage() {
     };
   }, []);
 
-  // Volver a la página 1 al filtrar o buscar
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRol]);
 
-  // Carga optimizada desde el servidor
   useEffect(() => {
     const fetchUsuarios = async () => {
       setLoading(true);
@@ -111,9 +109,19 @@ export default function UsuariosPage() {
 
       if (count !== null) setTotalItems(count);
 
-      let perfilesConStats = perfilesData || [];
+      // --- NUEVO: Identificar el rol del usuario logueado ---
+      if (user && perfilesData) {
+        const miPerfil = perfilesData.find(p => p.id === user.id);
+        if (miPerfil) {
+          setCurrentUserRole(miPerfil.rol);
+        } else {
+          // Si no está en la página actual, hacemos un fetch rápido de su rol
+          const { data: myData } = await supabase.from('perfiles').select('rol').eq('id', user.id).single();
+          if (myData) setCurrentUserRole(myData.rol);
+        }
+      }
 
-      // Solo pedir los logs de auditoría para los usuarios que estamos viendo en pantalla
+      let perfilesConStats = perfilesData || [];
       const userIds = perfilesData?.map(p => p.id) || [];
       
       if (userIds.length > 0) {
@@ -147,7 +155,6 @@ export default function UsuariosPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, itemsPerPage, searchTerm, filterRol, refreshTrigger]);
 
-
   const cambiarRol = async (perfil: any, nuevoRol: string) => {
     setUpdatingId(perfil.id);
     
@@ -163,6 +170,30 @@ export default function UsuariosPage() {
         email_afectado: perfil.email,
         rol_anterior: perfil.rol,
         rol_nuevo: nuevoRol
+      });
+      setRefreshTrigger(prev => prev + 1);
+    }
+    
+    setUpdatingId(null);
+  };
+
+  // --- NUEVA FUNCIÓN: Cambiar el estado del usuario ---
+  const cambiarEstado = async (perfil: any, nuevoEstado: 'ACTIVO' | 'INACTIVO') => {
+    if (!confirm(`¿Estás seguro de que quieres ${nuevoEstado === 'INACTIVO' ? 'DESACTIVAR' : 'ACTIVAR'} al usuario ${perfil.email}?`)) return;
+
+    setUpdatingId(perfil.id);
+    
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ estado: nuevoEstado })
+      .eq('id', perfil.id);
+
+    if (error) {
+      alert('No se pudo actualizar el estado: ' + error.message);
+    } else {
+      await registrarLog('EDITAR', 'USUARIO', perfil.id, {
+        email_afectado: perfil.email,
+        accion_estado: nuevoEstado
       });
       setRefreshTrigger(prev => prev + 1);
     }
@@ -201,13 +232,8 @@ export default function UsuariosPage() {
     setIsCreating(false);
   };
 
-  // Paginación
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-    // Removido el scroll automático para evitar saltos
-  };
+  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
 
   const renderPaginacion = () => {
     if (loading || totalItems <= itemsPerPage) return null;
@@ -244,10 +270,12 @@ export default function UsuariosPage() {
     );
   };
 
-  const roles = ['TODOS', 'ADMIN', 'OPERADOR', 'PENDIENTE'] as const;
+  // --- Actualizamos roles ---
+  const roles = ['TODOS', 'SUPER_ADMIN', 'ADMIN', 'OPERADOR', 'PENDIENTE'] as const;
 
   const rolChipClass = (rol: typeof roles[number], active: boolean) => {
     if (!active) return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300';
+    if (rol === 'SUPER_ADMIN') return 'bg-purple-600 text-white border-purple-600';
     if (rol === 'ADMIN') return 'bg-blue-600 text-white border-blue-600';
     if (rol === 'OPERADOR') return 'bg-emerald-600 text-white border-emerald-600';
     if (rol === 'PENDIENTE') return 'bg-amber-500 text-white border-amber-500';
@@ -289,6 +317,7 @@ export default function UsuariosPage() {
               onClick={() => setFilterRol(rol)}
               className={`whitespace-nowrap flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${rolChipClass(rol, filterRol === rol)}`}
             >
+              {rol === 'SUPER_ADMIN' && <Shield className="h-3.5 w-3.5" />}
               {rol === 'ADMIN' && <ShieldCheck className="h-3.5 w-3.5" />}
               {rol === 'OPERADOR' && <CheckCircle2 className="h-3.5 w-3.5" />}
               {rol === 'PENDIENTE' && <Clock className="h-3.5 w-3.5" />}
@@ -318,44 +347,58 @@ export default function UsuariosPage() {
         ) : (
           usuarios.map((perfil) => {
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
+            // --- NUEVO: Comprobar si el usuario está inactivo ---
+            const inactivo = perfil.estado === 'INACTIVO';
 
             return (
               <div
                 key={perfil.id}
-                // --- Diseño compacto (p-3 sm:p-4, redondeo más sutil) ---
                 className={`flex flex-col rounded-2xl border bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group ${
+                  inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
                   isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="relative shrink-0">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${
+                      inactivo ? 'bg-slate-200 text-slate-500 border-slate-300' :
+                      perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-600 text-white border-purple-700' :
                       perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-600 border-slate-200'
                     }`}>
                       {perfil.email?.substring(0, 1).toUpperCase()}
                     </div>
                     <span className={`absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${
+                      inactivo ? 'bg-red-500' :
                       isOnline ? 'bg-emerald-500' : 'bg-slate-300'
                     }`}>
-                      {isOnline && (
+                      {isOnline && !inactivo && (
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                       )}
                     </span>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate">{perfil.email}</h3>
+                    <h3 className={`font-bold text-sm truncate ${inactivo ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+                      {perfil.email}
+                    </h3>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                        perfil.rol === 'ADMIN'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : perfil.rol === 'OPERADOR'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        inactivo ? 'bg-slate-200 text-slate-600 border-slate-300' :
+                        perfil.rol === 'SUPER_ADMIN'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : perfil.rol === 'ADMIN'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : perfil.rol === 'OPERADOR'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
-                        {perfil.rol}
+                        {perfil.rol.replace('_', ' ')}
                       </span>
-                      {isOnline && (
+                      {inactivo ? (
+                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded text-red-600 bg-red-50 border border-red-100">
+                          Inactivo
+                        </span>
+                      ) : isOnline && (
                         <span className="text-[8px] font-bold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50">
                           En línea
                         </span>
@@ -383,31 +426,56 @@ export default function UsuariosPage() {
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between border-t border-slate-50 pt-3 gap-2">
                   <p className="text-[9px] font-mono font-bold text-slate-300">
                     ID: {perfil.id.substring(0, 8)}
                   </p>
-                  <div className="flex gap-1.5">
+                  
+                  <div className="flex gap-1.5 ml-auto">
                     {perfil.id === currentUserId ? (
                       <span className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
                         Tu cuenta
                       </span>
                     ) : (
                       <>
-                        {perfil.rol !== 'OPERADOR' && (
+                        {/* --- OPCIONES EXCLUSIVAS DE SUPER ADMIN --- */}
+                        {currentUserRole === 'SUPER_ADMIN' && (
+                          <>
+                            {inactivo ? (
+                              <button
+                                disabled={updatingId === perfil.id}
+                                onClick={() => cambiarEstado(perfil, 'ACTIVO')}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-200 disabled:opacity-50"
+                              >
+                                <Power className="h-3 w-3" /> Activar
+                              </button>
+                            ) : (
+                              <button
+                                disabled={updatingId === perfil.id}
+                                onClick={() => cambiarEstado(perfil, 'INACTIVO')}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
+                              >
+                                <Ban className="h-3 w-3" /> Desactivar
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {/* --- CAMBIO DE ROLES NORMAL --- */}
+                        {!inactivo && perfil.rol !== 'OPERADOR' && (
                           <button
                             disabled={updatingId === perfil.id}
                             onClick={() => cambiarRol(perfil, 'OPERADOR')}
-                            className="rounded-lg px-2.5 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
+                            className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
                           >
                             A Operador
                           </button>
                         )}
-                        {perfil.rol !== 'ADMIN' && (
+                        {!inactivo && perfil.rol !== 'ADMIN' && (
                           <button
                             disabled={updatingId === perfil.id}
                             onClick={() => cambiarRol(perfil, 'ADMIN')}
-                            className="rounded-lg px-2.5 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
+                            className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
                           >
                             A Admin
                           </button>
@@ -422,7 +490,6 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      {/* Paginación Abajo (Única) */}
       {renderPaginacion()}
 
       <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-4 mt-4">
@@ -430,12 +497,14 @@ export default function UsuariosPage() {
         <div>
           <h4 className="text-sm font-bold text-blue-900">Niveles de Acceso</h4>
           <p className="text-xs font-medium text-blue-700 mt-1 opacity-90 leading-relaxed">
-            Los <strong>Administradores</strong> pueden ver estadísticas y modificar configuraciones. Los <strong>Operadores</strong> solo tienen acceso a la herramienta de escaneo de bodega.
+            El <strong>Super Admin</strong> tiene control total de las cuentas. Los <strong>Administradores</strong> ven estadísticas y configuraciones. Los <strong>Operadores</strong> gestionan el escaneo en bodega.
           </p>
         </div>
       </div>
 
+      {/* MODAL DE CREACIÓN (Se mantiene igual) */}
       <Transition show={isModalOpen} as={Fragment}>
+        {/* ... (Tu código del modal actual va aquí, no le hice cambios) ... */}
         <Dialog as="div" className="relative z-50" onClose={() => !isCreating && setIsModalOpen(false)}>
           <Transition.Child
             as={Fragment}

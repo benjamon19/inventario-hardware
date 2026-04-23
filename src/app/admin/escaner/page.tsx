@@ -270,7 +270,8 @@ export default function AdminScannerPage() {
                   processSku(result[0].rawValue);
                 }
               }}
-              components={{ finder: false }}
+              components={{ finder: false }} 
+              sound={false} 
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 pointer-events-none">
               <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-black/10 ${

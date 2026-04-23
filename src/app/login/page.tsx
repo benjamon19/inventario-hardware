@@ -160,6 +160,20 @@ export default function LoginPage() {
                 </div>
               </div>
 
+                {/* Checkbox Recuérdame */}
+                <div className="flex items-center gap-2 mt-2 md:mt-3 px-1">
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-blue-200 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor="remember" className="text-xs md:text-sm text-slate-500 font-bold cursor-pointer select-none">
+                    Recuérdame
+                  </label>
+                </div>
+
               <button
                 type="submit"
                 disabled={isLoading}

@@ -16,9 +16,11 @@ export async function procesarLogin(email: string, pass: string, recordar: boole
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // La lógica central: Si no quiere ser recordado, eliminamos
-            // los atributos de expiración para crear una Session Cookie pura.
-            if (!recordar) {
+            if (recordar) {
+              // Si quiere ser recordado, forzamos la cookie a 30 días (en segundos)
+              options.maxAge = 30 * 24 * 60 * 60;
+            } else {
+              // Si no, eliminamos la expiración para que sea una sesión de navegador
               delete options.maxAge;
               delete options.expires;
             }
