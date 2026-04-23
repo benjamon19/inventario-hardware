@@ -8,10 +8,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Inventario Hardware | Bodega",
   description: "Sistema de control de ingreso y salida de equipos",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico?v=2",
-  },
 };
 
 export const viewport: Viewport = {
