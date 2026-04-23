@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Obtenemos el usuario actual
+  // Obtenemos el usuario actual de la sesión
   const { data: { user } } = await supabase.auth.getUser();
 
   // 1. Si no hay usuario y no está en la página de login, redirigir a login
@@ -35,37 +35,40 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. PROTECCIÓN DE RUTAS /admin
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Intentamos leer el rol desde el token (app_metadata)
-    let rol = user?.app_metadata?.user_role;
+  // 2. Protecciones para rutas internas (solo si hay usuario)
+  if (user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/operador'))) {
+    
+    // Consultamos SIEMPRE la tabla perfiles para verificar rol y si está ACTIVO
+    // Esto es el seguro de vida contra usuarios desactivados con la sesión "recordada"
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('rol, estado')
+      .eq('id', user.id)
+      .single();
 
-    // RESPALDO: Si el Hook falló y el rol es undefined, consultamos la tabla directamente
-    if (!rol && user) {
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single();
-      
-      rol = perfil?.rol;
+    // Si el usuario fue desactivado, destruimos la sesión y lo pateamos al login
+    if (perfil?.estado !== 'ACTIVO') {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // DEBUG para Vercel Logs
-    console.log("=== DEBUG MIDDLEWARE PROD ===");
-    console.log("Usuario:", user?.email);
-    console.log("Rol Final Detectado:", rol);
-    console.log("=============================");
+    // PROTECCIÓN ESPECÍFICA DE RUTAS /admin
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+      // Priorizamos el rol de la tabla (que está fresco), o caemos al de metadata
+      const rol = perfil?.rol || user?.app_metadata?.user_role;
 
-    // Si después de todo no es ADMIN, lo mandamos a la zona de operador
-  if (!['ADMIN', 'SUPER_ADMIN'].includes(rol)) {
-      return NextResponse.redirect(new URL('/operador', request.url));
+      // DEBUG para Vercel Logs
+      console.log("=== DEBUG MIDDLEWARE PROD ===");
+      console.log("Usuario:", user?.email);
+      console.log("Rol Final Detectado:", rol);
+      console.log("Estado:", perfil?.estado);
+      console.log("=============================");
+
+      // Si después de todo no es ADMIN, lo mandamos a la zona de operador
+      if (!['ADMIN', 'SUPER_ADMIN'].includes(rol)) {
+        return NextResponse.redirect(new URL('/operador', request.url));
+      }
     }
-  }
-
-  // 3. PROTECCIÓN DE RUTAS /operador (Evitar que entren sin login)
-  if (request.nextUrl.pathname.startsWith('/operador') && !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return supabaseResponse;

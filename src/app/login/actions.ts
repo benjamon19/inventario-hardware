@@ -40,11 +40,18 @@ export async function procesarLogin(email: string, pass: string, recordar: boole
     return { error: 'Credenciales incorrectas. Inténtalo de nuevo.' };
   }
 
+  // Obtenemos el rol y el estado del usuario
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('rol')
+    .select('rol, estado')
     .eq('id', data.user.id)
     .single();
+
+  // Si el usuario no está activo, lo bloqueamos de inmediato
+  if (perfil && perfil.estado !== 'ACTIVO') {
+    await supabase.auth.signOut(); // Destruimos la sesión en Supabase
+    return { error: 'Tu cuenta ha sido desactivada. Por favor, contacta al administrador.' };
+  }
 
   return { success: true, rol: perfil?.rol };
 }
