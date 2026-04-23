@@ -55,14 +55,17 @@ export default function LoginPage() {
       return;
     }
 
-    if (result?.success) {
+  if (result?.success) {
       robotRef.current?.playSuccess();
       await new Promise(r => setTimeout(r, 1500));
       if (robotRef.current) {
         await robotRef.current.playDespedida();
       }
       router.refresh();
-      router.push(result.rol === 'ADMIN' ? '/admin' : '/operador');
+      
+      // Verificamos si es cualquiera de los dos roles administrativos
+      const isAdministrador = result.rol === 'ADMIN' || result.rol === 'SUPER_ADMIN';
+      router.push(isAdministrador ? '/admin' : '/operador');
     }
   };
 

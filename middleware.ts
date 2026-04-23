@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     console.log("=============================");
 
     // Si después de todo no es ADMIN, lo mandamos a la zona de operador
-    if (rol !== 'ADMIN') {
+  if (!['ADMIN', 'SUPER_ADMIN'].includes(rol)) {
       return NextResponse.redirect(new URL('/operador', request.url));
     }
   }
