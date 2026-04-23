@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import NextTopLoader from 'nextjs-toploader';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.className} antialiased min-h-screen relative`}>
+        <NextTopLoader color="#2563EB" showSpinner={false} height={3} />
         {children}
       </body>
     </html>
