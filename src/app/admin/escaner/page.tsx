@@ -42,7 +42,6 @@ export default function AdminScannerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [totalItems, setTotalItems] = useState(0);
-  const topRef = useRef<HTMLDivElement>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -87,6 +86,7 @@ export default function AdminScannerPage() {
     }
   }, [manualSku]);
 
+  // Carga de Actividad (Server-Side Pagination para rendimiento)
   const fetchActivity = async (page: number, limit: number) => {
     setLoadingActivity(true);
     const start = (page - 1) * limit;
@@ -192,14 +192,11 @@ export default function AdminScannerPage() {
     setLoading(false);
   };
 
- // --- Lógica de Cambio de Página ---
+  // --- Lógica de Cambio de Página (Sin Scrolling) ---
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-  const handlePageChange = (newPage: number, isTop: boolean) => {
+  const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    if (!isTop) {
-      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
   };
 
   // --- Función Reutilizable de Paginación ---
@@ -214,7 +211,7 @@ export default function AdminScannerPage() {
           Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
         </p>
         <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1), isTop)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -228,12 +225,12 @@ export default function AdminScannerPage() {
               p === '...' ? (
                 <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number, isTop)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1), isTop)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -242,7 +239,7 @@ export default function AdminScannerPage() {
   };
 
   return (
-    <div ref={topRef} className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
+    <div className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
       
       {/* TABS DE MODO */}
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { 
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
@@ -17,6 +17,7 @@ import { registrarLog } from '@/lib/logger';
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -32,41 +33,23 @@ export default function UsuariosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState<'TODOS' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
 
-  // --- ESTADOS DE PAGINACIÓN Y REFS ---
+  // --- ESTADOS DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
-  const topRef = useRef<HTMLDivElement>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  useEffect(() => {
-    fetchUsuarios();
-
-    const channel = supabase
-      .channel('usuarios_page_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
-        fetchUsuarios(); 
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'auditoria_logs' }, () => {
-        fetchUsuarios(); // Escuchamos cambios en la bitácora también
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // --- Efecto: Cálculo dinámico de ítems por página (Grid Edition) ---
+  // --- Efecto: Cálculo dinámico de ítems por página (Grid Edition Compacto) ---
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setItemsPerPage(5); // Móvil: 5 tarjetas
+        setItemsPerPage(6); // Móvil
       } else {
-        // Escritorio: Calculamos filas estimadas por columnas (grid)
-        const availableHeight = window.innerHeight - 320; 
-        const estimatedCardHeight = 180; 
+        // Escritorio: Tarjetas más compactas, caben más
+        const availableHeight = window.innerHeight - 300; 
+        const estimatedCardHeight = 150; 
         const rows = Math.floor(availableHeight / estimatedCardHeight);
-        const cols = window.innerWidth >= 1024 ? 3 : 2; // lg: 3 columnas, md: 2 columnas
-        setItemsPerPage(Math.max(6, rows * cols)); // Mínimo 6 para que se vea bien
+        const cols = window.innerWidth >= 1024 ? 3 : 2;
+        setItemsPerPage(Math.max(6, rows * cols));
       }
     };
 
@@ -75,50 +58,99 @@ export default function UsuariosPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Realtime
+  useEffect(() => {
+    const channel = supabase
+      .channel('usuarios_page_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+        setRefreshTrigger(prev => prev + 1);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'auditoria_logs' }, () => {
+        setRefreshTrigger(prev => prev + 1);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Volver a la página 1 al filtrar o buscar
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRol]);
 
-  const fetchUsuarios = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUserId(user?.id || null);
+  // Carga optimizada desde el servidor
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
 
-    const { data: perfilesData, error: perfilesError } = await supabase
-      .from('perfiles')
-      .select('*')
-      .order('rol', { ascending: true });
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
 
-    if (perfilesError) {
-      console.error('Error al cargar perfiles:', perfilesError);
+      let query = supabase
+        .from('perfiles')
+        .select('*', { count: 'exact' })
+        .order('rol', { ascending: true })
+        .range(from, to);
+
+      if (searchTerm) {
+        query = query.ilike('email', `%${searchTerm}%`);
+      }
+      if (filterRol !== 'TODOS') {
+        query = query.eq('rol', filterRol);
+      }
+
+      const { data: perfilesData, count, error: perfilesError } = await query;
+
+      if (perfilesError) {
+        console.error('Error al cargar perfiles:', perfilesError);
+        setLoading(false);
+        return;
+      }
+
+      if (count !== null) setTotalItems(count);
+
+      let perfilesConStats = perfilesData || [];
+
+      // Solo pedir los logs de auditoría para los usuarios que estamos viendo en pantalla
+      const userIds = perfilesData?.map(p => p.id) || [];
+      
+      if (userIds.length > 0) {
+        const { data: logsData } = await supabase
+          .from('auditoria_logs')
+          .select('usuario_id, created_at')
+          .eq('entidad', 'HARDWARE')
+          .in('usuario_id', userIds);
+
+        perfilesConStats = perfilesData!.map(perfil => {
+          const misMovimientos = logsData?.filter(l => l.usuario_id === perfil.id) || [];
+          const ordenados = [...misMovimientos].sort((a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          return {
+            ...perfil,
+            totalMovimientos: misMovimientos.length,
+            ultimaActividad: ordenados.length > 0 ? ordenados[0].created_at : null
+          };
+        });
+      }
+
+      setUsuarios(perfilesConStats);
       setLoading(false);
-      return;
-    }
+    };
 
-    // Buscamos la actividad desde la nueva tabla de auditoría para las stats
-    const { data: logsData } = await supabase
-      .from('auditoria_logs')
-      .select('usuario_id, created_at')
-      .eq('entidad', 'HARDWARE');
+    const delayDebounceFn = setTimeout(() => {
+      fetchUsuarios();
+    }, 300);
 
-    const perfilesConStats = perfilesData?.map(perfil => {
-      const misMovimientos = logsData?.filter(l => l.usuario_id === perfil.id) || [];
-      const ordenados = [...misMovimientos].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      return {
-        ...perfil,
-        totalMovimientos: misMovimientos.length,
-        ultimaActividad: ordenados.length > 0 ? ordenados[0].created_at : null
-      };
-    }) || [];
+    return () => clearTimeout(delayDebounceFn);
+  }, [currentPage, itemsPerPage, searchTerm, filterRol, refreshTrigger]);
 
-    setUsuarios(perfilesConStats);
-    setLoading(false);
-  };
 
   const cambiarRol = async (perfil: any, nuevoRol: string) => {
     setUpdatingId(perfil.id);
     
-    // 1. Actualizar en la DB
     const { error } = await supabase
       .from('perfiles')
       .update({ rol: nuevoRol })
@@ -127,15 +159,12 @@ export default function UsuariosPage() {
     if (error) {
       alert('No se pudo actualizar el rol: ' + error.message);
     } else {
-      // 2. Registrar en la bitácora de auditoría
       await registrarLog('EDITAR', 'USUARIO', perfil.id, {
         email_afectado: perfil.email,
         rol_anterior: perfil.rol,
         rol_nuevo: nuevoRol
       });
-      
-      // 3. Recarga local inmediata
-      fetchUsuarios();
+      setRefreshTrigger(prev => prev + 1);
     }
     
     setUpdatingId(null);
@@ -154,7 +183,6 @@ export default function UsuariosPage() {
       return;
     }
 
-    // Registramos la creación en el log
     await registrarLog('CREAR', 'USUARIO', null, {
       email_creado: newEmail,
       detalle: 'Usuario registrado desde panel administrativo'
@@ -167,37 +195,26 @@ export default function UsuariosPage() {
       setNewEmail('');
       setNewPassword('');
       setCreateMsg(null);
-      fetchUsuarios();
+      setRefreshTrigger(prev => prev + 1);
     }, 1500);
 
     setIsCreating(false);
   };
 
-  const filteredUsuarios = usuarios.filter(perfil => {
-    const matchSearch = perfil.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchRol = filterRol === 'TODOS' || perfil.rol === filterRol;
-    return matchSearch && matchRol;
-  });
-
-  // --- LÓGICA DE CORTADO (SLICE) PARA LA PAGINACIÓN ---
-  const totalPages = Math.max(1, Math.ceil(filteredUsuarios.length / itemsPerPage));
-  const paginatedUsuarios = filteredUsuarios.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Paginación
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Removido el scroll automático para evitar saltos
   };
 
-  // --- FUNCIÓN REUTILIZABLE DE PAGINACIÓN ---
   const renderPaginacion = () => {
-    if (loading || filteredUsuarios.length <= itemsPerPage) return null;
+    if (loading || totalItems <= itemsPerPage) return null;
     return (
-      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
+      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm mt-4">
         <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredUsuarios.length)}</span> de <span className="font-bold text-slate-700">{filteredUsuarios.length}</span> registros
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
         </p>
         <div className="flex items-center gap-1">
           <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
@@ -238,7 +255,7 @@ export default function UsuariosPage() {
   };
 
   return (
-    <div ref={topRef} className="space-y-6 relative pb-10">
+    <div className="space-y-6 relative pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
@@ -282,44 +299,42 @@ export default function UsuariosPage() {
 
         {!loading && (
           <span className="ml-auto text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-1.5 rounded-full whitespace-nowrap">
-            {filteredUsuarios.length} de {usuarios.length} usu.
+            {totalItems} usu.
           </span>
         )}
       </div>
 
-      {/* Paginación Arriba */}
-      {renderPaginacion()}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {loading ? (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
             <p className="font-medium">Cargando personal...</p>
           </div>
-        ) : paginatedUsuarios.length === 0 ? (
+        ) : usuarios.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
             <Users className="mx-auto h-12 w-12 text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No se encontraron usuarios.</p>
           </div>
         ) : (
-          paginatedUsuarios.map((perfil) => {
+          usuarios.map((perfil) => {
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
 
             return (
               <div
                 key={perfil.id}
-                className={`flex flex-col rounded-3xl border bg-white p-5 shadow-sm hover:shadow-xl transition-all duration-300 group ${
+                // --- Diseño compacto (p-3 sm:p-4, redondeo más sutil) ---
+                className={`flex flex-col rounded-2xl border bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group ${
                   isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
                 }`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
                   <div className="relative shrink-0">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl font-bold text-lg shadow-inner border ${
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${
                       perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-600 border-slate-200'
                     }`}>
                       {perfil.email?.substring(0, 1).toUpperCase()}
                     </div>
-                    <span className={`absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white ${
+                    <span className={`absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${
                       isOnline ? 'bg-emerald-500' : 'bg-slate-300'
                     }`}>
                       {isOnline && (
@@ -329,9 +344,9 @@ export default function UsuariosPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-900 text-base truncate">{perfil.email}</h3>
-                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${
+                    <h3 className="font-bold text-slate-900 text-sm truncate">{perfil.email}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
                         perfil.rol === 'ADMIN'
                           ? 'bg-blue-50 text-blue-700 border-blue-200'
                           : perfil.rol === 'OPERADOR'
@@ -341,7 +356,7 @@ export default function UsuariosPage() {
                         {perfil.rol}
                       </span>
                       {isOnline && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50">
+                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50">
                           En línea
                         </span>
                       )}
@@ -349,15 +364,15 @@ export default function UsuariosPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded-xl border border-slate-100">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
                       <Package className="h-3 w-3" /> Movi.
                     </span>
                     <span className="font-bold text-slate-800">{perfil.totalMovimientos}</span>
                   </div>
-                  <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-3">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-2">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
                       <Activity className="h-3 w-3" /> Actividad
                     </span>
                     <span className="font-bold text-slate-800 truncate">
@@ -368,13 +383,13 @@ export default function UsuariosPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-slate-50 pt-4">
+                <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-3">
                   <p className="text-[9px] font-mono font-bold text-slate-300">
                     ID: {perfil.id.substring(0, 8)}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     {perfil.id === currentUserId ? (
-                      <span className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
+                      <span className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
                         Tu cuenta
                       </span>
                     ) : (
@@ -383,18 +398,18 @@ export default function UsuariosPage() {
                           <button
                             disabled={updatingId === perfil.id}
                             onClick={() => cambiarRol(perfil, 'OPERADOR')}
-                            className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
+                            className="rounded-lg px-2.5 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
                           >
-                            Hacer Operador
+                            A Operador
                           </button>
                         )}
                         {perfil.rol !== 'ADMIN' && (
                           <button
                             disabled={updatingId === perfil.id}
                             onClick={() => cambiarRol(perfil, 'ADMIN')}
-                            className="rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
+                            className="rounded-lg px-2.5 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
                           >
-                            Hacer Admin
+                            A Admin
                           </button>
                         )}
                       </>
@@ -407,10 +422,10 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      {/* Paginación Abajo */}
+      {/* Paginación Abajo (Única) */}
       {renderPaginacion()}
 
-      <div className="flex items-start gap-3 rounded-3xl bg-blue-50 border border-blue-100 p-5 mt-8">
+      <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-4 mt-4">
         <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
           <h4 className="text-sm font-bold text-blue-900">Niveles de Acceso</h4>

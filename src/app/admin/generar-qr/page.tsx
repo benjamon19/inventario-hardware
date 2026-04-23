@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useRef } from 'react';
+import { Fragment } from 'react';
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Transition } from '@headlessui/react';
@@ -61,7 +61,6 @@ export default function GenerarQRPage() {
   
   const [currentPage,     setCurrentPage]     = useState(1);
   const [itemsPerPage,    setItemsPerPage]    = useState(12);
-  const topRef = useRef<HTMLDivElement>(null);
 
   const [multiMode,   setMultiMode]   = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -175,11 +174,8 @@ export default function GenerarQRPage() {
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
 
-  const handlePageChange = (newPage: number, isTop: boolean) => {
+  const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    if (!isTop) {
-      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
   };
 
   const renderPaginacion = (posicion: 'top' | 'bottom') => {
@@ -193,7 +189,7 @@ export default function GenerarQRPage() {
           Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> registros
         </p>
         <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1), isTop)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -207,12 +203,12 @@ export default function GenerarQRPage() {
               p === '...' ? (
                 <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number, isTop)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1), isTop)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -277,7 +273,7 @@ export default function GenerarQRPage() {
         <div className="print-only">
           {listaImpresion.map((eq) => (
             <div key={eq.id} className="etiqueta">
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 0 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyItems: 'center', width: '100%', minHeight: 0 }}>
                 <QRCodeSVG value={eq.sku} level="H" includeMargin={false} style={{ width: '100%', height: '100%' }} />
               </div>
               <div style={{ flexShrink: 0, textAlign: 'center', width: '100%', marginTop: '2mm' }}>
@@ -351,7 +347,7 @@ export default function GenerarQRPage() {
         )}
 
         {/* Listado */}
-        <div ref={topRef} className="space-y-4">
+        <div className="space-y-4">
 
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import { 
@@ -273,11 +273,13 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
 // =============================================
 export default function InventarioPage() {
   const [items, setItems] = useState<HardwareItem[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategoria, setFilterCategoria] = useState<string>('');
   const [filterEstado, setFilterEstado] = useState<string>('');
-  const [filterUbicacion, setFilterUbicacion] = useState<string>(''); // ← NUEVO
+  const [filterUbicacion, setFilterUbicacion] = useState<string>('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
@@ -306,24 +308,71 @@ export default function InventarioPage() {
   const [deleteItem, setDeleteItem] = useState<HardwareItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Listas con orden alfabético
   const sortedCategorias = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const sortedEstados = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const sortedUbicaciones = [...ubicacion].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  useEffect(() => { fetchAll(); }, []);
+  // 1. Cargar metadatos solo una vez
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      const [{ data: cats }, { data: ests }, { data: ubics }] = await Promise.all([
+        supabase.from('categorias').select('*').order('nombre'),
+        supabase.from('estados').select('*').order('nombre'),
+        supabase.from('ubicacion').select('*').order('nombre'),
+      ]);
+      if (cats) setCategorias(cats);
+      if (ests) setEstados(ests);
+      if (ubics) setUbicacion(ubics);
+    };
+    fetchMetadata();
+  }, []);
+
+  // Volver a página 1 si cambian los filtros
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado, filterUbicacion]);
+
+  // 2. Cargar inventario con paginación desde el servidor
+  useEffect(() => {
+    const fetchHardware = async () => {
+      setLoading(true);
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
+      let query = supabase
+        .from('hardware')
+        .select('*', { count: 'exact' })
+        .order('updated_at', { ascending: false })
+        .range(from, to);
+
+      if (searchTerm) {
+        query = query.or(`modelo.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,ubicacion.ilike.%${searchTerm}%`);
+      }
+      if (filterCategoria) query = query.eq('categoria', filterCategoria);
+      if (filterEstado) query = query.eq('estado', filterEstado);
+      if (filterUbicacion) query = query.eq('ubicacion', filterUbicacion);
+
+      const { data, count, error } = await query;
+      
+      if (data) setItems(data);
+      if (count !== null) setTotalItems(count);
+      
+      setLoading(false);
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchHardware();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [currentPage, itemsPerPage, searchTerm, filterCategoria, filterEstado, filterUbicacion, refreshTrigger]);
 
   useEffect(() => {
     const handleResize = () => {
-      // En pantallas de >1350 muestra 12, sino muestra 6
       if (window.innerWidth >= 1350) {
         setItemsPerPage(12);
       } else {
         setItemsPerPage(6);
       }
     };
-
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -349,21 +398,6 @@ export default function InventarioPage() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
-
-  const fetchAll = async () => {
-    setLoading(true);
-    const [{ data: hw }, { data: cats }, { data: ests }, { data: ubics }] = await Promise.all([
-      supabase.from('hardware').select('*').order('updated_at', { ascending: false }),
-      supabase.from('categorias').select('*').order('nombre'),
-      supabase.from('estados').select('*').order('nombre'),
-      supabase.from('ubicacion').select('*').order('nombre'),
-    ]);
-    if (hw) setItems(hw);
-    if (cats) setCategorias(cats);
-    if (ests) setEstados(ests);
-    if (ubics) setUbicacion(ubics);
-    setLoading(false);
-  };
 
   const addCategoria = async (nombre: string, extra?: Record<string, string>) => {
     const prefijo = (extra?.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
@@ -420,8 +454,12 @@ export default function InventarioPage() {
     if (!editItem) return;
     setEditLoading(true);
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
-    if (!error) { await fetchAll(); setEditItem(null); }
-    else alert('Error al editar: ' + error.message);
+    if (!error) { 
+      setRefreshTrigger(prev => prev + 1); 
+      setEditItem(null); 
+    } else {
+      alert('Error al editar: ' + error.message);
+    }
     setEditLoading(false);
   };
 
@@ -429,7 +467,7 @@ export default function InventarioPage() {
     if (!deleteItem) return;
     setDeleteLoading(true);
     await supabase.from('hardware').delete().eq('id', deleteItem.id);
-    await fetchAll();
+    setRefreshTrigger(prev => prev + 1);
     setDeleteItem(null);
     setDetalleItem(null);
     setDeleteLoading(false);
@@ -440,34 +478,18 @@ export default function InventarioPage() {
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
 
-  const filteredItems = items.filter(item => {
-    const matchSearch =
-      item.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCat = !filterCategoria || item.categoria === filterCategoria;
-    const matchEst = !filterEstado || item.estado === filterEstado;
-    const matchUbic = !filterUbicacion || item.ubicacion === filterUbicacion; // ← NUEVO
-    return matchSearch && matchCat && matchEst && matchUbic;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
-  const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const renderPaginacion = () => {
-    if (loading || filteredItems.length <= itemsPerPage) return null;
+    if (loading || totalItems <= itemsPerPage) return null;
     return (
       <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
         <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredItems.length)}</span> de <span className="font-bold text-slate-700">{filteredItems.length}</span> registros
+          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
         </p>
         <div className="flex items-center gap-1">
           <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
@@ -661,15 +683,13 @@ export default function InventarioPage() {
           </div>
         )}
 
-        {/* Filtro por estante/ubicación — VERSIÓN SCROLL HORIZONTAL */}
+        {/* Filtro por estante/ubicación */}
         {!loading && sortedUbicaciones.length > 0 && (
           <div className="flex items-center gap-3 px-1 w-full">
-            {/* Título fijo a la izquierda */}
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0">
               <MapPin className="h-3 w-3" /> Estante:
             </span>
 
-            {/* Contenedor con Scroll */}
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mask-fade-right">
               {sortedUbicaciones.map(ubic => {
                 const active = filterUbicacion === ubic.nombre;
@@ -690,7 +710,6 @@ export default function InventarioPage() {
               })}
             </div>
 
-            {/* Botón de limpiar fijo a la derecha */}
             {filterUbicacion && (
               <button 
                 onClick={() => setFilterUbicacion('')} 
@@ -714,10 +733,10 @@ export default function InventarioPage() {
               <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3" />
               Cargando inventario...
             </div>
-          ) : paginatedItems.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="py-20 text-center text-slate-400">No se encontraron equipos</div>
           ) : (
-            paginatedItems.map((item) => (
+            items.map((item) => (
               <div
                 key={`mobile-${item.id}`}
                 className="p-4 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
@@ -789,12 +808,12 @@ export default function InventarioPage() {
                     Cargando inventario...
                   </td>
                 </tr>
-              ) : paginatedItems.length === 0 ? (
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-20 text-center text-slate-400">No se encontraron equipos</td>
                 </tr>
               ) : (
-                paginatedItems.map((item) => (
+                items.map((item) => (
                   <tr
                     key={`desktop-${item.id}`}
                     className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
@@ -853,7 +872,7 @@ export default function InventarioPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
-          fetchAll();
+          setRefreshTrigger(prev => prev + 1);
           setShowSuccessToast(true);
           setTimeout(() => setShowSuccessToast(false), 3000);
         }}
@@ -881,7 +900,6 @@ export default function InventarioPage() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              {/* Fondo oscuro sutil */}
               <div
                 className="absolute inset-0 pointer-events-auto bg-slate-900/10 backdrop-blur-[2px]"
                 onClick={() => setMenuOpenId(null)}
@@ -897,10 +915,8 @@ export default function InventarioPage() {
               leaveFrom="translate-y-0"
               leaveTo="translate-y-full"
             >
-              {/* Contenedor: Pegado abajo (rounded-b-none) y compacto (max-w) */}
               <div className="relative pointer-events-auto w-full max-w-[320px] bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.1)] rounded-t-4xl border-x border-t border-slate-100 overflow-hidden pb-safe">
                 
-                {/* Tirador estético */}
                 <div className="mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-100" />
                 
                 <div className="px-3 pb-5 pt-1 space-y-1">
