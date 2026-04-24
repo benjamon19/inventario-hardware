@@ -217,6 +217,7 @@ export default function UsuariosPage() {
         rol_anterior: perfil.rol,
         rol_nuevo: nuevoRol
       });
+      await fetchUsuarios(); // <--- RECARGA FORZADA AQUÍ
     }
     setUpdatingId(null);
   };
@@ -236,6 +237,7 @@ export default function UsuariosPage() {
         email_afectado: perfil.email,
         accion_estado: nuevoEstado
       });
+      await fetchUsuarios(); // <--- RECARGA FORZADA AQUÍ
     }
     setUpdatingId(null);
   };
@@ -260,14 +262,16 @@ export default function UsuariosPage() {
 
     setCreateMsg({ type: 'success', text: 'Usuario creado exitosamente.' });
 
-    setTimeout(() => {
+    // Le damos un respiro muy cortito (500ms) para que el trigger de Supabase 
+    // termine de crear el perfil antes de forzar la recarga
+    setTimeout(async () => {
+      await fetchUsuarios(); // <--- RECARGA FORZADA AQUÍ
       setIsModalOpen(false);
       setNewEmail('');
       setNewPassword('');
       setCreateMsg(null);
-    }, 1500);
-
-    setIsCreating(false);
+      setIsCreating(false);
+    }, 500);
   };
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
