@@ -59,24 +59,25 @@ export default function AdminDashboard() {
       try {
         const hoy = new Date().toISOString().split('T')[0];
 
+        // 1. Obtener conteos generales y transacciones recientes
         const [
           { count: totalHardware },
           { count: disponibles },
           { count: enUso },
           { count: enReparacion },
           { count: deBaja },
-          { data: movsHoy },
+          { count: movsHoyCount },
           { data: ultimasTx },
-          { data: allHardware }
+          { data: categoriasData }
         ] = await Promise.all([
           supabase.from('hardware').select('*', { count: 'estimated', head: true }),
           supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DISPONIBLE'),
           supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_USO'),
           supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_MANTENCION'),
           supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DADO_DE_BAJA'),
-          supabase.from('transacciones').select('id').gte('timestamp', `${hoy}T00:00:00Z`),
+          supabase.from('transacciones').select('*', { count: 'exact', head: true }).gte('timestamp', `${hoy}T00:00:00Z`),
           supabase.from('transacciones').select('*').order('timestamp', { ascending: false }).limit(8),
-          supabase.from('hardware').select('estado, categoria')
+          supabase.from('categorias').select('nombre')
         ]);
 
         setStats([
@@ -85,55 +86,96 @@ export default function AdminDashboard() {
           { name: 'En Uso', value: String(enUso || 0), icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
           { name: 'En Mantención', value: String(enReparacion || 0), icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
           { name: 'Dados de Baja', value: String(deBaja || 0), icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
-          { name: 'Movimientos Hoy', value: String(movsHoy?.length || 0), icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { name: 'Movimientos Hoy', value: String(movsHoyCount || 0), icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
         ]);
 
         if (ultimasTx) setRecentTransactions(ultimasTx);
 
-        if (allHardware) {
-          const conteoEstados = { DISPONIBLE: 0, EN_USO: 0, EN_MANTENCION: 0, DADO_DE_BAJA: 0 };
-          const conteoCategorias: Record<string, number> = {};
-          const distribucionCat: Record<string, any> = {};
-          const stockPorCategoria: Record<string, { total: number, disponible: number }> = {};
+        // 2. Construir datos de categorías dinámicamente SIN descargar todo el hardware
+        const categoriasNombres = categoriasData ? categoriasData.map(c => c.nombre) : [];
+        categoriasNombres.push(null); // Para items 'Sin Categoría'
 
-          allHardware.forEach(item => {
-            if (item.estado in conteoEstados) conteoEstados[item.estado as keyof typeof conteoEstados]++;
-            const cat = item.categoria || 'Sin Categoría';
-            conteoCategorias[cat] = (conteoCategorias[cat] || 0) + 1;
-            if (!distribucionCat[cat]) {
-              distribucionCat[cat] = { name: cat, DISPONIBLE: 0, EN_USO: 0, EN_MANTENCION: 0, DADO_DE_BAJA: 0 };
-            }
-            if (item.estado in distribucionCat[cat]) {
-               distribucionCat[cat][item.estado]++;
-            }
-            if (!stockPorCategoria[cat]) {
-              stockPorCategoria[cat] = { total: 0, disponible: 0 };
-            }
-            stockPorCategoria[cat].total++;
-            if (item.estado === 'DISPONIBLE') {
-              stockPorCategoria[cat].disponible++;
-            }
-          });
+        const catPromises = categoriasNombres.map(async (catName) => {
+          const catLabel = catName || 'Sin Categoría';
+          
+          const qCat = catName 
+            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName)
+            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null);
 
-          setEstadoData(Object.entries(conteoEstados).map(([name, value]) => ({ name, value })));
-          setCategoriaData(Object.entries(conteoCategorias)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-          );
-          setDistribucionData(Object.values(distribucionCat));
+          const qDisp = catName 
+            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'DISPONIBLE')
+            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'DISPONIBLE');
+            
+          const qUso = catName 
+            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'EN_USO')
+            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'EN_USO');
+            
+          const qMant = catName 
+            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'EN_MANTENCION')
+            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'EN_MANTENCION');
+            
+          const qBaja = catName 
+            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'DADO_DE_BAJA')
+            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'DADO_DE_BAJA');
 
-          const alertas = Object.entries(stockPorCategoria)
-            .map(([name, stats]) => ({
-              name,
-              disponible: stats.disponible,
-              porcentaje: stats.total > 0 ? (stats.disponible / stats.total) * 100 : 0
-            }))
-            .filter(item => item.disponible < 5)
-            .sort((a, b) => a.disponible - b.disponible)
-            .slice(0, 4);
+          const [t, d, u, m, b] = await Promise.all([qCat, qDisp, qUso, qMant, qBaja]);
 
-          setStockCritico(alertas);
-        }
+          return {
+            name: catLabel,
+            total: t.count || 0,
+            DISPONIBLE: d.count || 0,
+            EN_USO: u.count || 0,
+            EN_MANTENCION: m.count || 0,
+            DADO_DE_BAJA: b.count || 0
+          };
+        });
+
+        const catStatsArray = await Promise.all(catPromises);
+
+        const conteoCategorias: Record<string, number> = {};
+        const distribucionCat: Record<string, any> = {};
+        const stockPorCategoria: Record<string, { total: number, disponible: number }> = {};
+
+        catStatsArray.forEach(stat => {
+          if (stat.total === 0) return; // Ignorar categorías vacías para no ensuciar gráficos
+          
+          conteoCategorias[stat.name] = stat.total;
+          distribucionCat[stat.name] = { 
+            name: stat.name, 
+            DISPONIBLE: stat.DISPONIBLE, 
+            EN_USO: stat.EN_USO, 
+            EN_MANTENCION: stat.EN_MANTENCION, 
+            DADO_DE_BAJA: stat.DADO_DE_BAJA 
+          };
+          stockPorCategoria[stat.name] = { total: stat.total, disponible: stat.DISPONIBLE };
+        });
+
+        setEstadoData([
+          { name: 'DISPONIBLE', value: disponibles || 0 },
+          { name: 'EN_USO', value: enUso || 0 },
+          { name: 'EN_MANTENCION', value: enReparacion || 0 },
+          { name: 'DADO_DE_BAJA', value: deBaja || 0 }
+        ]);
+
+        setCategoriaData(Object.entries(conteoCategorias)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+        );
+        
+        setDistribucionData(Object.values(distribucionCat));
+
+        const alertas = Object.entries(stockPorCategoria)
+          .map(([name, stats]) => ({
+            name,
+            disponible: stats.disponible,
+            porcentaje: stats.total > 0 ? (stats.disponible / stats.total) * 100 : 0
+          }))
+          .filter(item => item.disponible < 5)
+          .sort((a, b) => a.disponible - b.disponible)
+          .slice(0, 4);
+
+        setStockCritico(alertas);
+
       } finally {
         setLoading(false);
       }
