@@ -14,6 +14,25 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { registrarLog } from '@/lib/logger';
 import BouncyLoader from '@/components/TreadmillLoader';
 
+const Sk = ({ className }: { className: string }) => (
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+);
+
+const SkeletonQRCard = () => (
+  <div className="rounded-2xl border border-slate-200 bg-white p-4 flex items-center gap-4">
+    <Sk className="h-10 w-10 rounded-xl shrink-0" />
+    <div className="flex-1 flex flex-col gap-2">
+      <Sk className="h-4 w-32" />
+      <Sk className="h-3 w-20" />
+      <div className="flex gap-2 mt-0.5">
+        <Sk className="h-4 w-16 rounded-full" />
+        <Sk className="h-3.5 w-14" />
+      </div>
+    </div>
+    <Sk className="h-4 w-4 rounded shrink-0" />
+  </div>
+);
+
 type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Ubicacion = { id: string; nombre: string };
@@ -85,6 +104,13 @@ export default function GenerarQRPage() {
   const sortedEstados     = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
   const sortedUbicaciones = useMemo(() => [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)), [ubicaciones]);
 
+  // Lookup O(1) para badge de estado
+  const badgeClassMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    estados.forEach(e => { map[e.nombre] = colorClasses[e.color] ?? colorClasses.slate; });
+    return map;
+  }, [estados]);
+
   useRealtimeTable({
     table: 'hardware',
     events: ['INSERT', 'UPDATE', 'DELETE'],
@@ -155,54 +181,61 @@ export default function GenerarQRPage() {
     }
   }, []);
 
-  // Ajustar cantidad de items por pantalla
+  // Ajustar cantidad de items por pantalla con rAF
   useEffect(() => {
+    let rafId: ReturnType<typeof requestAnimationFrame>;
     const handleResize = () => {
-      if (window.innerWidth >= 1350) setItemsPerPage(12);
-      else setItemsPerPage(6);
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
+      });
     };
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => { window.removeEventListener('resize', handleResize); cancelAnimationFrame(rafId); };
   }, []);
 
-  const buscarEquipo = async () => {
+  const getBadgeClass = useCallback((estadoNombre: string) => {
+    return badgeClassMap[estadoNombre] ?? colorClasses.slate;
+  }, [badgeClassMap]);
+
+  const buscarEquipo = useCallback(async () => {
     if (!sku.trim()) return;
     const { data } = await supabase.from('hardware').select('*').eq('sku', sku.trim()).single();
     setItem(data ?? null);
-  };
+  }, [sku]);
 
-  const seleccionarEquipo = (equipo: any) => {
-    if (multiMode) { toggleSeleccion(equipo); return; }
-    setItem(equipo);
-    setSku(equipo.sku);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const toggleSeleccion = (equipo: any) => {
+  const toggleSeleccion = useCallback((equipo: any) => {
     setSelectedItemsMap(prev => {
       const next = new Map(prev);
       next.has(equipo.id) ? next.delete(equipo.id) : next.set(equipo.id, equipo);
       return next;
     });
-  };
+  }, []);
 
-  const toggleMultiMode = () => {
+  const seleccionarEquipo = useCallback((equipo: any) => {
+    if (multiMode) { toggleSeleccion(equipo); return; }
+    setItem(equipo);
+    setSku(equipo.sku);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [multiMode, toggleSeleccion]);
+
+  const toggleMultiMode = useCallback(() => {
     setMultiMode(v => !v);
     setSelectedItemsMap(new Map());
-  };
+  }, []);
 
-  const seleccionarTodosPagina = () => {
+  const seleccionarTodosPagina = useCallback(() => {
     setSelectedItemsMap(prev => {
       const next = new Map(prev);
       disponibles.forEach(eq => next.set(eq.id, eq));
       return next;
     });
-  };
+  }, [disponibles]);
 
-  const deseleccionarTodos = () => setSelectedItemsMap(new Map());
+  const deseleccionarTodos = useCallback(() => setSelectedItemsMap(new Map()), []);
   
-  const imprimir = async () => {
+  const imprimir = useCallback(async () => {
     const lista = multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : []);
     for (const eq of lista) {
       await registrarLog('ETIQUETA', 'HARDWARE', eq.id, { 
@@ -212,12 +245,9 @@ export default function GenerarQRPage() {
       });
     }
     window.print();
-  };
+  }, [multiMode, selectedItemsMap, item]);
 
-  const getBadgeClass = useCallback((estadoNombre: string) => {
-    const est = estados.find(e => e.nombre === estadoNombre);
-    return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
-  }, [estados]);
+
 
   const handlePageChange = useCallback((newPage: number) => {
     setCurrentPage(newPage);
@@ -544,9 +574,8 @@ export default function GenerarQRPage() {
 
           {/* Grid */}
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-4 text-slate-400">
-              <BouncyLoader color="#94a3b8" />
-              <p className="text-sm font-medium">Buscando en la base de datos...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Array(6).fill(0).map((_, i) => <SkeletonQRCard key={i} />)}
             </div>
           ) : disponibles.length === 0 ? (
             <div className="py-16 text-center text-slate-400">

@@ -32,8 +32,27 @@ const KpiSkeleton = () => (
       <Skeleton className="h-9 w-9 rounded-lg" />
       <div className="w-full space-y-2">
         <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-6 w-12" />
+        <Skeleton className="h-7 w-12" />
       </div>
+    </div>
+  </div>
+);
+
+const PieSkeleton = () => (
+  <div className="flex flex-col items-center gap-5">
+    {/* Donut placeholder */}
+    <div className="relative flex items-center justify-center">
+      <Skeleton className="h-44 w-44 rounded-full" />
+      <div className="absolute h-24 w-24 rounded-full bg-white" />
+    </div>
+    {/* Legend */}
+    <div className="flex flex-wrap justify-center gap-3">
+      {Array(4).fill(0).map((_, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <Skeleton className="h-2.5 w-2.5 rounded-full" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      ))}
     </div>
   </div>
 );
@@ -254,9 +273,8 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Estado General</h2>
           <div className="w-full flex justify-center">
             {loading ? (
-              <div className="flex flex-col items-center gap-6">
-                <div className="h-44 w-44 rounded-full border-8 border-slate-100 border-t-slate-200 animate-spin" />
-                <Skeleton className="h-4 w-32" />
+              <div className="flex flex-col items-center gap-5 pt-4">
+                <PieSkeleton />
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>

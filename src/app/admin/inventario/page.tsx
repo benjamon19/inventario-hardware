@@ -49,6 +49,46 @@ const colorDotClasses: Record<string, string> = {
   slate: 'bg-slate-400',
 };
 
+// ─── Skeleton helpers ───────────────────────────────────────
+const Sk = ({ className }: { className: string }) => (
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+);
+
+const SkeletonTableRow = () => (
+  <tr className="border-b border-slate-100">
+    <td className="px-6 py-4">
+      <div className="flex items-center gap-3">
+        <Sk className="h-8 w-8 rounded-xl" />
+        <Sk className="h-4 w-32" />
+      </div>
+    </td>
+    <td className="px-6 py-4"><Sk className="h-4 w-20" /></td>
+    <td className="px-6 py-4"><Sk className="h-4 w-24" /></td>
+    <td className="px-6 py-4"><Sk className="h-4 w-20" /></td>
+    <td className="px-6 py-4"><Sk className="h-5 w-20 rounded-full" /></td>
+    <td className="px-6 py-4 text-right"><Sk className="h-7 w-7 rounded-lg ml-auto" /></td>
+  </tr>
+);
+
+const SkeletonMobileCard = () => (
+  <div className="p-4 border-b border-slate-100">
+    <div className="flex justify-between items-start gap-3 mb-3">
+      <div className="flex items-start gap-3 flex-1">
+        <Sk className="h-9 w-9 rounded-xl shrink-0" />
+        <div className="flex flex-col gap-2 flex-1">
+          <Sk className="h-4 w-40" />
+          <Sk className="h-3 w-20" />
+        </div>
+      </div>
+      <Sk className="h-7 w-7 rounded-lg shrink-0" />
+    </div>
+    <div className="flex items-center justify-between pl-12">
+      <Sk className="h-4 w-16 rounded-full" />
+      <Sk className="h-3 w-20" />
+    </div>
+  </div>
+);
+
 const getIconoCategoria = (nombre: string, size: 'sm' | 'lg' = 'sm') => {
   const cls = size === 'lg' ? 'h-12 w-12' : 'h-4 w-4';
   const n = nombre.toLowerCase();
@@ -323,11 +363,16 @@ export default function InventarioPage() {
   const sortedEstados = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
   const sortedUbicaciones = useMemo(() => [...ubicacion].sort((a, b) => a.nombre.localeCompare(b.nombre)), [ubicacion]);
 
-  // getBadgeClass memoizado para no recalcular en cada render del grid
-  const getBadgeClass = useCallback((estadoNombre: string) => {
-    const est = estados.find(e => e.nombre === estadoNombre);
-    return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
+  // Mapa pre-computado: O(1) en vez de .find() en cada fila del grid
+  const badgeClassMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    estados.forEach(e => { map[e.nombre] = colorClasses[e.color] ?? colorClasses.slate; });
+    return map;
   }, [estados]);
+
+  const getBadgeClass = useCallback((estadoNombre: string) => {
+    return badgeClassMap[estadoNombre] ?? colorClasses.slate;
+  }, [badgeClassMap]);
 
   useRealtimeTable({
     table: 'hardware',
@@ -387,11 +432,15 @@ export default function InventarioPage() {
   }, [currentPage, itemsPerPage, searchTerm, filterCategoria, filterEstado, filterUbicacion, refreshTrigger]);
 
   useEffect(() => {
+    let rafId: ReturnType<typeof requestAnimationFrame>;
     const handleResize = () => {
-      setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
+      });
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => { window.removeEventListener('resize', handleResize); cancelAnimationFrame(rafId); };
   }, []);
 
   useEffect(() => {
@@ -415,7 +464,7 @@ export default function InventarioPage() {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
-  const addCategoria = async (nombre: string, extra?: Record<string, string>) => {
+  const addCategoria = useCallback(async (nombre: string, extra?: Record<string, string>) => {
     const prefijo = (extra?.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
     const { data, error } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
     if (error) { console.error("Error al añadir categoría:", error.message); return; }
@@ -423,17 +472,17 @@ export default function InventarioPage() {
       setCategorias(prev => [...prev, data]);
       await registrarLog('CREAR', 'CATEGORIA', data.id, { nombre, prefijo });
     }
-  };
+  }, []);
 
-  const deleteCategoria = async (id: string) => {
+  const deleteCategoria = useCallback(async (id: string) => {
     const { error } = await supabase.from('categorias').delete().eq('id', id);
     if (!error) {
       setCategorias(prev => prev.filter(c => c.id !== id));
       await registrarLog('ELIMINAR', 'CATEGORIA', id, { id });
     }
-  };
+  }, []);
 
-  const addEstado = async (nombre: string, extra?: Record<string, string>) => {
+  const addEstado = useCallback(async (nombre: string, extra?: Record<string, string>) => {
     const color = extra?.color ?? 'slate';
     const { data, error } = await supabase.from('estados').insert([{ nombre: nombre.toUpperCase(), color }]).select().single();
     if (error) { console.error("Error al añadir estado:", error.message); return; }
@@ -441,32 +490,32 @@ export default function InventarioPage() {
       setEstados(prev => [...prev, data]);
       await registrarLog('CREAR', 'ESTADO', data.id, { nombre: nombre.toUpperCase(), color });
     }
-  };
+  }, []);
 
-  const deleteEstado = async (id: string) => {
+  const deleteEstado = useCallback(async (id: string) => {
     const { error } = await supabase.from('estados').delete().eq('id', id);
     if (!error) {
       setEstados(prev => prev.filter(e => e.id !== id));
       await registrarLog('ELIMINAR', 'ESTADO', id, { id });
     }
-  };
+  }, []);
 
-  const addUbicacion = async (nombre: string) => {
+  const addUbicacion = useCallback(async (nombre: string) => {
     const { data, error } = await supabase.from('ubicacion').insert([{ nombre }]).select().single();
     if (error) { console.error("Error al añadir ubicación:", error.message); return; }
     if (data) {
       setUbicacion(prev => [...prev, data]);
       await registrarLog('CREAR', 'UBICACION', data.id, { nombre });
     }
-  };
+  }, []);
 
-  const deleteUbicacion = async (id: string) => {
+  const deleteUbicacion = useCallback(async (id: string) => {
     const { error } = await supabase.from('ubicacion').delete().eq('id', id);
     if (!error) {
       setUbicacion(prev => prev.filter(u => u.id !== id));
       await registrarLog('ELIMINAR', 'UBICACION', id, { id });
     }
-  };
+  }, []);
 
   const openEdit = (item: HardwareItem) => {
     setEditItem(item);
@@ -744,10 +793,7 @@ export default function InventarioPage() {
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-4 text-slate-400">
-              <BouncyLoader color="#94a3b8" />
-              Cargando inventario...
-            </div>
+            Array(6).fill(0).map((_, i) => <SkeletonMobileCard key={i} />)
           ) : items.length === 0 ? (
             <div className="py-20 text-center text-slate-400">No se encontraron equipos</div>
           ) : (
@@ -817,14 +863,7 @@ export default function InventarioPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-20 text-center text-slate-400">
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      <BouncyLoader color="#94a3b8" />
-                      Cargando inventario...
-                    </div>
-                  </td>
-                </tr>
+                Array(6).fill(0).map((_, i) => <SkeletonTableRow key={i} />)
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-20 text-center text-slate-400">No se encontraron equipos</td>

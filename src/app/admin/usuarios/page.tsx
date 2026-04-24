@@ -17,6 +17,30 @@ import BouncyLoader from '@/components/TreadmillLoader';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
 
+const Sk = ({ className }: { className: string }) => (
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+);
+
+const SkeletonUserCard = () => (
+  <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm gap-3">
+    <div className="flex items-start gap-3">
+      <Sk className="h-10 w-10 rounded-xl shrink-0" />
+      <div className="flex flex-col gap-2 flex-1">
+        <Sk className="h-3.5 w-36" />
+        <Sk className="h-3 w-24" />
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      <Sk className="h-5 w-16 rounded-full" />
+      <Sk className="h-5 w-14 rounded-full" />
+    </div>
+    <div className="flex gap-2 pt-1 border-t border-slate-100">
+      <Sk className="h-7 flex-1 rounded-lg" />
+      <Sk className="h-7 flex-1 rounded-lg" />
+    </div>
+  </div>
+);
+
 const PRIORIDAD_ROLES: Record<string, number> = {
   'SUPER_ADMIN': 1,
   'ADMIN': 2,
@@ -357,10 +381,9 @@ export default function UsuariosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {loading ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
-            <BouncyLoader color="#94a3b8" />
-            <p className="font-medium">Cargando personal...</p>
-          </div>
+          <>
+            {Array(6).fill(0).map((_, i) => <SkeletonUserCard key={i} />)}
+          </>
         ) : usuarios.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
             <Users className="mx-auto h-12 w-12 text-slate-300 mb-3" />

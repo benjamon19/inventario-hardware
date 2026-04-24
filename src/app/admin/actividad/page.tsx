@@ -3,14 +3,39 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Search, ArrowUpRight, ArrowDownLeft,
-  User, Calendar, Package, Loader2, Clock, ChevronLeft, ChevronRight,
+  User, Calendar, Package, Clock, ChevronLeft, ChevronRight,
   PlusCircle, Edit3, Trash2, Tag, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import BouncyLoader from '@/components/TreadmillLoader';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { registrarLog } from '@/lib/logger';
+
+const Sk = ({ className }: { className: string }) => (
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+);
+
+const SkeletonLogRow = () => (
+  <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm">
+    <Sk className="h-9 w-9 rounded-xl shrink-0" />
+    <div className="flex-1 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Sk className="h-4 w-28" />
+        <Sk className="h-3.5 w-16 rounded-full" />
+      </div>
+      <Sk className="h-3 w-48" />
+      <div className="flex gap-1.5">
+        <Sk className="h-4 w-20 rounded-full" />
+        <Sk className="h-4 w-16 rounded-full" />
+      </div>
+    </div>
+    <div className="shrink-0 text-right flex flex-col gap-1.5">
+      <Sk className="h-3 w-20 ml-auto" />
+      <Sk className="h-5 w-14 rounded-full ml-auto" />
+    </div>
+  </div>
+);
 
 type ActionType = 'TODOS' | 'SALIDA' | 'INGRESO' | 'CREACION' | 'EDICION' | 'ELIMINACION' | 'ETIQUETA';
 
@@ -261,9 +286,8 @@ export default function ActividadPage() {
 
       <div className="space-y-3 w-full">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
-            <BouncyLoader color="#94a3b8" />
-            <p className="font-medium">Sincronizando registros...</p>
+          <div className="flex flex-col gap-3">
+            {Array(5).fill(0).map((_, i) => <SkeletonLogRow key={i} />)}
           </div>
         ) : movimientos.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
