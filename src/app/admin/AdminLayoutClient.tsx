@@ -220,13 +220,25 @@ export default function AdminLayoutClient({
             <h2 className="text-xs font-bold uppercase tracking-widest truncate pr-4 text-slate-400">
               {pathname === '/admin/configuracion'
                 ? 'Configuración'
+                : pathname === '/admin/perfil'
+                ? 'Mi Perfil'
                 : menuItems.find(i => i.href === pathname)?.name || 'Administración'}
             </h2>
+            
+            {/* === AVATAR ACTUALIZADO CON LINK Y HOVER === */}
             <div className="flex shrink-0 items-center">
-              <div className={`flex h-8 w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs border shadow-sm select-none ${userAvatar.styles}`}>
-                {userAvatar.initial}
-              </div>
+              <Link 
+                href="/admin/perfil" 
+                title="Ver mi perfil"
+                className="rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <div className={`flex h-8 w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs border shadow-sm select-none transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 ${userAvatar.styles}`}>
+                  {userAvatar.initial}
+                </div>
+              </Link>
             </div>
+            {/* =========================================== */}
+            
           </div>
         </header>
 
