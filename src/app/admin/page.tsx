@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { 
   Box, CheckCircle2, MonitorPlay, Wrench, Trash2, 
   ArrowRightLeft, AlertTriangle, Info 
@@ -11,6 +11,7 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { InventoryTransaction } from '@/types';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 
 const COLORS_ESTADOS = {
   'DISPONIBLE': '#10b981', 
@@ -54,10 +55,9 @@ export default function AdminDashboard() {
     { name: 'Movimientos Hoy', value: '0', icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
   ]);
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        const hoy = new Date().toISOString().split('T')[0];
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const hoy = new Date().toISOString().split('T')[0];
 
         // 1. Obtener conteos generales y transacciones recientes
         const [
@@ -176,13 +176,24 @@ export default function AdminDashboard() {
 
         setStockCritico(alertas);
 
-      } finally {
-        setLoading(false);
-      }
+    } finally {
+      setLoading(false);
     }
-
-    fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  useRealtimeTable({
+    table: 'hardware',
+    onRefresh: fetchDashboardData
+  });
+
+  useRealtimeTable({
+    table: 'transacciones',
+    onRefresh: fetchDashboardData
+  });
 
   return (
     <div className="space-y-8">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment, useRef } from 'react';
+import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ScanLine, Search, History, Package, X, Loader2, 
@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { usePresence } from '@/hooks/usePresence';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -35,9 +36,7 @@ export default function OperatorPage() {
 
   usePresence();
 
-  useEffect(() => {
-    fetchMyActivity(currentPage);
-  }, [currentPage]);
+
 
   // 1. AUTO-FOCUS
   useEffect(() => {
@@ -65,7 +64,7 @@ export default function OperatorPage() {
     router.push('/login');
   };
 
-  const fetchMyActivity = async (page: number) => {
+  const fetchMyActivity = useCallback(async (page: number) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -86,7 +85,16 @@ export default function OperatorPage() {
       setMyActivity(data);
       setHasMore(count ? count > end + 1 : false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMyActivity(currentPage);
+  }, [currentPage, fetchMyActivity]);
+
+  useRealtimeTable({
+    table: 'transacciones',
+    onRefresh: () => fetchMyActivity(currentPage)
+  });
 
   const processSku = async (sku: string) => {
     if (!sku) return;
