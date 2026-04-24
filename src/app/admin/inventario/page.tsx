@@ -11,6 +11,7 @@ import {
   MapPin, Pencil
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import NuevoEquipoModal from './NuevoEquipoModal';
 
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -324,6 +325,13 @@ export default function InventarioPage() {
     const est = estados.find(e => e.nombre === estadoNombre);
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   }, [estados]);
+
+  useRealtimeTable({
+    table: 'hardware',
+    events: ['INSERT', 'UPDATE', 'DELETE'],
+    debounceMs: 1000,
+    onRefresh: useCallback(() => setRefreshTrigger(prev => prev + 1), []),
+  });
 
   useEffect(() => {
     const fetchMetadata = async () => {

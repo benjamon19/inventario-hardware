@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import {
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
   UserPlus, X, Mail, Lock, AlertCircle, Plus,
-  ChevronLeft, ChevronRight, Ban, Power
+  ChevronLeft, ChevronRight, Ban, Power, Wifi
 } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePresence } from '@/hooks/usePresence';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
 
@@ -45,6 +46,7 @@ export default function UsuariosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -58,13 +60,11 @@ export default function UsuariosPage() {
         setItemsPerPage(Math.max(6, rows * cols));
       }
     };
-
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch del rol del usuario actual — solo una vez al montar, sin depender de paginación
   useEffect(() => {
     const fetchMyIdentity = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -80,109 +80,96 @@ export default function UsuariosPage() {
     fetchMyIdentity();
   }, []);
 
-  // Realtime: solo escucha cambios en perfiles, NO en auditoria_logs
-  // (cualquier log dispararía un re-fetch completo de usuarios innecesariamente)
-  useEffect(() => {
-    const channel = supabase
-      .channel('usuarios_page_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
-        setRefreshTrigger(prev => prev + 1);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+  const triggerRefresh = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+    setLastUpdate(new Date());
   }, []);
+
+  // ── Realtime real: escucha INSERT, UPDATE y DELETE en perfiles ──
+  useRealtimeTable({
+    table: 'perfiles',
+    events: ['INSERT', 'UPDATE', 'DELETE'],
+    debounceMs: 800,
+    onRefresh: triggerRefresh,
+  });
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRol]);
 
-  useEffect(() => {
-    const fetchUsuarios = async () => {
-      setLoading(true);
+  const fetchUsuarios = useCallback(async () => {
+    setLoading(true);
 
-      const from = (currentPage - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
+    const from = (currentPage - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
 
-      let query = supabase
-        .from('perfiles')
-        .select('*', { count: 'exact' })
-        .range(from, to);
+    let query = supabase
+      .from('perfiles')
+      .select('*', { count: 'exact' })
+      .range(from, to);
 
-      if (searchTerm) {
-        query = query.ilike('email', `%${searchTerm}%`);
-      }
-      if (filterRol !== 'TODOS') {
-        query = query.eq('rol', filterRol);
-      }
+    if (searchTerm) query = query.ilike('email', `%${searchTerm}%`);
+    if (filterRol !== 'TODOS') query = query.eq('rol', filterRol);
 
-      const { data: perfilesData, count, error: perfilesError } = await query;
+    const { data: perfilesData, count, error: perfilesError } = await query;
 
-      if (perfilesError) {
-        console.error('Error al cargar perfiles:', perfilesError);
-        setLoading(false);
-        return;
-      }
+    if (perfilesError) {
+      console.error('Error al cargar perfiles:', perfilesError);
+      setLoading(false);
+      return;
+    }
 
-      if (count !== null) setTotalItems(count);
+    if (count !== null) setTotalItems(count);
 
-      const userIds = perfilesData?.map(p => p.id) || [];
-      let perfilesConStats = perfilesData || [];
+    const userIds = perfilesData?.map(p => p.id) || [];
+    let perfilesConStats = perfilesData || [];
 
-      if (userIds.length > 0) {
-        const { data: logsData } = await supabase
-          .from('auditoria_logs')
-          .select('usuario_id, created_at')
-          .eq('entidad', 'HARDWARE')
-          .in('usuario_id', userIds)
-          .order('created_at', { ascending: false });
+    if (userIds.length > 0) {
+      const { data: logsData } = await supabase
+        .from('auditoria_logs')
+        .select('usuario_id, created_at')
+        .eq('entidad', 'HARDWARE')
+        .in('usuario_id', userIds)
+        .order('created_at', { ascending: false });
 
-        // Construir Map O(n) en vez de filter() O(n²) por cada usuario
-        const logsByUser = new Map<string, { total: number; ultima: string | null }>();
-        logsData?.forEach(log => {
-          const existing = logsByUser.get(log.usuario_id);
-          if (!existing) {
-            // El primer registro ya es el más reciente (viene ordered desc)
-            logsByUser.set(log.usuario_id, { total: 1, ultima: log.created_at });
-          } else {
-            existing.total++;
-          }
-        });
-
-        perfilesConStats = perfilesData!.map(perfil => ({
-          ...perfil,
-          totalMovimientos: logsByUser.get(perfil.id)?.total ?? 0,
-          ultimaActividad: logsByUser.get(perfil.id)?.ultima ?? null,
-        }));
-      }
-
-      // Ordenamiento: yo primero, luego por jerarquía de rol, luego alfabético
-      const myId = currentUserId;
-      const usuariosOrdenados = perfilesConStats.sort((a, b) => {
-        if (a.id === myId) return -1;
-        if (b.id === myId) return 1;
-
-        const prioridadA = PRIORIDAD_ROLES[a.rol] || 99;
-        const prioridadB = PRIORIDAD_ROLES[b.rol] || 99;
-
-        if (prioridadA !== prioridadB) return prioridadA - prioridadB;
-        return (a.email || '').localeCompare(b.email || '');
+      const logsByUser = new Map<string, { total: number; ultima: string | null }>();
+      logsData?.forEach(log => {
+        const existing = logsByUser.get(log.usuario_id);
+        if (!existing) {
+          logsByUser.set(log.usuario_id, { total: 1, ultima: log.created_at });
+        } else {
+          existing.total++;
+        }
       });
 
-      setUsuarios(usuariosOrdenados);
-      setLoading(false);
-    };
+      perfilesConStats = perfilesData!.map(perfil => ({
+        ...perfil,
+        totalMovimientos: logsByUser.get(perfil.id)?.total ?? 0,
+        ultimaActividad: logsByUser.get(perfil.id)?.ultima ?? null,
+      }));
+    }
 
-    const delayDebounceFn = setTimeout(() => {
+    const myId = currentUserId;
+    const usuariosOrdenados = perfilesConStats.sort((a, b) => {
+      if (a.id === myId) return -1;
+      if (b.id === myId) return 1;
+      const prioridadA = PRIORIDAD_ROLES[a.rol] || 99;
+      const prioridadB = PRIORIDAD_ROLES[b.rol] || 99;
+      if (prioridadA !== prioridadB) return prioridadA - prioridadB;
+      return (a.email || '').localeCompare(b.email || '');
+    });
+
+    setUsuarios(usuariosOrdenados);
+    setLoading(false);
+  }, [currentPage, itemsPerPage, searchTerm, filterRol, currentUserId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
       fetchUsuarios();
     }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [currentPage, itemsPerPage, searchTerm, filterRol, refreshTrigger, currentUserId]);
+    return () => clearTimeout(timer);
+  }, [fetchUsuarios, refreshTrigger]);
 
   const cambiarRol = async (perfil: any, nuevoRol: string) => {
     setUpdatingId(perfil.id);
-
     const { error } = await supabase
       .from('perfiles')
       .update({ rol: nuevoRol })
@@ -196,17 +183,13 @@ export default function UsuariosPage() {
         rol_anterior: perfil.rol,
         rol_nuevo: nuevoRol
       });
-      setRefreshTrigger(prev => prev + 1);
     }
-
     setUpdatingId(null);
   };
 
   const cambiarEstado = async (perfil: any, nuevoEstado: 'ACTIVO' | 'INACTIVO') => {
     if (!confirm(`¿Estás seguro de que quieres ${nuevoEstado === 'INACTIVO' ? 'DESACTIVAR' : 'ACTIVAR'} al usuario ${perfil.email}?`)) return;
-
     setUpdatingId(perfil.id);
-
     const { error } = await supabase
       .from('perfiles')
       .update({ estado: nuevoEstado })
@@ -219,9 +202,7 @@ export default function UsuariosPage() {
         email_afectado: perfil.email,
         accion_estado: nuevoEstado
       });
-      setRefreshTrigger(prev => prev + 1);
     }
-
     setUpdatingId(null);
   };
 
@@ -250,7 +231,6 @@ export default function UsuariosPage() {
       setNewEmail('');
       setNewPassword('');
       setCreateMsg(null);
-      setRefreshTrigger(prev => prev + 1);
     }, 1500);
 
     setIsCreating(false);
@@ -309,8 +289,30 @@ export default function UsuariosPage() {
     <div className="space-y-6 relative pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
-          <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal en tiempo real.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
+            {!loading && totalItems > 0 && (
+              <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-100">
+                {totalItems} {totalItems === 1 ? 'usuario' : 'usuarios'}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal en tiempo real.</p>
+            {/* Indicador de realtime */}
+            <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">En vivo</span>
+            </div>
+          </div>
+          {lastUpdate && (
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              Última actualización: {format(lastUpdate, "HH:mm:ss", { locale: es })}
+            </p>
+          )}
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -348,12 +350,6 @@ export default function UsuariosPage() {
             </button>
           ))}
         </div>
-
-        {!loading && (
-          <span className="ml-auto text-xs text-slate-400 font-semibold bg-slate-100 px-3 py-1.5 rounded-full whitespace-nowrap">
-            {totalItems} usu.
-          </span>
-        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -371,28 +367,27 @@ export default function UsuariosPage() {
           usuarios.map((perfil) => {
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
             const inactivo = perfil.estado === 'INACTIVO';
+            const isUpdating = updatingId === perfil.id;
 
             return (
               <div
                 key={perfil.id}
-                className={`flex flex-col rounded-2xl border bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group ${
-                  inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
-                  isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
-                }`}
+                className={`flex flex-col rounded-2xl border bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group ${isUpdating ? 'opacity-60 pointer-events-none' :
+                    inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
+                      isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="relative shrink-0">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${
-                      inactivo ? 'bg-slate-200 text-slate-500 border-slate-300' :
-                      perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-600 text-white border-purple-700' :
-                      perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
-                      {perfil.email?.substring(0, 1).toUpperCase()}
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${inactivo ? 'bg-slate-200 text-slate-500 border-slate-300' :
+                        perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-600 text-white border-purple-700' :
+                          perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                      {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : perfil.email?.substring(0, 1).toUpperCase()}
                     </div>
-                    <span className={`absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${
-                      inactivo ? 'bg-red-500' :
-                      isOnline ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}>
+                    <span className={`absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${inactivo ? 'bg-red-500' :
+                        isOnline ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}>
                       {isOnline && !inactivo && (
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                       )}
@@ -404,13 +399,12 @@ export default function UsuariosPage() {
                       {perfil.email}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                        inactivo ? 'bg-slate-200 text-slate-600 border-slate-300' :
-                        perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                        perfil.rol === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        perfil.rol === 'OPERADOR' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
+                      <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${inactivo ? 'bg-slate-200 text-slate-600 border-slate-300' :
+                          perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                            perfil.rol === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              perfil.rol === 'OPERADOR' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
                         {perfil.rol.replace('_', ' ')}
                       </span>
                       {inactivo ? (
@@ -455,49 +449,51 @@ export default function UsuariosPage() {
                       <span className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
                         Tu cuenta
                       </span>
-                    ) : (
+                    ) : perfil.rol === 'SUPER_ADMIN' ? null : (
                       <>
                         {currentUserRole === 'SUPER_ADMIN' && (
                           <>
                             {inactivo ? (
                               <button
-                                disabled={updatingId === perfil.id}
+                                disabled={isUpdating}
                                 onClick={() => cambiarEstado(perfil, 'ACTIVO')}
                                 className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-200 disabled:opacity-50"
                               >
                                 <Power className="h-3 w-3" /> Activar
                               </button>
                             ) : (
-                              perfil.rol !== 'SUPER_ADMIN' && (
-                                <button
-                                  disabled={updatingId === perfil.id}
-                                  onClick={() => cambiarEstado(perfil, 'INACTIVO')}
-                                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
-                                >
-                                  <Ban className="h-3 w-3" /> Desactivar
-                                </button>
-                              )
+                              <button
+                                disabled={isUpdating}
+                                onClick={() => cambiarEstado(perfil, 'INACTIVO')}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
+                              >
+                                <Ban className="h-3 w-3" /> Desactivar
+                              </button>
                             )}
                           </>
                         )}
 
-                        {!inactivo && perfil.rol !== 'OPERADOR' && (
-                          <button
-                            disabled={updatingId === perfil.id}
-                            onClick={() => cambiarRol(perfil, 'OPERADOR')}
-                            className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
-                          >
-                            A Operador
-                          </button>
-                        )}
-                        {!inactivo && perfil.rol !== 'ADMIN' && (
-                          <button
-                            disabled={updatingId === perfil.id}
-                            onClick={() => cambiarRol(perfil, 'ADMIN')}
-                            className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
-                          >
-                            A Admin
-                          </button>
+                        {(currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'ADMIN') && !inactivo && (
+                          <>
+                            {perfil.rol !== 'OPERADOR' && (
+                              <button
+                                disabled={isUpdating}
+                                onClick={() => cambiarRol(perfil, 'OPERADOR')}
+                                className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
+                              >
+                                A Operador
+                              </button>
+                            )}
+                            {perfil.rol !== 'ADMIN' && (
+                              <button
+                                disabled={isUpdating}
+                                onClick={() => cambiarRol(perfil, 'ADMIN')}
+                                className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
+                              >
+                                A Admin
+                              </button>
+                            )}
+                          </>
                         )}
                       </>
                     )}
@@ -590,9 +586,8 @@ export default function UsuariosPage() {
                     </div>
 
                     {createMsg && (
-                      <div className={`flex items-start gap-2 rounded-xl p-3 border mt-4 ${
-                        createMsg.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'
-                      }`}>
+                      <div className={`flex items-start gap-2 rounded-xl p-3 border mt-4 ${createMsg.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'
+                        }`}>
                         {createMsg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
                         <p className="text-xs font-semibold leading-relaxed">{createMsg.text}</p>
                       </div>

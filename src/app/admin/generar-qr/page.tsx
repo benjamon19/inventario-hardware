@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Transition } from '@headlessui/react';
 
@@ -10,6 +10,7 @@ import {
   CheckSquare, Square, X, Layers, MapPin,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 
 type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -70,6 +71,7 @@ export default function GenerarQRPage() {
   
   const [currentPage,     setCurrentPage]     = useState(1);
   const [itemsPerPage,    setItemsPerPage]    = useState(getInitialItemsPerPage);
+  const [refreshTrigger,  setRefreshTrigger]  = useState(0);
 
   const [multiMode,   setMultiMode]   = useState(false);
   // Cambiamos el Set por un Map para guardar el objeto completo del equipo seleccionado 
@@ -80,6 +82,13 @@ export default function GenerarQRPage() {
   const sortedCategorias  = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const sortedEstados     = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const sortedUbicaciones = [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  useRealtimeTable({
+    table: 'hardware',
+    events: ['INSERT', 'UPDATE', 'DELETE'],
+    debounceMs: 1200,
+    onRefresh: useCallback(() => setRefreshTrigger(prev => prev + 1), []),
+  });
 
   // 1. Cargar las categorías y metadata solo una vez al iniciar
   useEffect(() => {
@@ -130,7 +139,7 @@ export default function GenerarQRPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [currentPage, itemsPerPage, searchTerm, filterCategoria, filterEstado, filterUbicacion]);
+  }, [currentPage, itemsPerPage, searchTerm, filterCategoria, filterEstado, filterUbicacion, refreshTrigger]);
 
   // Manejar parámetro en URL
   useEffect(() => {

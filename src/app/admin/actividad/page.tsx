@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Search, ArrowUpRight, ArrowDownLeft,
   User, Calendar, Package, Loader2, Clock, ChevronLeft, ChevronRight,
   PlusCircle, Edit3, Trash2, Tag, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -27,9 +28,6 @@ export default function ActividadPage() {
 
   const [usuarios, setUsuarios] = useState<{ id: string; email: string }[]>([]);
 
-  // Ref para el debounce del realtime
-  const realtimeRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     const fetchUsuarios = async () => {
       const { data } = await supabase.from('perfiles').select('id, email').order('email');
@@ -44,33 +42,20 @@ export default function ActividadPage() {
       const itemsCalculados = Math.floor(altoDisponible / 85);
       setItemsPerPage(Math.max(5, itemsCalculados));
     };
-
     calcularItemsPorPagina();
     window.addEventListener('resize', calcularItemsPorPagina);
     return () => window.removeEventListener('resize', calcularItemsPorPagina);
   }, []);
 
-  // Realtime con debounce — agrupa múltiples inserts seguidos en una sola actualización
-  useEffect(() => {
-    const channel = supabase
-      .channel('actividad_page_realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'auditoria_logs' },
-        () => {
-          if (realtimeRefreshRef.current) clearTimeout(realtimeRefreshRef.current);
-          realtimeRefreshRef.current = setTimeout(() => {
-            setRefreshTrigger(prev => prev + 1);
-          }, 2000);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      if (realtimeRefreshRef.current) clearTimeout(realtimeRefreshRef.current);
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  // ── Realtime: INSERT en auditoria_logs ──
+  useRealtimeTable({
+    table: 'auditoria_logs',
+    events: ['INSERT'],
+    debounceMs: 1500,
+    onRefresh: useCallback(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, []),
+  });
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterTipo, filterUsuario]);
 
@@ -102,7 +87,6 @@ export default function ActividadPage() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchingUsers = usuarios.filter(u => u.email.toLowerCase().includes(term)).map(u => u.id);
-
         let orQuery = `detalles->>modelo.ilike.%${term}%,detalles->>nombre.ilike.%${term}%,detalles->>sku.ilike.%${term}%,detalles->>email_afectado.ilike.%${term}%`;
         if (matchingUsers.length > 0) {
           orQuery += `,usuario_id.in.(${matchingUsers.join(',')})`;
@@ -147,10 +131,7 @@ export default function ActividadPage() {
   }, [currentPage, itemsPerPage, searchTerm, filterTipo, filterUsuario, refreshTrigger, usuarios]);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
+  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
 
   const tipos = ['TODOS', 'INGRESO', 'SALIDA', 'CREACION', 'EDICION', 'ELIMINACION', 'ETIQUETA'] as const;
 
@@ -221,7 +202,17 @@ export default function ActividadPage() {
   return (
     <div className="space-y-6 relative w-full">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Historial de Actividad</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Historial de Actividad</h1>
+          {/* Indicador Realtime */}
+          <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">En vivo</span>
+          </div>
+        </div>
         <p className="text-sm text-slate-500">Registro detallado en tiempo real de movimientos, cambios y gestiones.</p>
       </div>
 
