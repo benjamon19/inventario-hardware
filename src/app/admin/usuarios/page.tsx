@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePresence } from '@/hooks/usePresence';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import BouncyLoader from '@/components/TreadmillLoader';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
 
@@ -356,8 +357,8 @@ export default function UsuariosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {loading ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+          <div className="col-span-full flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
+            <BouncyLoader color="#94a3b8" />
             <p className="font-medium">Cargando personal...</p>
           </div>
         ) : usuarios.length === 0 ? (

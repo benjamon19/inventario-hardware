@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { 
   User, Mail, Shield, Activity, Calendar, 
-  Fingerprint, Loader2, Info
+  Fingerprint, Info
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import BouncyLoader from '@/components/TreadmillLoader';
 
 export default function MiPerfilPage() {
   const [perfil, setPerfil] = useState<any>(null);
@@ -52,8 +53,8 @@ export default function MiPerfilPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-100 flex-col items-center justify-center text-slate-400">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+      <div className="flex min-h-100 flex-col items-center justify-center gap-4 text-slate-400">
+        <BouncyLoader color="#94a3b8" />
         <p className="text-sm font-medium">Cargando tu información...</p>
       </div>
     );

@@ -1,12 +1,15 @@
-import { Loader2 } from 'lucide-react';
+'use client';
+
+import BouncyLoader from '@/components/TreadmillLoader';
 
 export default function GlobalLoading() {
   return (
-    <div className="flex min-h-[60vh] w-full items-center justify-center">
-      <div className="flex flex-col items-center gap-3 text-slate-500">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-        <p className="text-sm font-medium animate-pulse">Cargando módulo...</p>
-      </div>
+    <div className="flex min-h-[60vh] w-full flex-col items-center justify-center gap-5">
+      <BouncyLoader color="#2563eb" />
+      <p className="text-[12px] font-semibold tracking-[0.2em] text-slate-400 uppercase select-none">
+        Cargando...
+      </p>
     </div>
   );
 }
+

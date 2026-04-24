@@ -20,6 +20,7 @@
     "date-fns": "^4.1.0",
     "gsap": "^3.14.2",
     "html5-qrcode": "^2.3.8",
+    "ldrs": "^1.1.9",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "nextjs-toploader": "^3.9.17",

@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { registrarLog } from '@/lib/logger';
+import BouncyLoader from '@/components/TreadmillLoader';
 
 type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -543,8 +544,8 @@ export default function GenerarQRPage() {
 
           {/* Grid */}
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center text-slate-400">
-              <Loader2 className="h-8 w-8 animate-spin mb-3" />
+            <div className="py-20 flex flex-col items-center justify-center gap-4 text-slate-400">
+              <BouncyLoader color="#94a3b8" />
               <p className="text-sm font-medium">Buscando en la base de datos...</p>
             </div>
           ) : disponibles.length === 0 ? (

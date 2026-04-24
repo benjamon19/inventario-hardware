@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import BouncyLoader from '@/components/TreadmillLoader';
 import { registrarLog } from '@/lib/logger';
 import NuevoEquipoModal from './NuevoEquipoModal';
 
@@ -743,8 +744,8 @@ export default function InventarioPage() {
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (
-            <div className="py-20 text-center text-slate-400">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3" />
+            <div className="py-20 flex flex-col items-center justify-center gap-4 text-slate-400">
+              <BouncyLoader color="#94a3b8" />
               Cargando inventario...
             </div>
           ) : items.length === 0 ? (
@@ -818,8 +819,10 @@ export default function InventarioPage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-20 text-center text-slate-400">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin mb-3 text-slate-400" />
-                    Cargando inventario...
+                    <div className="flex flex-col items-center justify-center gap-4">
+                      <BouncyLoader color="#94a3b8" />
+                      Cargando inventario...
+                    </div>
                   </td>
                 </tr>
               ) : items.length === 0 ? (

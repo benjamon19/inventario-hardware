@@ -7,6 +7,7 @@ import {
   PlusCircle, Edit3, Trash2, Tag, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import BouncyLoader from '@/components/TreadmillLoader';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -260,8 +261,8 @@ export default function ActividadPage() {
 
       <div className="space-y-3 w-full">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
+            <BouncyLoader color="#94a3b8" />
             <p className="font-medium">Sincronizando registros...</p>
           </div>
         ) : movimientos.length === 0 ? (

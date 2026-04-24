@@ -12,6 +12,7 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import BouncyLoader from '@/components/TreadmillLoader';
 
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
@@ -390,8 +391,8 @@ export default function AdminScannerPage() {
 
           <div className="space-y-2">
             {loadingActivity ? (
-              <div className="py-8 flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+              <div className="py-8 flex flex-col items-center justify-center gap-3">
+                <BouncyLoader color="#cbd5e1" size={30} />
               </div>
             ) : recentActivity.map((mov) => (
               <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-blue-100 transition-colors">
