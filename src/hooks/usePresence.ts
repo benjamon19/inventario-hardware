@@ -1,13 +1,11 @@
-// src/hooks/usePresence.ts
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 let globalChannel: any = null;
 let globalOnlineUsers: Record<string, boolean> = {};
+let cachedUserId: string | null = null;
+let isInitializing = false;
 const subscribers = new Set<React.Dispatch<React.SetStateAction<Record<string, boolean>>>>();
-
-// NUEVO: El candado para evitar la condición de carrera
-let isInitializing = false; 
 
 export function usePresence() {
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>(globalOnlineUsers);
@@ -16,25 +14,20 @@ export function usePresence() {
     subscribers.add(setOnlineUsers);
 
     const initPresence = async () => {
-      // 1. Si ya hay un canal, O si otro componente ya lo está creando, frenamos aquí.
       if (globalChannel || isInitializing) return;
-      
-      // 2. Ponemos el candado para que nadie más intente inicializar
-      isInitializing = true; 
+      isInitializing = true;
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          isInitializing = false; // Quitamos el candado si falla
-          return;
+        if (!cachedUserId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) { isInitializing = false; return; }
+          cachedUserId = user.id;
         }
 
-        // Doble validación por seguridad
         if (globalChannel) return;
 
-        // 3. Creamos la conexión
         globalChannel = supabase.channel('app_presence', {
-          config: { presence: { key: user.id } }
+          config: { presence: { key: cachedUserId } }
         });
 
         globalChannel
@@ -42,7 +35,6 @@ export function usePresence() {
             const state = globalChannel.presenceState();
             const online: Record<string, boolean> = {};
             Object.keys(state).forEach((key) => { online[key] = true; });
-            
             globalOnlineUsers = online;
             subscribers.forEach(sub => sub(globalOnlineUsers));
           })
@@ -59,12 +51,15 @@ export function usePresence() {
 
         globalChannel.subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
-            await globalChannel.track({ user_id: user.id, online_at: new Date().toISOString() });
+            await globalChannel.track({
+              user_id: cachedUserId,
+              online_at: new Date().toISOString(),
+            });
           }
         });
       } catch (err) {
-        console.error("Error iniciando presencia:", err);
-        isInitializing = false; // Quitamos el candado si hay error
+        console.error('Error iniciando presencia:', err);
+        isInitializing = false;
       }
     };
 

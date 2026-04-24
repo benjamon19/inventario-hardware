@@ -1,7 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Transition } from '@headlessui/react';
 
@@ -45,6 +44,12 @@ const getIconoCategoria = (nombre: string) => {
   return <Package className="h-5 w-5" />;
 };
 
+// --- INICIALIZADOR DE PAGINACIÓN ---
+const getInitialItemsPerPage = () => {
+  if (typeof window === 'undefined') return 12;
+  return window.innerWidth >= 1350 ? 12 : 6;
+};
+
 export default function GenerarQRPage() {
   const [sku,         setSku]         = useState('');
   const [item,        setItem]        = useState<any>(null);
@@ -64,7 +69,7 @@ export default function GenerarQRPage() {
   const [filterUbicacion, setFilterUbicacion] = useState('');
   
   const [currentPage,     setCurrentPage]     = useState(1);
-  const [itemsPerPage,    setItemsPerPage]    = useState(12);
+  const [itemsPerPage,    setItemsPerPage]    = useState(getInitialItemsPerPage);
 
   const [multiMode,   setMultiMode]   = useState(false);
   // Cambiamos el Set por un Map para guardar el objeto completo del equipo seleccionado 

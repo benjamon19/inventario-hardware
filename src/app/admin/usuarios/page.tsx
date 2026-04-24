@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { 
+import {
   Users, Shield, Search,
   CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
   UserPlus, X, Mail, Lock, AlertCircle, Plus,
@@ -15,7 +15,6 @@ import { usePresence } from '@/hooks/usePresence';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
 
-// --- NUEVO: Diccionario para jerarquía de ordenamiento ---
 const PRIORIDAD_ROLES: Record<string, number> = {
   'SUPER_ADMIN': 1,
   'ADMIN': 2,
@@ -28,8 +27,7 @@ export default function UsuariosPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  
-  // --- NUEVO: Guardamos no solo el ID, sino el rol del usuario actual ---
+
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
@@ -37,12 +35,11 @@ export default function UsuariosPage() {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [createMsg, setCreateMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const onlineUsers = usePresence();
 
   const [searchTerm, setSearchTerm] = useState('');
-  // Añadimos SUPER_ADMIN a los filtros
   const [filterRol, setFilterRol] = useState<'TODOS' | 'SUPER_ADMIN' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,8 +51,8 @@ export default function UsuariosPage() {
       if (window.innerWidth < 768) {
         setItemsPerPage(6);
       } else {
-        const availableHeight = window.innerHeight - 300; 
-        const estimatedCardHeight = 150; 
+        const availableHeight = window.innerHeight - 300;
+        const estimatedCardHeight = 150;
         const rows = Math.floor(availableHeight / estimatedCardHeight);
         const cols = window.innerWidth >= 1024 ? 3 : 2;
         setItemsPerPage(Math.max(6, rows * cols));
@@ -67,13 +64,28 @@ export default function UsuariosPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Fetch del rol del usuario actual — solo una vez al montar, sin depender de paginación
+  useEffect(() => {
+    const fetchMyIdentity = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
+      const { data } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', user.id)
+        .single();
+      if (data) setCurrentUserRole(data.rol);
+    };
+    fetchMyIdentity();
+  }, []);
+
+  // Realtime: solo escucha cambios en perfiles, NO en auditoria_logs
+  // (cualquier log dispararía un re-fetch completo de usuarios innecesariamente)
   useEffect(() => {
     const channel = supabase
       .channel('usuarios_page_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
-        setRefreshTrigger(prev => prev + 1);
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'auditoria_logs' }, () => {
         setRefreshTrigger(prev => prev + 1);
       })
       .subscribe();
@@ -88,8 +100,6 @@ export default function UsuariosPage() {
   useEffect(() => {
     const fetchUsuarios = async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
 
       const from = (currentPage - 1) * itemsPerPage;
       const to = from + itemsPerPage - 1;
@@ -97,7 +107,6 @@ export default function UsuariosPage() {
       let query = supabase
         .from('perfiles')
         .select('*', { count: 'exact' })
-        // Quita el .order('rol') original si lo tenías, ya que lo ordenaremos en JS
         .range(from, to);
 
       if (searchTerm) {
@@ -117,61 +126,50 @@ export default function UsuariosPage() {
 
       if (count !== null) setTotalItems(count);
 
-      // --- NUEVO: Identificar el rol del usuario logueado ---
-      if (user && perfilesData) {
-        const miPerfil = perfilesData.find(p => p.id === user.id);
-        if (miPerfil) {
-          setCurrentUserRole(miPerfil.rol);
-        } else {
-          // Si no está en la página actual, hacemos un fetch rápido de su rol
-          const { data: myData } = await supabase.from('perfiles').select('rol').eq('id', user.id).single();
-          if (myData) setCurrentUserRole(myData.rol);
-        }
-      }
-
-      let perfilesConStats = perfilesData || [];
       const userIds = perfilesData?.map(p => p.id) || [];
-      
+      let perfilesConStats = perfilesData || [];
+
       if (userIds.length > 0) {
         const { data: logsData } = await supabase
           .from('auditoria_logs')
           .select('usuario_id, created_at')
           .eq('entidad', 'HARDWARE')
-          .in('usuario_id', userIds);
+          .in('usuario_id', userIds)
+          .order('created_at', { ascending: false });
 
-        perfilesConStats = perfilesData!.map(perfil => {
-          const misMovimientos = logsData?.filter(l => l.usuario_id === perfil.id) || [];
-          const ordenados = [...misMovimientos].sort((a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-          return {
-            ...perfil,
-            totalMovimientos: misMovimientos.length,
-            ultimaActividad: ordenados.length > 0 ? ordenados[0].created_at : null
-          };
+        // Construir Map O(n) en vez de filter() O(n²) por cada usuario
+        const logsByUser = new Map<string, { total: number; ultima: string | null }>();
+        logsData?.forEach(log => {
+          const existing = logsByUser.get(log.usuario_id);
+          if (!existing) {
+            // El primer registro ya es el más reciente (viene ordered desc)
+            logsByUser.set(log.usuario_id, { total: 1, ultima: log.created_at });
+          } else {
+            existing.total++;
+          }
         });
+
+        perfilesConStats = perfilesData!.map(perfil => ({
+          ...perfil,
+          totalMovimientos: logsByUser.get(perfil.id)?.total ?? 0,
+          ultimaActividad: logsByUser.get(perfil.id)?.ultima ?? null,
+        }));
       }
 
-      // --- NUEVO: Ordenamiento personalizado (Tú > SUPER_ADMIN > ADMIN > OPERADOR) ---
-      const myId = user?.id || null;
+      // Ordenamiento: yo primero, luego por jerarquía de rol, luego alfabético
+      const myId = currentUserId;
       const usuariosOrdenados = perfilesConStats.sort((a, b) => {
-        // 1. Tú siempre primero
         if (a.id === myId) return -1;
         if (b.id === myId) return 1;
 
-        // 2. Orden por jerarquía de roles
         const prioridadA = PRIORIDAD_ROLES[a.rol] || 99;
         const prioridadB = PRIORIDAD_ROLES[b.rol] || 99;
 
-        if (prioridadA !== prioridadB) {
-          return prioridadA - prioridadB;
-        }
-
-        // 3. Orden alfabético si tienen el mismo rol
+        if (prioridadA !== prioridadB) return prioridadA - prioridadB;
         return (a.email || '').localeCompare(b.email || '');
       });
 
-      setUsuarios(usuariosOrdenados); // Reemplaza el anterior setUsuarios(perfilesConStats)
+      setUsuarios(usuariosOrdenados);
       setLoading(false);
     };
 
@@ -180,11 +178,11 @@ export default function UsuariosPage() {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [currentPage, itemsPerPage, searchTerm, filterRol, refreshTrigger]);
+  }, [currentPage, itemsPerPage, searchTerm, filterRol, refreshTrigger, currentUserId]);
 
   const cambiarRol = async (perfil: any, nuevoRol: string) => {
     setUpdatingId(perfil.id);
-    
+
     const { error } = await supabase
       .from('perfiles')
       .update({ rol: nuevoRol })
@@ -200,16 +198,15 @@ export default function UsuariosPage() {
       });
       setRefreshTrigger(prev => prev + 1);
     }
-    
+
     setUpdatingId(null);
   };
 
-  // --- NUEVA FUNCIÓN: Cambiar el estado del usuario ---
   const cambiarEstado = async (perfil: any, nuevoEstado: 'ACTIVO' | 'INACTIVO') => {
     if (!confirm(`¿Estás seguro de que quieres ${nuevoEstado === 'INACTIVO' ? 'DESACTIVAR' : 'ACTIVAR'} al usuario ${perfil.email}?`)) return;
 
     setUpdatingId(perfil.id);
-    
+
     const { error } = await supabase
       .from('perfiles')
       .update({ estado: nuevoEstado })
@@ -224,7 +221,7 @@ export default function UsuariosPage() {
       });
       setRefreshTrigger(prev => prev + 1);
     }
-    
+
     setUpdatingId(null);
   };
 
@@ -247,7 +244,7 @@ export default function UsuariosPage() {
     });
 
     setCreateMsg({ type: 'success', text: 'Usuario creado exitosamente.' });
-    
+
     setTimeout(() => {
       setIsModalOpen(false);
       setNewEmail('');
@@ -297,7 +294,6 @@ export default function UsuariosPage() {
     );
   };
 
-  // --- Actualizamos roles ---
   const roles = ['TODOS', 'SUPER_ADMIN', 'ADMIN', 'OPERADOR', 'PENDIENTE'] as const;
 
   const rolChipClass = (rol: typeof roles[number], active: boolean) => {
@@ -374,7 +370,6 @@ export default function UsuariosPage() {
         ) : (
           usuarios.map((perfil) => {
             const isOnline = perfil.id === currentUserId ? true : !!onlineUsers[perfil.id];
-            // --- NUEVO: Comprobar si el usuario está inactivo ---
             const inactivo = perfil.estado === 'INACTIVO';
 
             return (
@@ -411,13 +406,10 @@ export default function UsuariosPage() {
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
                         inactivo ? 'bg-slate-200 text-slate-600 border-slate-300' :
-                        perfil.rol === 'SUPER_ADMIN'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : perfil.rol === 'ADMIN'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : perfil.rol === 'OPERADOR'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                        perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                        perfil.rol === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        perfil.rol === 'OPERADOR' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {perfil.rol.replace('_', ' ')}
                       </span>
@@ -457,7 +449,7 @@ export default function UsuariosPage() {
                   <p className="text-[9px] font-mono font-bold text-slate-300">
                     ID: {perfil.id.substring(0, 8)}
                   </p>
-                  
+
                   <div className="flex gap-1.5 ml-auto">
                     {perfil.id === currentUserId ? (
                       <span className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
@@ -465,7 +457,6 @@ export default function UsuariosPage() {
                       </span>
                     ) : (
                       <>
-                        {/* --- OPCIONES EXCLUSIVAS DE SUPER ADMIN --- */}
                         {currentUserRole === 'SUPER_ADMIN' && (
                           <>
                             {inactivo ? (
@@ -477,7 +468,6 @@ export default function UsuariosPage() {
                                 <Power className="h-3 w-3" /> Activar
                               </button>
                             ) : (
-                              // --- NUEVO: Evitamos mostrar el botón "Desactivar" a otro SUPER_ADMIN ---
                               perfil.rol !== 'SUPER_ADMIN' && (
                                 <button
                                   disabled={updatingId === perfil.id}
@@ -491,7 +481,6 @@ export default function UsuariosPage() {
                           </>
                         )}
 
-                        {/* --- CAMBIO DE ROLES NORMAL --- */}
                         {!inactivo && perfil.rol !== 'OPERADOR' && (
                           <button
                             disabled={updatingId === perfil.id}
@@ -532,33 +521,16 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* MODAL DE CREACIÓN (Se mantiene igual) */}
+      {/* Modal creación */}
       <Transition show={isModalOpen} as={Fragment}>
-        {/* ... (Tu código del modal actual va aquí, no le hice cambios) ... */}
         <Dialog as="div" className="relative z-50" onClose={() => !isCreating && setIsModalOpen(false)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-200"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-150"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
+          <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/60" />
           </Transition.Child>
 
           <div className="fixed inset-0 z-10 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
                 <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
                   <div className="absolute right-5 top-5">
                     <button
@@ -633,15 +605,9 @@ export default function UsuariosPage() {
                         className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isCreating ? (
-                          <>
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            <span>Creando...</span>
-                          </>
+                          <><Loader2 className="h-5 w-5 animate-spin" /><span>Creando...</span></>
                         ) : (
-                          <>
-                            <Plus className="h-5 w-5" />
-                            <span>Registrar Usuario</span>
-                          </>
+                          <><Plus className="h-5 w-5" /><span>Registrar Usuario</span></>
                         )}
                       </button>
                     </div>

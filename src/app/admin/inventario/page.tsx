@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, Transition } from '@headlessui/react';
-import { 
-  Plus, Search, MoreVertical, 
+import {
+  Plus, Search, MoreVertical,
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
   X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle,
   ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight,
@@ -13,7 +13,6 @@ import {
 import { supabase } from '@/lib/supabase';
 import NuevoEquipoModal from './NuevoEquipoModal';
 
-// --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Estado = { id: string; nombre: string; color: string };
 type Ubicacion = { id: string; nombre: string };
@@ -271,6 +270,13 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
 // =============================================
 // Página principal
 // =============================================
+
+// Calcula el valor correcto ANTES del primer render para evitar doble fetch
+const getInitialItemsPerPage = () => {
+  if (typeof window === 'undefined') return 12;
+  return window.innerWidth >= 1350 ? 12 : 6;
+};
+
 export default function InventarioPage() {
   const [items, setItems] = useState<HardwareItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -280,9 +286,10 @@ export default function InventarioPage() {
   const [filterEstado, setFilterEstado] = useState<string>('');
   const [filterUbicacion, setFilterUbicacion] = useState<string>('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
+  // Inicialización correcta: sin useState(15) que luego cambia a 6/12
+  const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage);
   const topRef = useRef<HTMLDivElement>(null);
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -312,7 +319,12 @@ export default function InventarioPage() {
   const sortedEstados = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const sortedUbicaciones = [...ubicacion].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  // 1. Cargar metadatos solo una vez
+  // getBadgeClass memoizado para no recalcular en cada render del grid
+  const getBadgeClass = useCallback((estadoNombre: string) => {
+    const est = estados.find(e => e.nombre === estadoNombre);
+    return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
+  }, [estados]);
+
   useEffect(() => {
     const fetchMetadata = async () => {
       const [{ data: cats }, { data: ests }, { data: ubics }] = await Promise.all([
@@ -327,10 +339,8 @@ export default function InventarioPage() {
     fetchMetadata();
   }, []);
 
-  // Volver a página 1 si cambian los filtros
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategoria, filterEstado, filterUbicacion]);
 
-  // 2. Cargar inventario con paginación desde el servidor
   useEffect(() => {
     const fetchHardware = async () => {
       setLoading(true);
@@ -351,10 +361,10 @@ export default function InventarioPage() {
       if (filterUbicacion) query = query.eq('ubicacion', filterUbicacion);
 
       const { data, count, error } = await query;
-      
+
       if (data) setItems(data);
       if (count !== null) setTotalItems(count);
-      
+
       setLoading(false);
     };
 
@@ -367,13 +377,8 @@ export default function InventarioPage() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1350) {
-        setItemsPerPage(12);
-      } else {
-        setItemsPerPage(6);
-      }
+      setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
     };
-    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -382,7 +387,7 @@ export default function InventarioPage() {
     if (items.length > 0 && typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const skuToOpen = params.get('sku');
-      
+
       if (skuToOpen) {
         const foundItem = items.find(i => i.sku === skuToOpen);
         if (foundItem) {
@@ -454,9 +459,9 @@ export default function InventarioPage() {
     if (!editItem) return;
     setEditLoading(true);
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
-    if (!error) { 
-      setRefreshTrigger(prev => prev + 1); 
-      setEditItem(null); 
+    if (!error) {
+      setRefreshTrigger(prev => prev + 1);
+      setEditItem(null);
     } else {
       alert('Error al editar: ' + error.message);
     }
@@ -471,11 +476,6 @@ export default function InventarioPage() {
     setDeleteItem(null);
     setDetalleItem(null);
     setDeleteLoading(false);
-  };
-
-  const getBadgeClass = (estadoNombre: string) => {
-    const est = estados.find(e => e.nombre === estadoNombre);
-    return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
   };
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
@@ -593,7 +593,6 @@ export default function InventarioPage() {
   return (
     <div ref={topRef} className="space-y-4 relative overflow-x-hidden">
 
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Inventario de Hardware</h1>
@@ -608,7 +607,6 @@ export default function InventarioPage() {
       </div>
 
       <div className="space-y-4">
-        {/* Búsqueda */}
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -620,16 +618,11 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* Filtros categoría */}
         {!loading && sortedCategorias.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setFilterCategoria('')}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
-                !filterCategoria 
-                  ? 'bg-slate-900 text-white border-slate-900' 
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-              }`}
+              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
             >
               Todas
             </button>
@@ -637,11 +630,7 @@ export default function InventarioPage() {
               <button
                 key={cat.id}
                 onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-                className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
-                  filterCategoria === cat.nombre 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'
-                }`}
+                className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'}`}
               >
                 {cat.nombre}
               </button>
@@ -649,23 +638,18 @@ export default function InventarioPage() {
           </div>
         )}
 
-        {/* Filtros estado */}
         {!loading && sortedEstados.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap px-1"> 
+          <div className="flex items-center gap-2 flex-wrap px-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
             {sortedEstados.map(est => {
-              const dot    = colorDotClasses[est.color] ?? 'bg-slate-400';
-              const badge  = colorClasses[est.color]    ?? colorClasses.slate;
+              const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
+              const badge = colorClasses[est.color] ?? colorClasses.slate;
               const active = filterEstado === est.nombre;
               return (
                 <button
                   key={est.id}
                   onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${
-                    active 
-                      ? `${badge} ring-2 ring-offset-1 ring-current` 
-                      : `${badge} opacity-60 hover:opacity-100`
-                  }`}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
                   {est.nombre}
@@ -673,17 +657,13 @@ export default function InventarioPage() {
               );
             })}
             {filterEstado && (
-              <button 
-                onClick={() => setFilterEstado('')} 
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer"
-              >
+              <button onClick={() => setFilterEstado('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
                 Limpiar
               </button>
             )}
           </div>
         )}
 
-        {/* Filtro por estante/ubicación */}
         {!loading && sortedUbicaciones.length > 0 && (
           <div className="flex items-center gap-3 px-1 w-full">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0">
@@ -697,11 +677,7 @@ export default function InventarioPage() {
                   <button
                     key={ubic.id}
                     onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                      active
-                        ? 'bg-teal-600 text-white border-teal-600'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'
-                    }`}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}
                   >
                     <MapPin className="h-3 w-3" />
                     {ubic.nombre}
@@ -711,8 +687,8 @@ export default function InventarioPage() {
             </div>
 
             {filterUbicacion && (
-              <button 
-                onClick={() => setFilterUbicacion('')} 
+              <button
+                onClick={() => setFilterUbicacion('')}
                 className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 ml-auto pl-2"
               >
                 Limpiar
@@ -724,7 +700,6 @@ export default function InventarioPage() {
 
       {renderPaginacion()}
 
-      {/* Tabla */}
       <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
@@ -839,7 +814,7 @@ export default function InventarioPage() {
                     <td className="px-6 py-4 text-slate-600">{item.categoria}</td>
                     <td className="px-6 py-4 text-slate-500 text-xs font-semibold">
                       {item.ubicacion ? (
-                        <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-slate-400 shrink-0"/> {item.ubicacion}</span>
+                        <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-slate-400 shrink-0" /> {item.ubicacion}</span>
                       ) : (
                         <span className="text-slate-300 italic font-normal">--</span>
                       )}
@@ -867,7 +842,6 @@ export default function InventarioPage() {
 
       {renderPaginacion()}
 
-      {/* Modal Nuevo Equipo */}
       <NuevoEquipoModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -887,38 +861,16 @@ export default function InventarioPage() {
         deleteUbicacion={deleteUbicacion}
       />
 
-      {/* PORTAL: Menú de Acciones (Pegado abajo y compacto) */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={!!menuOpenId} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none flex items-end justify-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div
-                className="absolute inset-0 pointer-events-auto bg-slate-900/10 backdrop-blur-[2px]"
-                onClick={() => setMenuOpenId(null)}
-              />
+            <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
+              <div className="absolute inset-0 pointer-events-auto bg-slate-900/10 backdrop-blur-[2px]" onClick={() => setMenuOpenId(null)} />
             </Transition.Child>
 
-            <Transition.Child
-              as={Fragment}
-              enter="transition ease-out duration-300 transform"
-              enterFrom="translate-y-full"
-              enterTo="translate-y-0"
-              leave="transition ease-in duration-200 transform"
-              leaveFrom="translate-y-0"
-              leaveTo="translate-y-full"
-            >
+            <Transition.Child as={Fragment} enter="transition ease-out duration-300 transform" enterFrom="translate-y-full" enterTo="translate-y-0" leave="transition ease-in duration-200 transform" leaveFrom="translate-y-0" leaveTo="translate-y-full">
               <div className="relative pointer-events-auto w-full max-w-[320px] bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.1)] rounded-t-4xl border-x border-t border-slate-100 overflow-hidden pb-safe">
-                
                 <div className="mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-100" />
-                
                 <div className="px-3 pb-5 pt-1 space-y-1">
                   <button
                     onClick={() => {
@@ -930,9 +882,7 @@ export default function InventarioPage() {
                   >
                     <Edit2 className="h-5 w-5 text-slate-400" /> Editar equipo
                   </button>
-                  
                   <div className="mx-4 border-t border-slate-50" />
-                  
                   <button
                     onClick={() => {
                       const item = items.find(i => i.id === menuOpenId);
@@ -972,24 +922,18 @@ export default function InventarioPage() {
                   </div>
                   <form onSubmit={handleEdit} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                        Modelo <span className="text-red-500">*</span>
-                      </label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo <span className="text-red-500">*</span></label>
                       <input required type="text" value={editFormData.modelo} onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                          Categoría <span className="text-red-500">*</span>
-                        </label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría <span className="text-red-500">*</span></label>
                         <select value={editFormData.categoria} onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
                           {sortedCategorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                          Estado <span className="text-red-500">*</span>
-                        </label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado <span className="text-red-500">*</span></label>
                         <select value={editFormData.estado} onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
                           {sortedEstados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
                         </select>
@@ -1001,20 +945,12 @@ export default function InventarioPage() {
                         <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
                           <MapPin className="h-3 w-3" /> Ubicación / Estante
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => setShowUbicacionEditorInEdit(v => !v)}
-                          className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
-                        >
+                        <button type="button" onClick={() => setShowUbicacionEditorInEdit(v => !v)} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer">
                           <Pencil className="h-3 w-3" /> Gestionar
                         </button>
                       </div>
                       <div className="flex gap-2">
-                        <select
-                          value={editFormData.ubicacion}
-                          onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })}
-                          className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
-                        >
+                        <select value={editFormData.ubicacion} onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
                           <option value="">Sin asignar</option>
                           {sortedUbicaciones.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
                         </select>
@@ -1031,20 +967,12 @@ export default function InventarioPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                        SKU <span className="text-red-500">*</span>
-                      </label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
                       <input required type="text" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción</label>
-                      <textarea
-                        value={editFormData.descripcion}
-                        onChange={e => setEditFormData({ ...editFormData, descripcion: e.target.value })}
-                        placeholder="Ej: En mantención por falla en batería..."
-                        rows={3}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all resize-none text-slate-700"
-                      />
+                      <textarea value={editFormData.descripcion} onChange={e => setEditFormData({ ...editFormData, descripcion: e.target.value })} placeholder="Ej: En mantención por falla en batería..." rows={3} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all resize-none text-slate-700" />
                     </div>
                     <div className="mt-8 flex flex-col gap-3 pt-2">
                       <button type="submit" disabled={editLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50">
@@ -1094,16 +1022,7 @@ export default function InventarioPage() {
       </Transition>
 
       {/* Toast de éxito */}
-      <Transition
-        show={showSuccessToast}
-        as={Fragment}
-        enter="transition ease-out duration-300 transform"
-        enterFrom="opacity-0 translate-y-10 scale-95"
-        enterTo="opacity-100 translate-y-0 scale-100"
-        leave="transition ease-in duration-200 transform"
-        leaveFrom="opacity-100 translate-y-0 scale-100"
-        leaveTo="opacity-0 translate-y-10 scale-95"
-      >
+      <Transition show={showSuccessToast} as={Fragment} enter="transition ease-out duration-300 transform" enterFrom="opacity-0 translate-y-10 scale-95" enterTo="opacity-100 translate-y-0 scale-100" leave="transition ease-in duration-200 transform" leaveFrom="opacity-100 translate-y-0 scale-100" leaveTo="opacity-0 translate-y-10 scale-95">
         <div className="fixed bottom-0 left-0 right-0 z-100 p-6 flex justify-center pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-3 bg-white px-6 py-3.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-emerald-100">
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">

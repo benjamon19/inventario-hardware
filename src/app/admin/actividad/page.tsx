@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { 
-  Search, ArrowUpRight, ArrowDownLeft, 
+import {
+  Search, ArrowUpRight, ArrowDownLeft,
   User, Calendar, Package, Loader2, Clock, ChevronLeft, ChevronRight,
   PlusCircle, Edit3, Trash2, Tag, FileText
 } from 'lucide-react';
@@ -20,14 +20,16 @@ export default function ActividadPage() {
 
   const [filterTipo, setFilterTipo] = useState<ActionType>('TODOS');
   const [filterUsuario, setFilterUsuario] = useState('');
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [usuarios, setUsuarios] = useState<{ id: string; email: string }[]>([]);
 
-  // 1. Cargar lista de usuarios una sola vez para el filtro
+  // Ref para el debounce del realtime
+  const realtimeRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const fetchUsuarios = async () => {
       const { data } = await supabase.from('perfiles').select('id, email').order('email');
@@ -36,11 +38,10 @@ export default function ActividadPage() {
     fetchUsuarios();
   }, []);
 
-  // 2. Paginación inteligente según el alto de la pantalla (ajustado a tarjetas más compactas)
   useEffect(() => {
     const calcularItemsPorPagina = () => {
       const altoDisponible = window.innerHeight - 380;
-      const itemsCalculados = Math.floor(altoDisponible / 85); // 85px aprox por tarjeta compacta
+      const itemsCalculados = Math.floor(altoDisponible / 85);
       setItemsPerPage(Math.max(5, itemsCalculados));
     };
 
@@ -49,24 +50,30 @@ export default function ActividadPage() {
     return () => window.removeEventListener('resize', calcularItemsPorPagina);
   }, []);
 
-  // 3. Suscripción en tiempo real
+  // Realtime con debounce — agrupa múltiples inserts seguidos en una sola actualización
   useEffect(() => {
     const channel = supabase
       .channel('actividad_page_realtime')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'auditoria_logs' },
-        () => { setRefreshTrigger(prev => prev + 1); }
+        () => {
+          if (realtimeRefreshRef.current) clearTimeout(realtimeRefreshRef.current);
+          realtimeRefreshRef.current = setTimeout(() => {
+            setRefreshTrigger(prev => prev + 1);
+          }, 2000);
+        }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (realtimeRefreshRef.current) clearTimeout(realtimeRefreshRef.current);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  // Volver a la página 1 si cambian los filtros
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterTipo, filterUsuario]);
 
-  // 4. Cargar actividad desde el Servidor (Server-Side Pagination + Filters)
   useEffect(() => {
     const fetchActividad = async () => {
       setLoading(true);
@@ -80,7 +87,6 @@ export default function ActividadPage() {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      // Filtro por Tipo
       if (filterTipo !== 'TODOS') {
         let dbTipo: string = filterTipo;
         if (filterTipo === 'CREACION') dbTipo = 'CREAR';
@@ -89,17 +95,14 @@ export default function ActividadPage() {
         query = query.eq('accion', dbTipo);
       }
 
-      // Filtro por Usuario
       if (filterUsuario) {
         query = query.eq('usuario_id', filterUsuario);
       }
 
-      // Filtro de Búsqueda inteligente (Mapea sobre JSONB y cruza usuarios en memoria)
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        // Buscar si el texto coincide con el email de un usuario para buscar también sus acciones
         const matchingUsers = usuarios.filter(u => u.email.toLowerCase().includes(term)).map(u => u.id);
-        
+
         let orQuery = `detalles->>modelo.ilike.%${term}%,detalles->>nombre.ilike.%${term}%,detalles->>sku.ilike.%${term}%,detalles->>email_afectado.ilike.%${term}%`;
         if (matchingUsers.length > 0) {
           orQuery += `,usuario_id.in.(${matchingUsers.join(',')})`;
@@ -145,13 +148,12 @@ export default function ActividadPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-  // Removido el scroll automático
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
 
   const tipos = ['TODOS', 'INGRESO', 'SALIDA', 'CREACION', 'EDICION', 'ELIMINACION', 'ETIQUETA'] as const;
-  
+
   const tipoChipClass = (tipo: ActionType, active: boolean) => {
     if (!active) return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300';
     switch (tipo) {
@@ -223,7 +225,6 @@ export default function ActividadPage() {
         <p className="text-sm text-slate-500">Registro detallado en tiempo real de movimientos, cambios y gestiones.</p>
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-col gap-4 w-full">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative w-full sm:max-w-md">
@@ -264,10 +265,8 @@ export default function ActividadPage() {
         </div>
       </div>
 
-      {/* PAGINACIÓN ARRIBA */}
       {renderPaginacion()}
 
-      {/* Contenido (Tarjetas de Actividad Compactas) */}
       <div className="space-y-3 w-full">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -322,7 +321,7 @@ export default function ActividadPage() {
                           <span className="truncate max-w-30">{mov.hardware.modelo}</span>
                         </div>
                       )}
-                      
+
                       <div className="flex items-center gap-1 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100 text-blue-700 font-bold">
                         <User className="h-3 w-3 shrink-0 opacity-50" />
                         <span className="truncate max-w-30">{mov.perfiles?.email}</span>
@@ -348,7 +347,6 @@ export default function ActividadPage() {
         )}
       </div>
 
-      {/* PAGINACIÓN ABAJO */}
       {renderPaginacion()}
     </div>
   );

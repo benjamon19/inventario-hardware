@@ -23,6 +23,13 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+// --- INICIALIZADOR DE PAGINACIÓN ---
+// Inicializa con el valor correcto desde el principio para evitar un doble fetch
+const getInitialItemsPerPage = () => {
+  if (typeof window === 'undefined') return 12;
+  return window.innerWidth >= 1350 ? 12 : 6;
+};
+
 export default function AdminScannerPage() {
   const router = useRouter();
   
@@ -40,7 +47,7 @@ export default function AdminScannerPage() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage);
   const [totalItems, setTotalItems] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
