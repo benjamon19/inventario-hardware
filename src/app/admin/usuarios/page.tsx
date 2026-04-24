@@ -103,7 +103,7 @@ export default function UsuariosPage() {
 
     let query = supabase
       .from('perfiles')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'estimated' })
       .range(from, to);
 
     if (searchTerm) query = query.ilike('email', `%${searchTerm}%`);
@@ -328,9 +328,11 @@ export default function UsuariosPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
+            maxLength={100}
+            autoComplete="off"
             placeholder="Buscar por correo..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value.trimStart())}
             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
           />
         </div>
@@ -561,8 +563,9 @@ export default function UsuariosPage() {
                         <input
                           type="email"
                           required
+                          maxLength={100}
                           value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
+                          onChange={(e) => setNewEmail(e.target.value.trim())}
                           className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-colors"
                           placeholder="ejemplo@empresa.com"
                         />
@@ -576,6 +579,7 @@ export default function UsuariosPage() {
                         <input
                           type="password"
                           required
+                          maxLength={100}
                           minLength={6}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}

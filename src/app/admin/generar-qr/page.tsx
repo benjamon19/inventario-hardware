@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Transition } from '@headlessui/react';
 
@@ -79,9 +79,9 @@ export default function GenerarQRPage() {
   const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, any>>(new Map());
 
   // Listas ordenadas alfabéticamente
-  const sortedCategorias  = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const sortedEstados     = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const sortedUbicaciones = [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedCategorias  = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
+  const sortedEstados     = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
+  const sortedUbicaciones = useMemo(() => [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)), [ubicaciones]);
 
   useRealtimeTable({
     table: 'hardware',
@@ -109,7 +109,7 @@ export default function GenerarQRPage() {
   useEffect(() => {
     const fetchHardware = async () => {
       setLoading(true);
-      let query = supabase.from('hardware').select('*', { count: 'exact' });
+      let query = supabase.from('hardware').select('*', { count: 'estimated' });
 
       // Aplicar filtros en la base de datos
       if (searchTerm) {
@@ -201,14 +201,14 @@ export default function GenerarQRPage() {
   const deseleccionarTodos = () => setSelectedItemsMap(new Map());
   const imprimir = () => window.print();
 
-  const getBadgeClass = (estadoNombre: string) => {
+  const getBadgeClass = useCallback((estadoNombre: string) => {
     const est = estados.find(e => e.nombre === estadoNombre);
     return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
-  };
+  }, [estados]);
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = useCallback((newPage: number) => {
     setCurrentPage(newPage);
-  };
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
@@ -332,10 +332,13 @@ export default function GenerarQRPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
+                maxLength={50}
+                spellCheck="false"
+                autoComplete="off"
                 placeholder="Ingresa SKU (ej: LAP-1234)"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-semibold uppercase"
                 value={sku}
-                onChange={(e) => setSku(e.target.value)}
+                onChange={(e) => setSku(e.target.value.trim().toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && buscarEquipo()}
               />
             </div>
@@ -430,6 +433,8 @@ export default function GenerarQRPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
+              maxLength={50}
+              autoComplete="off"
               placeholder="Filtrar por modelo o SKU..."
               value={searchTerm}
               onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}

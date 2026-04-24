@@ -52,7 +52,7 @@ export default function AdminScannerPage() {
 
     const { data, count } = await supabase
       .from('transacciones')
-      .select(`id, tipo, timestamp, sku, hardware (modelo)`, { count: 'exact' })
+      .select(`id, tipo, timestamp, sku, hardware (modelo)`, { count: 'estimated' })
       .order('timestamp', { ascending: false })
       .range(start, end);
 
@@ -354,9 +354,12 @@ export default function AdminScannerPage() {
             <input
               ref={inputRef}
               type="text"
+              maxLength={50}
+              spellCheck="false"
+              autoComplete="off"
               placeholder={scanMode === 'SEARCH' ? "Ingresa SKU para buscar..." : "Pistola o manual..."}
               value={manualSku}
-              onChange={(e) => setManualSku(e.target.value)}
+              onChange={(e) => setManualSku(e.target.value.trim().toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
               className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
             />

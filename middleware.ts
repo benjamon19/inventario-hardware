@@ -1,7 +1,32 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const rateLimitMap = new Map<string, { count: number, resetTime: number }>();
+const RATE_LIMIT_MAX = 100; // Peticiones máximas
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minuto
+
 export async function middleware(request: NextRequest) {
+  // --- RATE LIMITING BÁSICO ---
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const now = Date.now();
+
+  const clientData = rateLimitMap.get(ip);
+  if (!clientData || now > clientData.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+  } else {
+    clientData.count++;
+    if (clientData.count > RATE_LIMIT_MAX) {
+      return new NextResponse('Too Many Requests. Please try again later.', { status: 429 });
+    }
+  }
+
+  // Limpieza periódica del Map para evitar fugas de memoria
+  if (Math.random() < 0.05) {
+    for (const [key, val] of rateLimitMap.entries()) {
+      if (now > val.resetTime) rateLimitMap.delete(key);
+    }
+  }
+  // --- FIN RATE LIMITING ---
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -37,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
   // 2. Protecciones para rutas internas (solo si hay usuario)
   if (user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/operador'))) {
-    
+
     // Consultamos SIEMPRE la tabla perfiles para verificar rol y si está ACTIVO
     // Esto es el seguro de vida contra usuarios desactivados con la sesión "recordada"
     const { data: perfil } = await supabase

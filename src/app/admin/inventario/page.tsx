@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
+import { useState, useEffect, useRef, Fragment, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import {
@@ -74,7 +74,7 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
   const [newNombre, setNewNombre] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const sortedItems = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedItems = useMemo(() => [...items].sort((a, b) => a.nombre.localeCompare(b.nombre)), [items]);
 
   const handleAdd = async () => {
     if (!newNombre.trim()) return;
@@ -112,6 +112,7 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Agregar nueva</p>
         <input
           type="text"
+          maxLength={100}
           placeholder="Ej: Pasillo A, Estante 2..."
           value={newNombre}
           onChange={e => setNewNombre(e.target.value)}
@@ -316,9 +317,9 @@ export default function InventarioPage() {
   const [deleteItem, setDeleteItem] = useState<HardwareItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const sortedCategorias = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const sortedEstados = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const sortedUbicaciones = [...ubicacion].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedCategorias = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
+  const sortedEstados = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
+  const sortedUbicaciones = useMemo(() => [...ubicacion].sort((a, b) => a.nombre.localeCompare(b.nombre)), [ubicacion]);
 
   // getBadgeClass memoizado para no recalcular en cada render del grid
   const getBadgeClass = useCallback((estadoNombre: string) => {
@@ -357,7 +358,7 @@ export default function InventarioPage() {
 
       let query = supabase
         .from('hardware')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'estimated' })
         .order('updated_at', { ascending: false })
         .range(from, to);
 
@@ -619,6 +620,8 @@ export default function InventarioPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
+            maxLength={50}
+            autoComplete="off"
             placeholder="Filtrar por modelo o SKU..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
@@ -931,7 +934,7 @@ export default function InventarioPage() {
                   <form onSubmit={handleEdit} className="space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo <span className="text-red-500">*</span></label>
-                      <input required type="text" value={editFormData.modelo} onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" />
+                      <input required type="text" maxLength={150} value={editFormData.modelo} onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value.trimStart() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -976,7 +979,7 @@ export default function InventarioPage() {
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
-                      <input required type="text" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider" />
+                      <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción</label>

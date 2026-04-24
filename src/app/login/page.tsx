@@ -124,8 +124,9 @@ export default function LoginPage() {
                   <input
                     type="email"
                     required
+                    maxLength={100}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.trim())}
                     onFocus={() => robotRef.current?.playFocusEmail()}
                     onBlur={() => robotRef.current?.playBlurEmail()}
                     className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
@@ -144,6 +145,7 @@ export default function LoginPage() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
+                    maxLength={100}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => robotRef.current?.playFocusPassword(!showPassword)}

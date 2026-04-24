@@ -69,11 +69,11 @@ export default function AdminDashboard() {
           { data: ultimasTx },
           { data: allHardware }
         ] = await Promise.all([
-          supabase.from('hardware').select('*', { count: 'exact', head: true }),
-          supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DISPONIBLE'),
-          supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_USO'),
-          supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'EN_MANTENCION'),
-          supabase.from('hardware').select('*', { count: 'exact', head: true }).eq('estado', 'DADO_DE_BAJA'),
+          supabase.from('hardware').select('*', { count: 'estimated', head: true }),
+          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DISPONIBLE'),
+          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_USO'),
+          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_MANTENCION'),
+          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DADO_DE_BAJA'),
           supabase.from('transacciones').select('id').gte('timestamp', `${hoy}T00:00:00Z`),
           supabase.from('transacciones').select('*').order('timestamp', { ascending: false }).limit(8),
           supabase.from('hardware').select('estado, categoria')

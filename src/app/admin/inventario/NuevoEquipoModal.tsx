@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -39,7 +39,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
   const [saving, setSaving] = useState(false);
 
   // Items ordenados alfabéticamente en el editor
-  const sortedItems = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedItems = useMemo(() => [...items].sort((a, b) => a.nombre.localeCompare(b.nombre)), [items]);
 
   const handleAdd = async () => {
     if (!newNombre.trim()) return;
@@ -79,6 +79,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Nueva opción</p>
         <input
           type="text"
+          maxLength={100}
           placeholder="Nombre..."
           value={newNombre}
           onChange={e => setNewNombre(e.target.value)}
@@ -168,9 +169,9 @@ export default function NuevoEquipoModal({
   const [showUbicEditor, setShowUbicEditor] = useState(false);
 
   // Listas ordenadas alfabéticamente
-  const sortedCategorias = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const sortedEstados = [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const sortedUbicaciones = [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const sortedCategorias = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
+  const sortedEstados = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
+  const sortedUbicaciones = useMemo(() => [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)), [ubicaciones]);
 
   const generarSKU = (prefijo: string) => `${prefijo}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -387,9 +388,10 @@ export default function NuevoEquipoModal({
                           </label>
                           <input
                             type="text"
+                            maxLength={150}
                             placeholder="Ej: Lenovo ThinkPad T14"
                             value={formData.modelo}
-                            onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, modelo: e.target.value.trimStart() })}
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
                           />
                         </div>
@@ -462,14 +464,18 @@ export default function NuevoEquipoModal({
                                 <input
                                   required
                                   type="text"
+                                  maxLength={50}
+                                  spellCheck="false"
+                                  autoComplete="off"
                                   value={eq.sku}
-                                  onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.toUpperCase())}
+                                  onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
                                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all font-mono text-slate-700 font-bold tracking-wider"
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
                                 <textarea
+                                  maxLength={255}
                                   value={eq.descripcion}
                                   onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
                                   placeholder={cantidad > 1 ? "Número de serie o detalle..." : "Motivo de ingreso, estado de mantención..."}
