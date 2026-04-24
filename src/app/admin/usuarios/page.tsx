@@ -16,6 +16,7 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import BouncyLoader from '@/components/TreadmillLoader';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
+import { useAvatar } from '@/components/useAvatar';
 
 const Sk = ({ className }: { className: string }) => (
   <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
@@ -64,6 +65,9 @@ export default function UsuariosPage() {
   const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const onlineUsers = usePresence();
+
+  // Avatar del usuario actual (sincronizado con perfil)
+  const { initials: myInitials, avatarGradient: myGradient } = useAvatar();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState<'TODOS' | 'SUPER_ADMIN' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
@@ -405,11 +409,22 @@ export default function UsuariosPage() {
               >
                 <div className="flex items-start gap-3">
                   <div className="relative shrink-0">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${inactivo ? 'bg-slate-200 text-slate-500 border-slate-300' :
-                        perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-600 text-white border-purple-700' :
-                          perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}>
-                      {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : perfil.email?.substring(0, 1).toUpperCase()}
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${
+                        inactivo
+                          ? 'bg-slate-200 text-slate-500 border-slate-300'
+                          : perfil.id === currentUserId
+                          ? `bg-gradient-to-br ${myGradient} text-white border-transparent`
+                          : perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-600 text-white border-purple-700'
+                          : perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {isUpdating
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : perfil.id === currentUserId
+                        ? myInitials
+                        : perfil.email?.substring(0, 1).toUpperCase()}
                     </div>
                     <span className={`absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${inactivo ? 'bg-red-500' :
                         isOnline ? 'bg-emerald-500' : 'bg-slate-300'

@@ -4,20 +4,21 @@ import React, { useState, Fragment, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
-import { 
-  LayoutDashboard, Box, History, Users, LogOut, 
+import {
+  LayoutDashboard, Box, History, Users, LogOut,
   Package, AlertCircle, Settings, QrCode,
-  Menu, ScanLine 
+  Menu, ScanLine
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { registrarLog } from '@/lib/logger';
+import { useAvatar } from '@/components/useAvatar';
 
 const MOBILE_BREAKPOINT = 768;
 
-export default function AdminLayoutClient({ 
-  children, 
-  initialExpanded 
-}: { 
+export default function AdminLayoutClient({
+  children,
+  initialExpanded
+}: {
   children: React.ReactNode;
   initialExpanded: boolean;
 }) {
@@ -30,26 +31,8 @@ export default function AdminLayoutClient({
   // Inicializamos directamente con lo que el servidor nos manda por las Cookies
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(initialExpanded);
 
-  const [userAvatar, setUserAvatar] = useState({ 
-    initial: 'B', 
-    styles: 'bg-blue-100 text-blue-700 border-blue-200' 
-  });
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const namePart = user.email.split('@')[0].split('.')[0];
-        const initial = namePart.charAt(0).toUpperCase();
-        const isFemale = namePart.toLowerCase().endsWith('a');
-        const styles = isFemale
-          ? 'bg-pink-100 text-pink-700 border-pink-200' 
-          : 'bg-blue-100 text-blue-700 border-blue-200';
-        setUserAvatar({ initial, styles });
-      }
-    };
-    fetchUser();
-  }, []);
+  // Avatar centralizado
+  const { initials, avatarGradient } = useAvatar();
 
   // Al hacer clic, cambiamos el estado y lo guardamos en una Cookie por 1 año
   const toggleSidebar = () => {
@@ -59,14 +42,14 @@ export default function AdminLayoutClient({
       return next;
     });
   };
-  
+
   const menuItems = useMemo(() => [
-    { name: 'Panel Principal', href: '/admin',             icon: LayoutDashboard },
-    { name: 'Inventario',      href: '/admin/inventario', icon: Box             },
-    { name: 'Generar QR',      href: '/admin/generar-qr', icon: QrCode          },
-    { name: 'Escáner',         href: '/admin/escaner',    icon: ScanLine        },
-    { name: 'Actividad',       href: '/admin/actividad',  icon: History         },
-    { name: 'Usuarios',        href: '/admin/usuarios',   icon: Users           },
+    { name: 'Panel Principal', href: '/admin', icon: LayoutDashboard },
+    { name: 'Inventario', href: '/admin/inventario', icon: Box },
+    { name: 'Generar QR', href: '/admin/generar-qr', icon: QrCode },
+    { name: 'Escáner', href: '/admin/escaner', icon: ScanLine },
+    { name: 'Actividad', href: '/admin/actividad', icon: History },
+    { name: 'Usuarios', href: '/admin/usuarios', icon: Users },
   ], []);
 
   const handleLogout = async () => {
@@ -81,13 +64,12 @@ export default function AdminLayoutClient({
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
           <Package className="h-4 w-4" />
         </div>
-        <span className={`font-extrabold tracking-tight text-sm leading-tight whitespace-nowrap overflow-hidden transition-all duration-300 text-slate-900 ${
-          collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
-        }`}>
+        <span className={`font-extrabold tracking-tight text-sm leading-tight whitespace-nowrap overflow-hidden transition-all duration-300 text-slate-900 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+          }`}>
           Bodega Informática
         </span>
       </div>
-      
+
       <div className="flex flex-1 flex-col justify-between overflow-y-auto mt-2">
         <nav className="space-y-1 px-3 py-3">
           <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'max-h-0 opacity-0' : 'max-h-7 opacity-100'}`}>
@@ -104,16 +86,14 @@ export default function AdminLayoutClient({
                 key={item.name}
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 ${isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span className={`text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                  collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
-                }`}>
+                <span className={`text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+                  }`}>
                   {item.name}
                 </span>
               </Link>
@@ -124,29 +104,26 @@ export default function AdminLayoutClient({
         <div className="px-3 pb-5">
           <Link
             href="/admin/configuracion"
-            className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 mb-3 ${
-              pathname === '/admin/configuracion' 
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+            className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 mb-3 ${pathname === '/admin/configuracion'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Settings className="h-4 w-4 shrink-0" />
-            <span className={`text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
-            }`}>
+            <span className={`text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+              }`}>
               Configuración
             </span>
           </Link>
-          
+
           <div className="border-t border-slate-100 pt-3">
             <button
               onClick={() => setShowLogoutModal(true)}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors group cursor-pointer text-red-500 hover:bg-red-50"
             >
               <LogOut className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-              <span className={`text-xs font-bold whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
-              }`}>
+              <span className={`text-xs font-bold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+                }`}>
                 Cerrar Sesión
               </span>
             </button>
@@ -158,7 +135,7 @@ export default function AdminLayoutClient({
 
   return (
     <div className="flex min-h-screen w-full bg-slate-50 transition-colors duration-300">
-      
+
       {/* Sidebar móvil */}
       <Transition show={isMobileMenuOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50 md:hidden" onClose={setIsMobileMenuOpen}>
@@ -223,24 +200,24 @@ export default function AdminLayoutClient({
               {pathname === '/admin/configuracion'
                 ? 'Configuración'
                 : pathname === '/admin/perfil'
-                ? 'Mi Perfil'
-                : menuItems.find(i => i.href === pathname)?.name || 'Administración'}
+                  ? 'Mi Perfil'
+                  : menuItems.find(i => i.href === pathname)?.name || 'Administración'}
             </h2>
-            
+
             {/* === AVATAR ACTUALIZADO CON LINK Y HOVER === */}
             <div className="flex shrink-0 items-center">
-              <Link 
-                href="/admin/perfil" 
+              <Link
+                href="/admin/perfil"
                 title="Ver mi perfil"
                 className="rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                <div className={`flex h-8 w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs border shadow-sm select-none transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 ${userAvatar.styles}`}>
-                  {userAvatar.initial}
+                <div className={`flex h-8 w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs shadow-sm select-none transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 bg-gradient-to-br ${avatarGradient} text-white`}>
+                  {initials}
                 </div>
               </Link>
             </div>
             {/* =========================================== */}
-            
+
           </div>
         </header>
 
@@ -255,7 +232,7 @@ export default function AdminLayoutClient({
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
-            leave="ease-in duration-200"  leaveFrom="opacity-100" leaveTo="opacity-0"
+            leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
           >
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
           </Transition.Child>
