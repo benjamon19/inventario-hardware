@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { usePresence } from '@/hooks/usePresence';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { registrarLog } from '@/lib/logger';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -60,6 +61,7 @@ export default function OperatorPage() {
   }, [manualSku]);
 
   const handleLogout = async () => {
+    await registrarLog('SALIDA_SISTEMA', 'SISTEMA', null, { detalle: 'Cierre de sesión' });
     await supabase.auth.signOut();
     router.push('/login');
   };

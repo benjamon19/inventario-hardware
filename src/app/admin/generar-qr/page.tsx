@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { registrarLog } from '@/lib/logger';
 
 type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -199,7 +200,18 @@ export default function GenerarQRPage() {
   };
 
   const deseleccionarTodos = () => setSelectedItemsMap(new Map());
-  const imprimir = () => window.print();
+  
+  const imprimir = async () => {
+    const lista = multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : []);
+    for (const eq of lista) {
+      await registrarLog('ETIQUETA', 'HARDWARE', eq.id, { 
+        sku: eq.sku, 
+        modelo: eq.modelo,
+        detalle: 'Impresión de etiqueta QR' 
+      });
+    }
+    window.print();
+  };
 
   const getBadgeClass = useCallback((estadoNombre: string) => {
     const est = estados.find(e => e.nombre === estadoNombre);

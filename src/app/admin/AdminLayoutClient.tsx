@@ -10,6 +10,7 @@ import {
   Menu, ScanLine 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { registrarLog } from '@/lib/logger';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -69,6 +70,7 @@ export default function AdminLayoutClient({
   ], []);
 
   const handleLogout = async () => {
+    await registrarLog('SALIDA_SISTEMA', 'SISTEMA', null, { detalle: 'Cierre de sesión' });
     await supabase.auth.signOut();
     router.push('/login');
   };

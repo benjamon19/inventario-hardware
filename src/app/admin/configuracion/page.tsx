@@ -2,6 +2,7 @@
 
 import { Shield, Lock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { registrarLog } from '@/lib/logger';
 import { useState } from 'react';
 
 export default function ConfiguracionPage() {
@@ -22,6 +23,9 @@ export default function ConfiguracionPage() {
     if (error) {
       setMsg({ type: 'error', text: error.message });
     } else {
+      await registrarLog('EDICION', 'SEGURIDAD', null, { 
+        detalle: 'Actualización de contraseña de usuario' 
+      });
       setMsg({ type: 'success', text: 'Contraseña actualizada correctamente.' });
       setPassword('');
       setConfirmPassword('');

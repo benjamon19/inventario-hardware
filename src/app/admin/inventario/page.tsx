@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { registrarLog } from '@/lib/logger';
 import NuevoEquipoModal from './NuevoEquipoModal';
 
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -417,35 +418,53 @@ export default function InventarioPage() {
     const prefijo = (extra?.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
     const { data, error } = await supabase.from('categorias').insert([{ nombre, prefijo }]).select().single();
     if (error) { console.error("Error al añadir categoría:", error.message); return; }
-    if (data) setCategorias(prev => [...prev, data]);
+    if (data) {
+      setCategorias(prev => [...prev, data]);
+      await registrarLog('CREAR', 'CATEGORIA', data.id, { nombre, prefijo });
+    }
   };
 
   const deleteCategoria = async (id: string) => {
     const { error } = await supabase.from('categorias').delete().eq('id', id);
-    if (!error) setCategorias(prev => prev.filter(c => c.id !== id));
+    if (!error) {
+      setCategorias(prev => prev.filter(c => c.id !== id));
+      await registrarLog('ELIMINAR', 'CATEGORIA', id, { id });
+    }
   };
 
   const addEstado = async (nombre: string, extra?: Record<string, string>) => {
     const color = extra?.color ?? 'slate';
     const { data, error } = await supabase.from('estados').insert([{ nombre: nombre.toUpperCase(), color }]).select().single();
     if (error) { console.error("Error al añadir estado:", error.message); return; }
-    if (data) setEstados(prev => [...prev, data]);
+    if (data) {
+      setEstados(prev => [...prev, data]);
+      await registrarLog('CREAR', 'ESTADO', data.id, { nombre: nombre.toUpperCase(), color });
+    }
   };
 
   const deleteEstado = async (id: string) => {
     const { error } = await supabase.from('estados').delete().eq('id', id);
-    if (!error) setEstados(prev => prev.filter(e => e.id !== id));
+    if (!error) {
+      setEstados(prev => prev.filter(e => e.id !== id));
+      await registrarLog('ELIMINAR', 'ESTADO', id, { id });
+    }
   };
 
   const addUbicacion = async (nombre: string) => {
     const { data, error } = await supabase.from('ubicacion').insert([{ nombre }]).select().single();
     if (error) { console.error("Error al añadir ubicación:", error.message); return; }
-    if (data) setUbicacion(prev => [...prev, data]);
+    if (data) {
+      setUbicacion(prev => [...prev, data]);
+      await registrarLog('CREAR', 'UBICACION', data.id, { nombre });
+    }
   };
 
   const deleteUbicacion = async (id: string) => {
     const { error } = await supabase.from('ubicacion').delete().eq('id', id);
-    if (!error) setUbicacion(prev => prev.filter(u => u.id !== id));
+    if (!error) {
+      setUbicacion(prev => prev.filter(u => u.id !== id));
+      await registrarLog('ELIMINAR', 'UBICACION', id, { id });
+    }
   };
 
   const openEdit = (item: HardwareItem) => {
@@ -469,6 +488,11 @@ export default function InventarioPage() {
     setEditLoading(true);
     const { error } = await supabase.from('hardware').update(editFormData).eq('id', editItem.id);
     if (!error) {
+      await registrarLog('EDITAR', 'HARDWARE', editItem.id, {
+        sku: editItem.sku,
+        modelo: editItem.modelo,
+        cambios: editFormData
+      });
       setRefreshTrigger(prev => prev + 1);
       setEditItem(null);
     } else {
@@ -481,6 +505,10 @@ export default function InventarioPage() {
     if (!deleteItem) return;
     setDeleteLoading(true);
     await supabase.from('hardware').delete().eq('id', deleteItem.id);
+    await registrarLog('ELIMINAR', 'HARDWARE', deleteItem.id, {
+      sku: deleteItem.sku,
+      modelo: deleteItem.modelo
+    });
     setRefreshTrigger(prev => prev + 1);
     setDeleteItem(null);
     setDetalleItem(null);

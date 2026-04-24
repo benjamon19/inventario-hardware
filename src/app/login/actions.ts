@@ -53,5 +53,17 @@ export async function procesarLogin(email: string, pass: string, recordar: boole
     return { error: 'Tu cuenta ha sido desactivada. Por favor, contacta al administrador.' };
   }
 
+  // Registrar login
+  await supabase.from('auditoria_logs').insert([{
+    usuario_id: data.user.id,
+    accion: 'ACCESO',
+    entidad: 'SISTEMA',
+    entidad_id: null,
+    detalles: {
+      email: email,
+      detalle: 'Inicio de sesión exitoso'
+    }
+  }]);
+
   return { success: true, rol: perfil?.rol };
 }
