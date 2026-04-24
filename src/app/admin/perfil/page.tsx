@@ -174,7 +174,7 @@ export default function MiPerfilPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4" style={{ color: 'var(--text-muted)' }}>
-        <BouncyLoader color="currentColor" />
+        <BouncyLoader />
         <p className="text-sm font-medium">Cargando tu información...</p>
       </div>
     );

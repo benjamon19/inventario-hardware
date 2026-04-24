@@ -97,6 +97,22 @@ export function useAvatar() {
         setBannerGradient(isFemale ? AVATAR_GRADIENTS[11].class : AVATAR_GRADIENTS[2].class);
       }
     }
+
+    // Sync from DB in background to keep devices updated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      try {
+        const { data } = await supabase.from('perfiles').select('avatar_initials, avatar_gradient, banner_gradient, banner_pattern').eq('id', user.id).single();
+        if (data && (data.avatar_initials || data.avatar_gradient)) {
+          if (data.avatar_initials) { setInitials(data.avatar_initials); localStorage.setItem('ti_bodega_avatar_initials', data.avatar_initials); }
+          if (data.avatar_gradient) { setAvatarGradient(data.avatar_gradient); localStorage.setItem('ti_bodega_avatar_gradient', data.avatar_gradient); }
+          if (data.banner_gradient) { setBannerGradient(data.banner_gradient); localStorage.setItem('ti_bodega_banner_gradient', data.banner_gradient); }
+          if (data.banner_pattern) { setBannerPattern(data.banner_pattern); localStorage.setItem('ti_bodega_banner_pattern', data.banner_pattern); }
+        }
+      } catch (e) {
+        // Ignorar si las columnas aún no existen en BD
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -106,7 +122,7 @@ export function useAvatar() {
     return () => window.removeEventListener('avatar-update', handler);
   }, [loadAvatar]);
 
-  const updateAvatar = (
+  const updateAvatar = async (
     newInitials: string,
     newAvatarGradient: string,
     newBannerGradient: string,
@@ -122,6 +138,21 @@ export function useAvatar() {
     setBannerGradient(newBannerGradient);
     setBannerPattern(newBannerPattern);
     window.dispatchEvent(new Event('avatar-update'));
+
+    // Guardar en BD
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      try {
+        await supabase.from('perfiles').update({
+          avatar_initials: fin,
+          avatar_gradient: newAvatarGradient,
+          banner_gradient: newBannerGradient,
+          banner_pattern: newBannerPattern
+        }).eq('id', user.id);
+      } catch (e) {
+        // Ignorar si las columnas aún no existen
+      }
+    }
   };
 
   return { initials, avatarGradient, bannerGradient, bannerPattern, updateAvatar };

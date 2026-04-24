@@ -392,7 +392,7 @@ export default function AdminScannerPage() {
           <div className="space-y-2">
             {loadingActivity ? (
               <div className="py-8 flex flex-col items-center justify-center gap-3">
-                <BouncyLoader color="#cbd5e1" size={30} />
+                <BouncyLoader size={30} />
               </div>
             ) : recentActivity.map((mov) => (
               <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-blue-100 transition-colors">

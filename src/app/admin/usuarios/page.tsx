@@ -16,7 +16,7 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import BouncyLoader from '@/components/TreadmillLoader';
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
-import { useAvatar } from '@/components/useAvatar';
+import { useAvatar, BANNER_PATTERNS, patternCSS } from '@/components/useAvatar';
 
 const Sk = ({ className }: { className: string }) => (
   <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
@@ -24,14 +24,14 @@ const Sk = ({ className }: { className: string }) => (
 
 const SkeletonUserCard = () => (
   <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm gap-3">
-    <div className="flex items-start gap-3">
-      <Sk className="h-10 w-10 rounded-xl shrink-0" />
+    <div className="flex flex-col gap-3">
+      <Sk className="h-12 w-12 rounded-[1.1rem] shrink-0" />
       <div className="flex flex-col gap-2 flex-1">
-        <Sk className="h-3.5 w-36" />
-        <Sk className="h-3 w-24" />
+        <Sk className="h-4 w-40" />
+        <Sk className="h-3.5 w-24" />
       </div>
     </div>
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 mt-1">
       <Sk className="h-5 w-16 rounded-full" />
       <Sk className="h-5 w-14 rounded-full" />
     </div>
@@ -67,7 +67,12 @@ export default function UsuariosPage() {
   const onlineUsers = usePresence();
 
   // Avatar del usuario actual (sincronizado con perfil)
-  const { initials: myInitials, avatarGradient: myGradient } = useAvatar();
+  const {
+    initials: myInitials,
+    avatarGradient: myAvatarGradient,
+    bannerGradient: myBannerGradient,
+    bannerPattern: myBannerPattern
+  } = useAvatar();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState<'TODOS' | 'SUPER_ADMIN' | 'ADMIN' | 'OPERADOR' | 'PENDIENTE'>('TODOS');
@@ -402,49 +407,66 @@ export default function UsuariosPage() {
             return (
               <div
                 key={perfil.id}
-                className={`flex flex-col rounded-2xl border bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group ${isUpdating ? 'opacity-60 pointer-events-none' :
-                    inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
-                      isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
+                className={`flex flex-col rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden ${isUpdating ? 'opacity-60 pointer-events-none' :
+                  inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
+                    isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
                   }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-base shadow-inner border ${
-                        inactivo
-                          ? 'bg-slate-200 text-slate-500 border-slate-300'
+                {/* Banner */}
+                {(!inactivo) && (
+                  <div className={`relative h-14 bg-gradient-to-br ${perfil.id === currentUserId ? myBannerGradient : (perfil.banner_gradient || 'from-slate-100 to-slate-200')}`}>
+                    {(perfil.id === currentUserId ? myBannerPattern : (perfil.banner_pattern || 'none')) !== 'none' && (
+                      <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-overlay" style={{ backgroundImage: patternCSS(BANNER_PATTERNS.find(p => p.id === (perfil.id === currentUserId ? myBannerPattern : perfil.banner_pattern))?.svg || ''), backgroundRepeat: 'repeat' }} />
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-col p-3 sm:p-4 relative">
+
+                  {/* Contenedor del Avatar (se monta sobre el banner) */}
+                  <div className={`${!inactivo ? '-mt-8 relative z-10 mb-2' : 'mb-2'}`}>
+                    <div className="relative inline-block shrink-0">
+                      <div
+                        className={`flex ${!inactivo ? 'h-12 w-12 border-2 border-white shadow-md rounded-[1.1rem]' : 'h-10 w-10 border border-slate-300 rounded-xl bg-slate-200 text-slate-500'} items-center justify-center font-black text-xl bg-gradient-to-br ${inactivo
+                            ? ''
+                            : perfil.id === currentUserId
+                              ? `${myAvatarGradient} text-white`
+                              : perfil.avatar_gradient
+                                ? `${perfil.avatar_gradient} text-white`
+                                : perfil.rol === 'SUPER_ADMIN' ? 'from-purple-500 to-purple-700 text-white'
+                                  : perfil.rol === 'ADMIN' ? 'from-blue-500 to-blue-700 text-white'
+                                    : 'from-slate-300 to-slate-400 text-slate-700'
+                          }`}
+                      >
+                        {isUpdating
+                          ? <Loader2 className="h-4 w-4 animate-spin text-current" />
                           : perfil.id === currentUserId
-                          ? `bg-gradient-to-br ${myGradient} text-white border-transparent`
-                          : perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-600 text-white border-purple-700'
-                          : perfil.rol === 'ADMIN' ? 'bg-blue-600 text-white border-blue-700'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}
-                    >
-                      {isUpdating
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : perfil.id === currentUserId
-                        ? myInitials
-                        : perfil.email?.substring(0, 1).toUpperCase()}
-                    </div>
-                    <span className={`absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${inactivo ? 'bg-red-500' :
+                            ? myInitials
+                            : perfil.avatar_initials
+                              ? perfil.avatar_initials
+                              : perfil.email?.substring(0, 2).toUpperCase()}
+                      </div>
+                      <span className={`absolute ${!inactivo ? 'bottom-0 -right-1' : '-bottom-1 -right-1'} flex h-3 w-3 items-center justify-center rounded-full border-2 border-white ${inactivo ? 'bg-red-500' :
                         isOnline ? 'bg-emerald-500' : 'bg-slate-300'
-                      }`}>
-                      {isOnline && !inactivo && (
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                      )}
-                    </span>
+                        }`}>
+                        {isOnline && !inactivo && (
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                        )}
+                      </span>
+                    </div>
                   </div>
 
+                  {/* Textos y Badges (quedan abajo del avatar, completamente fuera del banner) */}
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-bold text-sm truncate ${inactivo ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+                    <h3 className={`font-bold text-[15px] truncate ${inactivo ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                       {perfil.email}
                     </h3>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${inactivo ? 'bg-slate-200 text-slate-600 border-slate-300' :
-                          perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                            perfil.rol === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              perfil.rol === 'OPERADOR' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                'bg-amber-50 text-amber-700 border-amber-200'
+                        perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                          perfil.rol === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            perfil.rol === 'OPERADOR' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
                         {perfil.rol.replace('_', ' ')}
                       </span>
@@ -459,85 +481,86 @@ export default function UsuariosPage() {
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded-xl border border-slate-100">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Package className="h-3 w-3" /> Movi.
-                    </span>
-                    <span className="font-bold text-slate-800">{perfil.totalMovimientos}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-2">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Activity className="h-3 w-3" /> Actividad
-                    </span>
-                    <span className="font-bold text-slate-800 truncate">
-                      {perfil.ultimaActividad
-                        ? format(new Date(perfil.ultimaActividad), "d MMM, HH:mm", { locale: es })
-                        : 'Nunca'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center justify-between border-t border-slate-50 pt-3 gap-2">
-                  <p className="text-[9px] font-mono font-bold text-slate-300">
-                    ID: {perfil.id.substring(0, 8)}
-                  </p>
-
-                  <div className="flex gap-1.5 ml-auto">
-                    {perfil.id === currentUserId ? (
-                      <span className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
-                        Tu cuenta
+                  {/* Resto del contenido (estadísticas, botones, etc) */}
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded-xl border border-slate-100">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Package className="h-3 w-3" /> Movi.
                       </span>
-                    ) : perfil.rol === 'SUPER_ADMIN' ? null : (
-                      <>
-                        {currentUserRole === 'SUPER_ADMIN' && (
-                          <>
-                            {inactivo ? (
-                              <button
-                                disabled={isUpdating}
-                                onClick={() => cambiarEstado(perfil, 'ACTIVO')}
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-200 disabled:opacity-50"
-                              >
-                                <Power className="h-3 w-3" /> Activar
-                              </button>
-                            ) : (
-                              <button
-                                disabled={isUpdating}
-                                onClick={() => cambiarEstado(perfil, 'INACTIVO')}
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
-                              >
-                                <Ban className="h-3 w-3" /> Desactivar
-                              </button>
-                            )}
-                          </>
-                        )}
+                      <span className="font-bold text-slate-800">{perfil.totalMovimientos}</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-2">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Activity className="h-3 w-3" /> Actividad
+                      </span>
+                      <span className="font-bold text-slate-800 truncate">
+                        {perfil.ultimaActividad
+                          ? format(new Date(perfil.ultimaActividad), "d MMM, HH:mm", { locale: es })
+                          : 'Nunca'}
+                      </span>
+                    </div>
+                  </div>
 
-                        {(currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'ADMIN') && !inactivo && (
-                          <>
-                            {perfil.rol !== 'OPERADOR' && (
-                              <button
-                                disabled={isUpdating}
-                                onClick={() => cambiarRol(perfil, 'OPERADOR')}
-                                className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
-                              >
-                                A Operador
-                              </button>
-                            )}
-                            {perfil.rol !== 'ADMIN' && (
-                              <button
-                                disabled={isUpdating}
-                                onClick={() => cambiarRol(perfil, 'ADMIN')}
-                                className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
-                              >
-                                A Admin
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
+                  <div className="mt-3 flex flex-wrap items-center justify-between border-t border-slate-50 pt-3 gap-2">
+                    <p className="text-[9px] font-mono font-bold text-slate-300">
+                      ID: {perfil.id.substring(0, 8)}
+                    </p>
+
+                    <div className="flex gap-1.5 ml-auto">
+                      {perfil.id === currentUserId ? (
+                        <span className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-100">
+                          Tu cuenta
+                        </span>
+                      ) : perfil.rol === 'SUPER_ADMIN' ? null : (
+                        <>
+                          {currentUserRole === 'SUPER_ADMIN' && (
+                            <>
+                              {inactivo ? (
+                                <button
+                                  disabled={isUpdating}
+                                  onClick={() => cambiarEstado(perfil, 'ACTIVO')}
+                                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-200 disabled:opacity-50"
+                                >
+                                  <Power className="h-3 w-3" /> Activar
+                                </button>
+                              ) : (
+                                <button
+                                  disabled={isUpdating}
+                                  onClick={() => cambiarEstado(perfil, 'INACTIVO')}
+                                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer border border-red-200 disabled:opacity-50"
+                                >
+                                  <Ban className="h-3 w-3" /> Desactivar
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                          {(currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'ADMIN') && !inactivo && (
+                            <>
+                              {perfil.rol !== 'OPERADOR' && (
+                                <button
+                                  disabled={isUpdating}
+                                  onClick={() => cambiarRol(perfil, 'OPERADOR')}
+                                  className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-200 disabled:opacity-50"
+                                >
+                                  A Operador
+                                </button>
+                              )}
+                              {perfil.rol !== 'ADMIN' && (
+                                <button
+                                  disabled={isUpdating}
+                                  onClick={() => cambiarRol(perfil, 'ADMIN')}
+                                  className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
+                                >
+                                  A Admin
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
