@@ -347,7 +347,7 @@ export default function AdminScannerPage() {
               maxLength={50}
               spellCheck="false"
               autoComplete="off"
-              placeholder={scanMode === 'SEARCH' ? "Ingresa SKU para buscar..." : "Pistola o manual..."}
+              placeholder={scanMode === 'SEARCH' ? "Ingresa SKU para buscar..." : "Búsqueda manual..."}
               value={manualSku}
               onChange={(e) => setManualSku(e.target.value.trim().toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}

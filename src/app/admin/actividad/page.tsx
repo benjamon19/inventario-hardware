@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Search, ArrowUpRight, ArrowDownLeft,
   User, Calendar, Package, Clock, ChevronLeft, ChevronRight,
-  PlusCircle, Edit3, Trash2, Tag, FileText
+  PlusCircle, Edit3, Trash2, Tag, FileText, ChevronDown
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
@@ -247,17 +247,19 @@ export default function ActividadPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:ml-auto w-full sm:w-auto">
+          <div className="relative w-full sm:w-64 sm:ml-auto">
+            <User className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <select
               value={filterUsuario}
               onChange={e => setFilterUsuario(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
+              className="w-full appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-10 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm"
             >
               <option value="">Todos los usuarios</option>
               {usuarios.map(u => (
                 <option key={u.id} value={u.id}>{u.email}</option>
               ))}
             </select>
+            <ChevronDown className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
         </div>
 
