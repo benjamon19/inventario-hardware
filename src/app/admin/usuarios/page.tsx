@@ -19,7 +19,7 @@ import { registrarLog } from '@/lib/logger';
 import { useAvatar, BANNER_PATTERNS, patternCSS } from '@/components/useAvatar';
 
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-100/80 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
 );
 
 const SkeletonUserCard = () => (
@@ -391,7 +391,7 @@ export default function UsuariosPage() {
           </>
         ) : usuarios.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-            <Users className="mx-auto h-12 w-12 text-slate-300 mb-3" />
+            <Users className="mx-auto h-12 w-12 text-slate-400 mb-3" />
             <p className="text-slate-500 font-medium">No se encontraron usuarios.</p>
           </div>
         ) : (

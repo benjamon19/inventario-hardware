@@ -353,7 +353,7 @@ export default function AdminScannerPage() {
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
               className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
             />
-            {loading && <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-blue-500" />}
+            {loading && <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-blue-600" />}
           </div>
         </div>
       </div>
@@ -399,7 +399,7 @@ export default function AdminScannerPage() {
             ))}
 
             {!loadingActivity && recentActivity.length === 0 && (
-              <div className="text-center py-4 text-xs text-slate-400 italic">No hay movimientos registrados</div>
+              <div className="text-center py-4 text-xs text-slate-500 font-semibold italic">No hay movimientos registrados</div>
             )}
           </div>
 

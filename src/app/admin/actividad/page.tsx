@@ -13,7 +13,7 @@ import { es } from 'date-fns/locale';
 import { registrarLog } from '@/lib/logger';
 
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-100/80 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
 );
 
 const SkeletonLogRow = () => (
@@ -285,7 +285,7 @@ export default function ActividadPage() {
           </div>
         ) : movimientos.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-            <Clock className="mx-auto h-12 w-12 text-slate-300 mb-3" />
+            <Clock className="mx-auto h-12 w-12 text-slate-400 mb-3" />
             <p className="text-slate-500 font-medium">Sin actividad registrada.</p>
           </div>
         ) : (

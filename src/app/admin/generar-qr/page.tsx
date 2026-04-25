@@ -15,7 +15,7 @@ import { registrarLog } from '@/lib/logger';
 import BouncyLoader from '@/components/TreadmillLoader';
 
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-300 ${className}`} />
 );
 
 const SkeletonQRCard = () => (
@@ -578,9 +578,9 @@ export default function GenerarQRPage() {
               {Array(6).fill(0).map((_, i) => <SkeletonQRCard key={i} />)}
             </div>
           ) : disponibles.length === 0 ? (
-            <div className="py-16 text-center text-slate-400">
+            <div className="py-16 text-center text-slate-500">
               <Package className="h-8 w-8 mx-auto mb-3 opacity-40" />
-              <p className="text-sm font-medium">No se encontraron equipos</p>
+              <p className="text-sm font-bold">No se encontraron equipos</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

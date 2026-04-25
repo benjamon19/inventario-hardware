@@ -23,7 +23,7 @@ const COLORS_CATEGORIAS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316'
 
 // --- Componentes Skeleton Internos ---
 const Skeleton = ({ className }: { className: string }) => (
-  <div className={`animate-pulse bg-slate-200 rounded ${className}`} />
+  <div className={`animate-pulse bg-slate-300 rounded ${className}`} />
 );
 
 const KpiSkeleton = () => (

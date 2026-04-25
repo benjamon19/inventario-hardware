@@ -51,7 +51,7 @@ const colorDotClasses: Record<string, string> = {
 
 // ─── Skeleton helpers ───────────────────────────────────────
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-100/80 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
 );
 
 const SkeletonTableRow = () => (
@@ -795,7 +795,7 @@ export default function InventarioPage() {
           {loading ? (
             Array(6).fill(0).map((_, i) => <SkeletonMobileCard key={i} />)
           ) : items.length === 0 ? (
-            <div className="py-20 text-center text-slate-400">No se encontraron equipos</div>
+            <div className="py-20 text-center text-slate-500 font-medium">No se encontraron equipos</div>
           ) : (
             items.map((item) => (
               <div
@@ -866,7 +866,7 @@ export default function InventarioPage() {
                 Array(6).fill(0).map((_, i) => <SkeletonTableRow key={i} />)
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center text-slate-400">No se encontraron equipos</td>
+                  <td colSpan={6} className="py-20 text-center text-slate-500 font-medium">No se encontraron equipos</td>
                 </tr>
               ) : (
                 items.map((item) => (
