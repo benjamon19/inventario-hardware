@@ -11,7 +11,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import BouncyLoader from '@/components/TreadmillLoader';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { useAvatar, AVATAR_GRADIENTS, BANNER_PATTERNS, patternCSS } from '@/components/useAvatar';
 
 const ROL_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -174,7 +175,7 @@ export default function MiPerfilPage() {
   if (loading) {
     return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-slate-500">
-      <BouncyLoader />
+      <TailChase size="40" speed="1.75" color="#64748b" />
       <p className="text-sm font-semibold tracking-wide">Cargando tu información...</p>
     </div>
     );

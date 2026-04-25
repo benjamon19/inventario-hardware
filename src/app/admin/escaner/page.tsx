@@ -3,16 +3,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ScanLine, Search, X, Loader2, ArrowUpRight, ArrowDownLeft,
+  ScanLine, Search, X, ArrowUpRight, ArrowDownLeft,
   AlertCircle, CheckCircle2, History, ChevronLeft, ChevronRight,
   ArrowLeftRight, MapPin, Layers
 } from 'lucide-react';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import BouncyLoader from '@/components/TreadmillLoader';
+
 
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
@@ -195,14 +197,15 @@ export default function AdminScannerPage() {
   const renderPaginacion = (posicion: 'top' | 'bottom') => {
     if (loadingActivity || totalItems <= itemsPerPage) return null;
     const isTop = posicion === 'top';
-
     return (
-      <div className={`border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center gap-4 bg-white rounded-2xl shadow-sm my-4 ${isTop ? 'justify-between' : 'justify-center'}`}>
-        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
-        </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+      <div className={`flex items-center gap-4 py-2 px-1 ${isTop ? 'justify-between' : 'justify-center'}`}>
+        {isTop && (
+          <p className="text-xs text-slate-400 font-medium">
+            <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span>
+          </p>
+        )}
+        <div className="flex items-center gap-0.5">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -214,14 +217,14 @@ export default function AdminScannerPage() {
             }, [])
             .map((p, idx) =>
               p === '...' ? (
-                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                <span key={`e-${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -353,7 +356,7 @@ export default function AdminScannerPage() {
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
               className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
             />
-            {loading && <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-blue-600" />}
+            {loading && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center"><TailChase size="14" speed="1.75" color="#2563eb" /></div>}
           </div>
         </div>
       </div>
@@ -381,7 +384,7 @@ export default function AdminScannerPage() {
           <div className="space-y-2">
             {loadingActivity ? (
               <div className="py-8 flex flex-col items-center justify-center gap-3">
-                <BouncyLoader size={30} />
+                <TailChase size="30" speed="1.75" color="#0ea5e9" />
               </div>
             ) : recentActivity.map((mov) => (
               <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-blue-100 transition-colors">

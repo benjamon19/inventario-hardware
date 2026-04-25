@@ -6,13 +6,14 @@ import { Dialog, Transition } from '@headlessui/react';
 import {
   Plus, Search, MoreVertical,
   Laptop, Monitor, Cpu, HardDrive, Tablet, Package,
-  X, Loader2, Keyboard, Check, Trash2, Edit2, AlertTriangle,
+  X, Keyboard, Check, Trash2, Edit2, AlertTriangle,
   ArrowLeft, Tag, Hash, Layers, FileText, ChevronLeft, ChevronRight,
   MapPin, Pencil
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
-import BouncyLoader from '@/components/TreadmillLoader';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { registrarLog } from '@/lib/logger';
 import NuevoEquipoModal from './NuevoEquipoModal';
 
@@ -50,8 +51,8 @@ const colorDotClasses: Record<string, string> = {
 };
 
 // ─── Skeleton helpers ───────────────────────────────────────
-const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+const Sk = ({ className, style }: { className: string; style?: React.CSSProperties }) => (
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} style={style} />
 );
 
 const SkeletonTableRow = () => (
@@ -77,14 +78,17 @@ const SkeletonMobileCard = () => (
         <Sk className="h-9 w-9 rounded-xl shrink-0" />
         <div className="flex flex-col gap-2 flex-1">
           <Sk className="h-4 w-40" />
-          <Sk className="h-3 w-20" />
+          <div className="flex gap-2">
+            <Sk className="h-3 w-20" />
+            <Sk className="h-3 w-16" />
+          </div>
         </div>
       </div>
       <Sk className="h-7 w-7 rounded-lg shrink-0" />
     </div>
     <div className="flex items-center justify-between pl-12">
-      <Sk className="h-4 w-16 rounded-full" />
-      <Sk className="h-3 w-20" />
+      <Sk className="h-5 w-20 rounded-full" />
+      <Sk className="h-3 w-16" />
     </div>
   </div>
 );
@@ -168,7 +172,7 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
             disabled={saving || !newNombre.trim()}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
           >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
+            {saving ? <div className="flex h-3.5 w-3.5 items-center justify-center"><TailChase size="14" speed="1.75" color="white" /></div> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
           </button>
           <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer">
             Listo
@@ -574,12 +578,12 @@ export default function InventarioPage() {
   const renderPaginacion = () => {
     if (loading || totalItems <= itemsPerPage) return null;
     return (
-      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm my-4">
-        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
+      <div className="flex items-center justify-between py-2 px-1">
+        <p className="text-xs text-slate-400 font-medium">
+          <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span>
         </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+        <div className="flex items-center gap-0.5">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -591,14 +595,14 @@ export default function InventarioPage() {
             }, [])
             .map((p, idx) =>
               p === '...' ? (
-                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                <span key={`e-${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -663,7 +667,7 @@ export default function InventarioPage() {
                     </div>
                     <div className="mt-8 flex flex-col gap-3">
                       <button type="button" onClick={handleDelete} disabled={deleteLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50">
-                        {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
+                        {deleteLoading ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
                       </button>
                       <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
                     </div>
@@ -707,27 +711,24 @@ export default function InventarioPage() {
           />
         </div>
 
-        {!loading && sortedCategorias.length > 0 && (
+        {loading ? (
+          <div className="flex items-center gap-2">
+            {[...Array(6)].map((_, i) => <Sk key={i} className="h-8 flex-1 rounded-xl" />)}
+          </div>
+        ) : sortedCategorias.length > 0 ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setFilterCategoria('')}
-              className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
-            >
-              Todas
-            </button>
+            <button onClick={() => setFilterCategoria('')} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
             {sortedCategorias.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)}
-                className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'}`}
-              >
-                {cat.nombre}
-              </button>
+              <button key={cat.id} onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'}`}>{cat.nombre}</button>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {!loading && sortedEstados.length > 0 && (
+        {loading ? (
+          <div className="flex items-center gap-2">
+            {[...Array(5)].map((_, i) => <Sk key={i} className="h-7 flex-1 rounded-xl" />)}
+          </div>
+        ) : sortedEstados.length > 0 ? (
           <div className="flex items-center gap-2 flex-wrap px-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
             {sortedEstados.map(est => {
@@ -735,56 +736,35 @@ export default function InventarioPage() {
               const badge = colorClasses[est.color] ?? colorClasses.slate;
               const active = filterEstado === est.nombre;
               return (
-                <button
-                  key={est.id}
-                  onClick={() => setFilterEstado(active ? '' : est.nombre)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`}`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                  {est.nombre}
+                <button key={est.id} onClick={() => setFilterEstado(active ? '' : est.nombre)} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />{est.nombre}
                 </button>
               );
             })}
-            {filterEstado && (
-              <button onClick={() => setFilterEstado('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">
-                Limpiar
-              </button>
-            )}
+            {filterEstado && <button onClick={() => setFilterEstado('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">Limpiar</button>}
           </div>
-        )}
+        ) : null}
 
-        {!loading && sortedUbicaciones.length > 0 && (
+        {loading ? (
+          <div className="flex items-center gap-2">
+            {[...Array(5)].map((_, i) => <Sk key={i} className="h-7 flex-1 rounded-xl" />)}
+          </div>
+        ) : sortedUbicaciones.length > 0 ? (
           <div className="flex items-center gap-3 px-1 w-full">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0">
-              <MapPin className="h-3 w-3" /> Estante:
-            </span>
-
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> Estante:</span>
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mask-fade-right">
               {sortedUbicaciones.map(ubic => {
                 const active = filterUbicacion === ubic.nombre;
                 return (
-                  <button
-                    key={ubic.id}
-                    onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}
-                  >
-                    <MapPin className="h-3 w-3" />
-                    {ubic.nombre}
+                  <button key={ubic.id} onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}>
+                    <MapPin className="h-3 w-3" />{ubic.nombre}
                   </button>
                 );
               })}
             </div>
-
-            {filterUbicacion && (
-              <button
-                onClick={() => setFilterUbicacion('')}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 ml-auto pl-2"
-              >
-                Limpiar
-              </button>
-            )}
+            {filterUbicacion && <button onClick={() => setFilterUbicacion('')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 ml-auto pl-2">Limpiar</button>}
           </div>
-        )}
+        ) : null}
       </div>
 
       {renderPaginacion()}
@@ -1057,7 +1037,7 @@ export default function InventarioPage() {
                     </div>
                     <div className="mt-8 flex flex-col gap-3 pt-2">
                       <button type="submit" disabled={editLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50">
-                        {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4" /> Guardar cambios</>}
+                        {editLoading ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> : <><Check className="h-4 w-4" /> Guardar cambios</>}
                       </button>
                       <button type="button" onClick={() => setEditItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
                     </div>
@@ -1091,7 +1071,7 @@ export default function InventarioPage() {
                   </div>
                   <div className="mt-8 flex flex-col gap-3">
                     <button type="button" onClick={handleDelete} disabled={deleteLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50">
-                      {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
+                      {deleteLoading ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
                     </button>
                     <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
                   </div>

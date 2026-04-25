@@ -193,12 +193,12 @@ export default function ActividadPage() {
   const renderPaginacion = () => {
     if (loading || totalItems <= itemsPerPage) return null;
     return (
-      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm">
-        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
+      <div className="flex items-center justify-between py-2 px-1">
+        <p className="text-xs text-slate-400 font-medium">
+          <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span>
         </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+        <div className="flex items-center gap-0.5">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -210,14 +210,14 @@ export default function ActividadPage() {
             }, [])
             .map((p, idx) =>
               p === '...' ? (
-                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                <span key={`e-${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>

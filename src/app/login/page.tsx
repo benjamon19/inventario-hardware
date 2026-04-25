@@ -2,7 +2,9 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, LogIn, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { procesarLogin } from './actions';
 import InteractiveRobot, { RobotHandle } from './robot/InteractiveRobot';
 
@@ -185,7 +187,7 @@ export default function LoginPage() {
                 className="group mt-2 md:mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 md:py-4 text-xs md:text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-70 shadow-lg shadow-blue-100 cursor-pointer max-[390px]:py-2.5 hover:bg-blue-700"
               >
                 {isLoading
-                  ? <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                  ? <div className="flex items-center justify-center h-4 w-4 md:h-5 md:w-5"><TailChase size="16" speed="1.75" color="white" /></div>
                   : <><LogIn className="h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" /> Iniciar Sesión</>
                 }
               </button>

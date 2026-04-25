@@ -3,17 +3,19 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import {
   Users, Shield, Search,
-  CheckCircle2, Clock, ShieldCheck, Loader2, Activity, Package,
+  CheckCircle2, Clock, ShieldCheck, Activity, Package,
   UserPlus, X, Mail, Lock, AlertCircle, Plus,
   ChevronLeft, ChevronRight, Ban, Power, Wifi
 } from 'lucide-react';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePresence } from '@/hooks/usePresence';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
-import BouncyLoader from '@/components/TreadmillLoader';
+
 import { crearUsuarioDesdeAdmin } from '@/app/actions/usuarios';
 import { registrarLog } from '@/lib/logger';
 import { useAvatar, BANNER_PATTERNS, patternCSS } from '@/components/useAvatar';
@@ -280,12 +282,12 @@ export default function UsuariosPage() {
   const renderPaginacion = () => {
     if (loading || totalItems <= itemsPerPage) return null;
     return (
-      <div className="border border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl shadow-sm mt-4">
-        <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
-          Mostrando <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span> registros
+      <div className="flex items-center justify-between py-2 px-1">
+        <p className="text-xs text-slate-400 font-medium">
+          <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span>
         </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+        <div className="flex items-center gap-0.5">
+          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -297,14 +299,14 @@ export default function UsuariosPage() {
             }, [])
             .map((p, idx) =>
               p === '...' ? (
-                <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                <span key={`e-${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
               ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <button key={p} onClick={() => handlePageChange(p as number)} className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
                   {p}
                 </button>
               )
             )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -435,7 +437,7 @@ export default function UsuariosPage() {
                           }`}
                       >
                         {isUpdating
-                          ? <Loader2 className="h-4 w-4 animate-spin text-current" />
+                          ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="currentColor" /></div>
                           : perfil.id === currentUserId
                             ? myInitials
                             : perfil.avatar_initials
@@ -662,7 +664,7 @@ export default function UsuariosPage() {
                         className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isCreating ? (
-                          <><Loader2 className="h-5 w-5 animate-spin" /><span>Creando...</span></>
+                          <><div className="flex h-5 w-5 items-center justify-center"><TailChase size="20" speed="1.75" color="white" /></div><span>Creando...</span></>
                         ) : (
                           <><Plus className="h-5 w-5" /><span>Registrar Usuario</span></>
                         )}

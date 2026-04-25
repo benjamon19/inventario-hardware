@@ -1,6 +1,8 @@
 'use client';
 
-import { Shield, Lock, Loader2, CheckCircle2, AlertCircle, Info, KeyRound } from 'lucide-react';
+import { Shield, Lock, CheckCircle2, AlertCircle, Info, KeyRound } from 'lucide-react';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { supabase } from '@/lib/supabase';
 import { registrarLog } from '@/lib/logger';
 import { useState } from 'react';
@@ -118,7 +120,7 @@ export default function ConfiguracionPage() {
                 className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 cursor-pointer"
               >
                 {isUpdating ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Guardando cambios...</>
+                  <><div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> Guardando cambios...</>
                 ) : (
                   'Actualizar Contraseña'
                 )}

@@ -3,10 +3,12 @@
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ScanLine, Search, History, Package, X, Loader2, 
+  ScanLine, Search, History, Package, X, 
   ArrowUpRight, ArrowDownLeft, AlertCircle, CheckCircle2, LogOut,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { Dialog, Transition } from '@headlessui/react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
@@ -265,7 +267,7 @@ export default function OperatorPage() {
                 onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
               />
-              {loading && <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-blue-600" />}
+              {loading && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center"><TailChase size="14" speed="1.75" color="#2563eb" /></div>}
             </div>
           </div>
         </div>

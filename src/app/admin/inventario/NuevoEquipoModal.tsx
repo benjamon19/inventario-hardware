@@ -2,7 +2,9 @@
 
 import { useState, useEffect, Fragment, useMemo } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
+import { X, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
+import { TailChase } from 'ldrs/react';
+import 'ldrs/react/TailChase.css';
 import { supabase } from '@/lib/supabase';
 
 // --- Tipos ---
@@ -116,7 +118,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
             disabled={saving || !newNombre.trim()}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
           >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
+            {saving ? <div className="flex h-3.5 w-3.5 items-center justify-center"><TailChase size="14" speed="1.75" color="white" /></div> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
           </button>
           <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer">
             Listo
@@ -493,7 +495,7 @@ export default function NuevoEquipoModal({
                             disabled={loading}
                             className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                           >
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Plus className="h-5 w-5" /> Guardar Equipo{cantidad > 1 ? 's' : ''}</>}
+                            {loading ? <div className="flex h-5 w-5 items-center justify-center"><TailChase size="20" speed="1.75" color="white" /></div> : <><Plus className="h-5 w-5" /> Guardar Equipo{cantidad > 1 ? 's' : ''}</>}
                           </button>
                         </div>
                       </form>
