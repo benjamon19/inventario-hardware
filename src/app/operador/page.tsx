@@ -267,7 +267,7 @@ export default function OperatorPage() {
                 onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
               />
-              {loading && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center"><TailChase size="14" speed="1.75" color="#2563eb" /></div>}
+              {loading && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center"><TailChase size="14" speed="1.75" color="#cbd5e1" /></div>}
             </div>
           </div>
         </div>

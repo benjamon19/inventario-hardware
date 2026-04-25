@@ -15,9 +15,10 @@ import { registrarLog } from '@/lib/logger';
 import { TailChase } from 'ldrs/react';
 import 'ldrs/react/TailChase.css';
 
-const Sk = ({ className, style }: { className: string; style?: React.CSSProperties }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} style={style} />
-);
+import { Sk, SkeletonFilterRow } from '@/components/ui/Skeleton';
+import { Pagination } from '@/components/ui/Pagination';
+import { colorClasses, colorDotClasses } from '@/lib/colorMaps';
+import { getIconoCategoria } from '@/lib/categoryIcon';
 
 const SkeletonQRCard = () => (
   <div className="rounded-2xl border border-slate-200 bg-white p-4 flex items-center gap-4">
@@ -38,34 +39,7 @@ type Estado    = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Ubicacion = { id: string; nombre: string };
 
-const colorClasses: Record<string, string> = {
-  emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  blue:    'bg-blue-50 text-blue-700 border-blue-100',
-  amber:   'bg-amber-50 text-amber-700 border-amber-100',
-  red:     'bg-red-50 text-red-700 border-red-100',
-  violet:  'bg-violet-50 text-violet-700 border-violet-100',
-  slate:   'bg-slate-50 text-slate-700 border-slate-100',
-};
 
-const colorDotClasses: Record<string, string> = {
-  emerald: 'bg-emerald-500',
-  blue:    'bg-blue-500',
-  amber:   'bg-amber-500',
-  red:     'bg-red-500',
-  violet:  'bg-violet-500',
-  slate:   'bg-slate-400',
-};
-
-const getIconoCategoria = (nombre: string) => {
-  const n = (nombre ?? '').toLowerCase();
-  if (n.includes('laptop') || n.includes('notebook'))                                      return <Laptop    className="h-5 w-5" />;
-  if (n.includes('monitor') || n.includes('pantalla'))                                     return <Monitor   className="h-5 w-5" />;
-  if (n.includes('tablet'))                                                                return <Tablet    className="h-5 w-5" />;
-  if (n.includes('periferico') || n.includes('periférico') || n.includes('teclado') || n.includes('mouse')) return <Keyboard  className="h-5 w-5" />;
-  if (n.includes('componente') || n.includes('cpu') || n.includes('ram'))                                   return <Cpu       className="h-5 w-5" />;
-  if (n.includes('pc') || n.includes('escritorio'))                                        return <HardDrive className="h-5 w-5" />;
-  return <Package className="h-5 w-5" />;
-};
 
 // --- INICIALIZADOR DE PAGINACIÓN ---
 const getInitialItemsPerPage = () => {
@@ -256,41 +230,18 @@ export default function GenerarQRPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-  const renderPaginacion = (posicion: 'top' | 'bottom') => {
+  const getPaginationEl = (posicion: 'top' | 'bottom') => {
     if (loading || totalItems <= itemsPerPage) return null;
-    const isTop = posicion === 'top';
     return (
-      <div className={`flex items-center gap-4 py-2 px-1 ${isTop ? 'justify-between' : 'justify-center'}`}>
-        {isTop && (
-          <p className="text-xs text-slate-400 font-medium">
-            <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span>
-          </p>
-        )}
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1)
-            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-              acc.push(p);
-              return acc;
-            }, [])
-            .map((p, idx) =>
-              p === '...' ? (
-                <span key={`e-${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
-              ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
-                  {p}
-                </button>
-              )
-            )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+        onPageChange={handlePageChange}
+        showCount={posicion === 'top'}
+        justify={posicion === 'top' ? 'between' : 'center'}
+      />
     );
   };
 
@@ -487,9 +438,7 @@ export default function GenerarQRPage() {
           </div>
 
           {loading ? (
-            <div className="flex items-center gap-2">
-              {[...Array(6)].map((_, i) => <Sk key={i} className="h-8 flex-1 rounded-xl" />)}
-            </div>
+            <SkeletonFilterRow count={6} height="h-8" />
           ) : sortedCategorias.length > 0 ? (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => { setFilterCategoria(''); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
@@ -500,9 +449,7 @@ export default function GenerarQRPage() {
           ) : null}
 
           {loading ? (
-            <div className="flex items-center gap-2">
-              {[...Array(5)].map((_, i) => <Sk key={i} className="h-7 flex-1 rounded-xl" />)}
-            </div>
+            <SkeletonFilterRow count={5} />
           ) : sortedEstados.length > 0 ? (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
@@ -521,9 +468,7 @@ export default function GenerarQRPage() {
           ) : null}
 
           {loading ? (
-            <div className="flex items-center gap-2">
-              {[...Array(5)].map((_, i) => <Sk key={i} className="h-7 flex-1 rounded-xl" />)}
-            </div>
+            <SkeletonFilterRow count={5} />
           ) : sortedUbicaciones.length > 0 ? (
             <div className="flex items-center gap-3 w-full">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> Estante:</span>
@@ -542,7 +487,7 @@ export default function GenerarQRPage() {
           ) : null}
 
           {/* Paginación ARRIBA */}
-          {renderPaginacion('top')}
+          {getPaginationEl('top')}
 
           {/* Grid */}
           {loading ? (
@@ -603,7 +548,7 @@ export default function GenerarQRPage() {
           )}
 
           {/* Paginación ABAJO */}
-          {renderPaginacion('bottom')}
+          {getPaginationEl('bottom')}
 
         </div>
 

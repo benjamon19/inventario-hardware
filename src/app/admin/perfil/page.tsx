@@ -175,7 +175,7 @@ export default function MiPerfilPage() {
   if (loading) {
     return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-slate-500">
-      <TailChase size="40" speed="1.75" color="#64748b" />
+      <TailChase size="40" speed="1.75" color="#cbd5e1" />
       <p className="text-sm font-semibold tracking-wide">Cargando tu información...</p>
     </div>
     );

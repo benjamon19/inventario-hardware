@@ -99,8 +99,8 @@ export default function ConfiguracionPage() {
 
             {msg && (
               <div className={`flex items-start gap-3 p-4 rounded-2xl border ${msg.type === 'success'
-                  ? 'bg-emerald-50 border-emerald-100/60'
-                  : 'bg-red-50 border-red-100/60'
+                ? 'bg-emerald-50 border-emerald-100/60'
+                : 'bg-red-50 border-red-100/60'
                 }`}>
                 {msg.type === 'success'
                   ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
@@ -137,7 +137,7 @@ export default function ConfiguracionPage() {
           <div className="flex flex-col justify-center">
             <h3 className="text-sm font-bold text-blue-900 mb-1">Entorno de Visualización</h3>
             <p className="text-xs text-blue-800/80 leading-relaxed max-w-2xl font-medium">
-              El sistema se encuentra permanentemente optimizado en <strong>Modo Claro</strong>. Esta decisión de diseño garantiza el máximo contraste y legibilidad para operar en entornos con alta iluminación, como bodegas o luz natural directa.
+              El sistema se encuentra permanentemente en <strong>Modo Claro</strong>. Con posible actualización para modo oscuro próximamente.
             </p>
           </div>
         </div>

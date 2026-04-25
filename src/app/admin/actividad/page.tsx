@@ -11,10 +11,8 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { registrarLog } from '@/lib/logger';
-
-const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
-);
+import { Sk } from '@/components/ui/Skeleton';
+import { Pagination } from '@/components/ui/Pagination';
 
 const SkeletonLogRow = () => (
   <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm">
@@ -190,40 +188,15 @@ export default function ActividadPage() {
     }
   };
 
-  const renderPaginacion = () => {
-    if (loading || totalItems <= itemsPerPage) return null;
-    return (
-      <div className="flex items-center justify-between py-2 px-1">
-        <p className="text-xs text-slate-400 font-medium">
-          <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalItems)}</span> de <span className="font-bold text-slate-700">{totalItems}</span>
-        </p>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1)
-            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-              if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-              acc.push(p);
-              return acc;
-            }, [])
-            .map((p, idx) =>
-              p === '...' ? (
-                <span key={`e-${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
-              ) : (
-                <button key={p} onClick={() => handlePageChange(p as number)} className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
-                  {p}
-                </button>
-              )
-            )}
-          <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    );
-  };
+  const paginationEl = !loading && totalItems > itemsPerPage ? (
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalItems={totalItems}
+      itemsPerPage={itemsPerPage}
+      onPageChange={handlePageChange}
+    />
+  ) : null;
 
   return (
     <div className="space-y-4 relative w-full">
@@ -276,7 +249,7 @@ export default function ActividadPage() {
         </div>
       </div>
 
-      {renderPaginacion()}
+      {paginationEl}
 
       <div className="space-y-3 w-full">
         {loading ? (
@@ -357,7 +330,7 @@ export default function ActividadPage() {
         )}
       </div>
 
-      {renderPaginacion()}
+      {paginationEl}
     </div>
   );
 }
