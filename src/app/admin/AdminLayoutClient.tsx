@@ -146,7 +146,7 @@ export default function AdminLayoutClient({
             leave="transition-opacity ease-linear duration-300"
             leaveFrom="opacity-100" leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px]" />
           </Transition.Child>
           <div className="fixed inset-0 flex">
             <Transition.Child
@@ -234,7 +234,7 @@ export default function AdminLayoutClient({
             enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
             leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
+            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
           </Transition.Child>
 
           <div className="fixed inset-0 z-10 overflow-y-auto">

@@ -95,7 +95,7 @@ function SubModal({ open, onClose, title, children }: { open: boolean; onClose: 
         <Transition.Child as={Fragment}
           enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100"
           leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px]" />
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px]" />
         </Transition.Child>
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">

@@ -19,7 +19,7 @@ import { registrarLog } from '@/lib/logger';
 import { useAvatar, BANNER_PATTERNS, patternCSS } from '@/components/useAvatar';
 
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-100/80 ${className}`} />
 );
 
 const SkeletonUserCard = () => (
@@ -324,7 +324,7 @@ export default function UsuariosPage() {
   };
 
   return (
-    <div className="space-y-6 relative pb-10">
+    <div className="space-y-4 relative pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -335,16 +335,8 @@ export default function UsuariosPage() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal en tiempo real.</p>
-            {/* Indicador de realtime */}
-            <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">En vivo</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-slate-500">Controla el acceso y monitorea la actividad del personal.</p>
           </div>
           {lastUpdate && (
             <p className="text-[10px] text-slate-400 mt-0.5">
@@ -432,14 +424,14 @@ export default function UsuariosPage() {
                     <div className="relative inline-block shrink-0">
                       <div
                         className={`flex ${!inactivo ? 'h-12 w-12 border-2 border-white shadow-md rounded-[1.1rem]' : 'h-10 w-10 border border-slate-300 rounded-xl bg-slate-200 text-slate-500'} items-center justify-center font-black text-xl bg-gradient-to-br ${inactivo
-                            ? ''
-                            : perfil.id === currentUserId
-                              ? `${myAvatarGradient} text-white`
-                              : perfil.avatar_gradient
-                                ? `${perfil.avatar_gradient} text-white`
-                                : perfil.rol === 'SUPER_ADMIN' ? 'from-purple-500 to-purple-700 text-white'
-                                  : perfil.rol === 'ADMIN' ? 'from-blue-500 to-blue-700 text-white'
-                                    : 'from-slate-300 to-slate-400 text-slate-700'
+                          ? ''
+                          : perfil.id === currentUserId
+                            ? `${myAvatarGradient} text-white`
+                            : perfil.avatar_gradient
+                              ? `${perfil.avatar_gradient} text-white`
+                              : perfil.rol === 'SUPER_ADMIN' ? 'from-purple-500 to-purple-700 text-white'
+                                : perfil.rol === 'ADMIN' ? 'from-blue-500 to-blue-700 text-white'
+                                  : 'from-slate-300 to-slate-400 text-slate-700'
                           }`}
                       >
                         {isUpdating
@@ -589,7 +581,7 @@ export default function UsuariosPage() {
       <Transition show={isModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => !isCreating && setIsModalOpen(false)}>
           <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-slate-900/60" />
+            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px]" />
           </Transition.Child>
 
           <div className="fixed inset-0 z-10 overflow-y-auto">

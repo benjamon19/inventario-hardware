@@ -51,7 +51,7 @@ const colorDotClasses: Record<string, string> = {
 
 // ─── Skeleton helpers ───────────────────────────────────────
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-100/80 ${className}`} />
 );
 
 const SkeletonTableRow = () => (
@@ -645,7 +645,7 @@ export default function InventarioPage() {
         <Transition show={!!deleteItem} as={Fragment}>
           <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-              <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
             </Transition.Child>
             <div className="fixed inset-0 z-10 overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
@@ -985,7 +985,7 @@ export default function InventarioPage() {
       <Transition show={!!editItem} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setEditItem(null)}>
           <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
           </Transition.Child>
           <div className="fixed inset-0 z-10 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 sm:p-0">
@@ -1073,7 +1073,7 @@ export default function InventarioPage() {
       <Transition show={!!deleteItem} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
           <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
           </Transition.Child>
           <div className="fixed inset-0 z-10 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 sm:p-0">

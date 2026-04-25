@@ -232,17 +232,6 @@ export default function AdminScannerPage() {
   return (
     <div className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
 
-      {/* Header con indicador realtime */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">En vivo</span>
-        </div>
-      </div>
-
       {/* TABS DE MODO */}
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
         <button

@@ -13,7 +13,7 @@ import { es } from 'date-fns/locale';
 import { registrarLog } from '@/lib/logger';
 
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-100/80 ${className}`} />
 );
 
 const SkeletonLogRow = () => (
@@ -226,20 +226,12 @@ export default function ActividadPage() {
   };
 
   return (
-    <div className="space-y-6 relative w-full">
+    <div className="space-y-4 relative w-full">
       <div>
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Historial de Actividad</h1>
-          {/* Indicador Realtime */}
-          <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">En vivo</span>
-          </div>
         </div>
-        <p className="text-sm text-slate-500">Registro detallado en tiempo real de movimientos, cambios y gestiones.</p>
+        <p className="text-sm text-slate-500">Registro detallado de movimientos, cambios y gestiones.</p>
       </div>
 
       <div className="flex flex-col gap-4 w-full">
