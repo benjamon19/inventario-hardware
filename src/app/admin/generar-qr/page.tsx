@@ -15,7 +15,7 @@ import { registrarLog } from '@/lib/logger';
 import BouncyLoader from '@/components/TreadmillLoader';
 
 const Sk = ({ className }: { className: string }) => (
-  <div className={`animate-pulse rounded bg-slate-300 ${className}`} />
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
 );
 
 const SkeletonQRCard = () => (
