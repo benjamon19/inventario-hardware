@@ -219,7 +219,7 @@ export default function OperatorPage() {
             <div className="p-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between mb-3">
                 <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${
-                    selectedItem.estado === 'DISPONIBLE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-900 border-slate-200'
+                    selectedItem.estado === 'DISPONIBLE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'
                 }`}>
                   {selectedItem.estado}
                 </span>
