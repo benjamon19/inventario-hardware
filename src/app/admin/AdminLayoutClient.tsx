@@ -248,33 +248,34 @@ export default function AdminLayoutClient({
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="relative transform overflow-hidden rounded-[2.5rem] p-10 text-center shadow-2xl w-full max-w-sm border border-slate-100 bg-white">
-                  <div className="flex flex-col items-center gap-6">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+                <Dialog.Panel className="relative transform overflow-hidden rounded-[2.5rem] p-10 text-center shadow-2xl w-full max-w-sm border border-slate-100 bg-slate-50 min-h-[440px] flex flex-col justify-between">
+                  <div className="flex flex-col items-center justify-center flex-1">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner mb-6 shrink-0">
                       <LogOut className="h-10 w-10" />
                     </div>
-                    <div>
+                    
+                    <div className="space-y-3">
                       <Dialog.Title as="h3" className="text-2xl font-black tracking-tight text-slate-900">
                         ¿Nos vemos luego?
                       </Dialog.Title>
-                      <p className="mt-3 text-sm font-medium text-slate-500 leading-relaxed">
-                        Tu sesión se cerrará de forma segura. <br /> Asegúrate de haber terminado tus tareas pendientes.
+                      <p className="text-sm font-medium text-slate-500 leading-relaxed px-2">
+                        Tu sesión se cerrará de forma segura. <br /> Asegúrate de haber terminado tus tareas.
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-10 flex flex-col gap-3">
+                  <div className="mt-8 grid grid-cols-1 gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full rounded-2xl bg-red-600 hover:bg-red-700 py-4 text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-red-100 active:scale-95"
+                      className="w-full rounded-2xl bg-red-600 py-4 text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-red-200/50 hover:bg-red-700 hover:shadow-xl active:scale-[0.98]"
                     >
                       Cerrar Sesión
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowLogoutModal(false)}
-                      className="w-full rounded-2xl bg-slate-50 py-4 text-sm font-bold transition-all cursor-pointer text-slate-500 hover:bg-slate-100"
+                      className="w-full rounded-2xl bg-white py-4 text-sm font-bold transition-all cursor-pointer text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
                     >
                       Volver al Panel
                     </button>
