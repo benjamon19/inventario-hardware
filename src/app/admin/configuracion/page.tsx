@@ -64,7 +64,7 @@ export default function ConfiguracionPage() {
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <KeyRound className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <KeyRound className="h-4 w-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                   </div>
                   <input
                     type="password"
@@ -72,7 +72,7 @@ export default function ConfiguracionPage() {
                     placeholder="Escribe tu nueva contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-slate-900/10 focus:border-slate-900"
                   />
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default function ConfiguracionPage() {
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <Lock className="h-4 w-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                   </div>
                   <input
                     type="password"
@@ -91,7 +91,7 @@ export default function ConfiguracionPage() {
                     placeholder="Repite la contraseña"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-slate-900/10 focus:border-slate-900"
                   />
                 </div>
               </div>
@@ -117,7 +117,7 @@ export default function ConfiguracionPage() {
               <button
                 type="submit"
                 disabled={isUpdating || !password || !confirmPassword}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 cursor-pointer"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 cursor-pointer"
               >
                 {isUpdating ? (
                   <><div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> Guardando cambios...</>

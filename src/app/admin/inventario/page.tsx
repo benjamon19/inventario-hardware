@@ -132,14 +132,14 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
           value={newNombre}
           onChange={e => setNewNombre(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all"
         />
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleAdd}
             disabled={saving || !newNombre.trim()}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-40 transition-all cursor-pointer"
           >
             {saving ? <div className="flex h-3.5 w-3.5 items-center justify-center"><TailChase size="14" speed="1.75" color="white" /></div> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
           </button>
@@ -273,7 +273,7 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
             </button>
             <button
               onClick={() => onEdit(item)}
-              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer shadow-sm shadow-blue-200"
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all cursor-pointer shadow-sm shadow-slate-200"
             >
               <Edit2 className="h-3.5 w-3.5" /> Editar equipo
             </button>
@@ -587,7 +587,7 @@ export default function InventarioPage() {
         <Transition show={!!deleteItem} as={Fragment}>
           <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
+              <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
             </Transition.Child>
             <div className="fixed inset-0 z-10 overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
@@ -629,7 +629,7 @@ export default function InventarioPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Nuevo Equipo
         </button>
@@ -645,7 +645,7 @@ export default function InventarioPage() {
             placeholder="Filtrar por modelo o SKU..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
           />
         </div>
 
@@ -655,7 +655,7 @@ export default function InventarioPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => setFilterCategoria('')} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
             {sortedCategorias.map(cat => (
-              <button key={cat.id} onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'}`}>{cat.nombre}</button>
+              <button key={cat.id} onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
             ))}
           </div>
         ) : null}
@@ -792,11 +792,11 @@ export default function InventarioPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
+                        <div className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-slate-200 group-hover:text-slate-900 transition-colors shrink-0">
                           {getIconoCategoria(item.categoria)}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors truncate">{item.modelo}</span>
+                          <span className="font-semibold text-slate-900 group-hover:text-black transition-colors truncate">{item.modelo}</span>
                           {item.descripcion && (
                             <span className="text-[11px] text-slate-400 truncate max-w-50">{item.descripcion}</span>
                           )}
@@ -907,7 +907,7 @@ export default function InventarioPage() {
                     <button type="button" onClick={() => setEditItem(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer transition-colors"><X className="h-5 w-5" /></button>
                   </div>
                   <div className="flex flex-col items-center text-center gap-4 mb-8">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100"><Edit2 className="h-7 w-7" /></div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-900 border border-slate-200"><Edit2 className="h-7 w-7" /></div>
                     <div>
                       <Dialog.Title as="h3" className="text-xl font-bold leading-6 text-slate-950 tracking-tight">Editar Equipo</Dialog.Title>
                       <p className="mt-2.5 text-sm text-slate-500 font-medium">Modifica los datos del activo registrado.</p>
@@ -916,18 +916,18 @@ export default function InventarioPage() {
                   <form onSubmit={handleEdit} className="space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Modelo <span className="text-red-500">*</span></label>
-                      <input required type="text" maxLength={150} value={editFormData.modelo} onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value.trimStart() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold" />
+                      <input required type="text" maxLength={150} value={editFormData.modelo} onChange={e => setEditFormData({ ...editFormData, modelo: e.target.value.trimStart() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Categoría <span className="text-red-500">*</span></label>
-                        <select value={editFormData.categoria} onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
+                        <select value={editFormData.categoria} onChange={e => setEditFormData({ ...editFormData, categoria: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer">
                           {sortedCategorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                         </select>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado <span className="text-red-500">*</span></label>
-                        <select value={editFormData.estado} onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
+                        <select value={editFormData.estado} onChange={e => setEditFormData({ ...editFormData, estado: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer">
                           {sortedEstados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
                         </select>
                       </div>
@@ -938,12 +938,12 @@ export default function InventarioPage() {
                         <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
                           <MapPin className="h-3 w-3" /> Ubicación / Estante
                         </label>
-                        <button type="button" onClick={() => setShowUbicacionEditorInEdit(v => !v)} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer">
+                        <button type="button" onClick={() => setShowUbicacionEditorInEdit(v => !v)} className="flex items-center gap-1 text-[10px] font-bold text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer">
                           <Pencil className="h-3 w-3" /> Gestionar
                         </button>
                       </div>
                       <div className="flex gap-2">
-                        <select value={editFormData.ubicacion} onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer">
+                        <select value={editFormData.ubicacion} onChange={e => setEditFormData({ ...editFormData, ubicacion: e.target.value })} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer">
                           <option value="">Sin asignar</option>
                           {sortedUbicaciones.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
                         </select>
@@ -961,14 +961,14 @@ export default function InventarioPage() {
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
-                      <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-bold tracking-wider" />
+                      <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción</label>
-                      <textarea value={editFormData.descripcion} onChange={e => setEditFormData({ ...editFormData, descripcion: e.target.value })} placeholder="Ej: En mantención por falla en batería..." rows={3} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all resize-none text-slate-700" />
+                      <textarea value={editFormData.descripcion} onChange={e => setEditFormData({ ...editFormData, descripcion: e.target.value })} placeholder="Ej: En mantención por falla en batería..." rows={3} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all resize-none text-slate-700" />
                     </div>
                     <div className="mt-8 flex flex-col gap-3 pt-2">
-                      <button type="submit" disabled={editLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50">
+                      <button type="submit" disabled={editLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer disabled:opacity-50">
                         {editLoading ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> : <><Check className="h-4 w-4" /> Guardar cambios</>}
                       </button>
                       <button type="button" onClick={() => setEditItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>

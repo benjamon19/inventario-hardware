@@ -14,12 +14,12 @@ import { InventoryTransaction } from '@/types';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 
 const COLORS_ESTADOS = {
-  'DISPONIBLE': '#10b981', 
-  'EN_USO': '#3b82f6',     
-  'EN_MANTENCION': '#f59e0b',
-  'DADO_DE_BAJA': '#ef4444'  
+  'DISPONIBLE': '#475569',    // slate-600
+  'EN_USO': '#0f172a',        // slate-900
+  'EN_MANTENCION': '#94a3b8', // slate-400
+  'DADO_DE_BAJA': '#e2e8f0'   // slate-200
 };
-const COLORS_CATEGORIAS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#0ea5e9'];
+const COLORS_CATEGORIAS = ['#0f172a', '#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'];
 
 // --- Componentes Skeleton Internos ---
 const Skeleton = ({ className }: { className: string }) => (
@@ -66,12 +66,12 @@ export default function AdminDashboard() {
   const [stockCritico, setStockCritico] = useState<any[]>([]);
 
   const [stats, setStats] = useState([
-    { name: 'Total Equipos', value: '0', icon: Box, color: 'text-slate-600', bg: 'bg-slate-100' },
-    { name: 'Disponibles', value: '0', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { name: 'En Uso', value: '0', icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { name: 'En Mantención', value: '0', icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { name: 'Dados de Baja', value: '0', icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
-    { name: 'Movimientos Hoy', value: '0', icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { name: 'Total Equipos', value: '0', icon: Box, color: 'text-slate-600', bg: 'bg-slate-50' },
+    { name: 'Disponibles', value: '0', icon: CheckCircle2, color: 'text-slate-700', bg: 'bg-slate-100' },
+    { name: 'En Uso', value: '0', icon: MonitorPlay, color: 'text-slate-900', bg: 'bg-slate-200' },
+    { name: 'En Mantención', value: '0', icon: Wrench, color: 'text-slate-500', bg: 'bg-slate-50' },
+    { name: 'Dados de Baja', value: '0', icon: Trash2, color: 'text-slate-400', bg: 'bg-slate-50' },
+    { name: 'Movimientos Hoy', value: '0', icon: ArrowRightLeft, color: 'text-slate-800', bg: 'bg-slate-100' },
   ]);
 
   const fetchDashboardData = useCallback(async () => {
@@ -100,12 +100,12 @@ export default function AdminDashboard() {
         ]);
 
         setStats([
-          { name: 'Total Equipos', value: String(totalHardware || 0), icon: Box, color: 'text-slate-600', bg: 'bg-slate-100' },
-          { name: 'Disponibles', value: String(disponibles || 0), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { name: 'En Uso', value: String(enUso || 0), icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { name: 'En Mantención', value: String(enReparacion || 0), icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { name: 'Dados de Baja', value: String(deBaja || 0), icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
-          { name: 'Movimientos Hoy', value: String(movsHoyCount || 0), icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { name: 'Total Equipos', value: String(totalHardware || 0), icon: Box, color: 'text-slate-600', bg: 'bg-slate-50' },
+          { name: 'Disponibles', value: String(disponibles || 0), icon: CheckCircle2, color: 'text-slate-700', bg: 'bg-slate-100' },
+          { name: 'En Uso', value: String(enUso || 0), icon: MonitorPlay, color: 'text-slate-900', bg: 'bg-slate-200' },
+          { name: 'En Mantención', value: String(enReparacion || 0), icon: Wrench, color: 'text-slate-500', bg: 'bg-slate-50' },
+          { name: 'Dados de Baja', value: String(deBaja || 0), icon: Trash2, color: 'text-slate-400', bg: 'bg-slate-50' },
+          { name: 'Movimientos Hoy', value: String(movsHoyCount || 0), icon: ArrowRightLeft, color: 'text-slate-800', bg: 'bg-slate-100' },
         ]);
 
         if (ultimasTx) setRecentTransactions(ultimasTx);
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
                   <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12, fontWeight: 500 }} />
                   <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="value" name="Cantidad" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={25}>
+                  <Bar dataKey="value" name="Cantidad" fill="#1e293b" radius={[0, 4, 4, 0]} barSize={25}>
                     {categoriaData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS_CATEGORIAS[index % COLORS_CATEGORIAS.length]} />
                     ))}
@@ -357,7 +357,11 @@ export default function AdminDashboard() {
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                     <div 
-                      className={`h-2 rounded-full transition-all duration-1000 ease-out ${item.disponible === 0 ? 'bg-red-500' : 'bg-orange-400'}`} 
+                      className={`h-2 rounded-full transition-all duration-1000 ease-out ${
+                        item.disponible === 0 ? 'bg-red-600' : 
+                        item.disponible <= 2 ? 'bg-orange-500' : 
+                        'bg-amber-400'
+                      }`} 
                       style={{ width: `${Math.max(item.porcentaje, 5)}%` }}
                     ></div>
                   </div>

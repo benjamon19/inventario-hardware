@@ -217,7 +217,7 @@ export default function AdminScannerPage() {
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
         <button
           onClick={() => { setScanMode('TRANSACTION'); setSelectedItem(null); setIsScanning(true); }}
-          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'TRANSACTION' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
+          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'TRANSACTION' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
             }`}
         >
           <ArrowLeftRight className="h-4 w-4" /> Mover Stock
@@ -244,11 +244,11 @@ export default function AdminScannerPage() {
               sound={false}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 pointer-events-none">
-              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-black/10 ${scanMode === 'SEARCH' ? 'border-violet-500' : 'border-blue-500'
+              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-black/10 ${scanMode === 'SEARCH' ? 'border-violet-500' : 'border-slate-900'
                 }`}>
                 {scanMode === 'SEARCH'
                   ? <Search className="h-8 w-8 text-violet-500 drop-shadow-md" />
-                  : <ScanLine className="h-8 w-8 text-blue-500 drop-shadow-md" />
+                  : <ScanLine className="h-8 w-8 text-slate-900 drop-shadow-md" />
                 }
               </div>
               <p className="mt-2 text-[11px] font-medium bg-black/60 px-3 py-1 rounded-full text-white shadow-sm">
@@ -259,7 +259,7 @@ export default function AdminScannerPage() {
         ) : selectedItem && (
           <div className="p-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-3">
-              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${selectedItem.estado === 'DISPONIBLE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${selectedItem.estado === 'DISPONIBLE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-900 border-slate-200'
                 }`}>
                 {selectedItem.estado}
               </span>
@@ -332,7 +332,7 @@ export default function AdminScannerPage() {
               value={manualSku}
               onChange={(e) => setManualSku(e.target.value.trim().toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-500 transition-all shadow-sm font-mono uppercase"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs outline-none focus:border-slate-900 transition-all shadow-sm font-mono uppercase"
             />
             {loading && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center"><TailChase size="14" speed="1.75" color="#cbd5e1" /></div>}
           </div>
@@ -365,7 +365,7 @@ export default function AdminScannerPage() {
                 <TailChase size="30" speed="1.75" color="#cbd5e1" />
               </div>
             ) : recentActivity.map((mov) => (
-              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-blue-100 transition-colors">
+              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-slate-200 transition-colors">
                 <div className="flex items-start gap-2 flex-1">
                   <div className={`shrink-0 mt-0.5 rounded-md p-1.5 ${mov.tipo === 'SALIDA' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
                     {mov.tipo === 'SALIDA' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}

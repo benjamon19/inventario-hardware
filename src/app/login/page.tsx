@@ -131,7 +131,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value.trim())}
                     onFocus={() => robotRef.current?.playFocusEmail()}
                     onBlur={() => robotRef.current?.playBlurEmail()}
-                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
+                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-slate-900 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
                     placeholder="ejemplo@empresa.com"
                     autoComplete="email"
                   />
@@ -152,7 +152,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => robotRef.current?.playFocusPassword(!showPassword)}
                     onBlur={() => robotRef.current?.playBlurPassword()}
-                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-10 md:pr-12 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
+                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 md:py-3 pl-9 md:pl-10 pr-10 md:pr-12 text-sm text-slate-900 outline-none focus:border-slate-900 focus:bg-white transition-all max-[390px]:py-2 max-[390px]:text-xs"
                     placeholder="••••••••"
                     autoComplete="current-password"
                   />
@@ -174,7 +174,7 @@ export default function LoginPage() {
                     id="remember"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-blue-200 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-200 text-slate-900 accent-slate-900 focus:ring-slate-900 cursor-pointer"
                   />
                   <label htmlFor="remember" className="text-xs md:text-sm text-slate-500 font-bold cursor-pointer select-none">
                     Recuérdame
@@ -184,7 +184,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group mt-2 md:mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 md:py-4 text-xs md:text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-70 shadow-lg shadow-blue-100 cursor-pointer max-[390px]:py-2.5 hover:bg-blue-700"
+                className="group mt-2 md:mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3 md:py-4 text-xs md:text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-70 shadow-lg shadow-slate-200 cursor-pointer max-[390px]:py-2.5 hover:bg-slate-800"
               >
                 {isLoading
                   ? <div className="flex items-center justify-center h-4 w-4 md:h-5 md:w-5"><TailChase size="16" speed="1.75" color="white" /></div>

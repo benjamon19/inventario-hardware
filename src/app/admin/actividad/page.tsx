@@ -164,7 +164,7 @@ export default function ActividadPage() {
     switch (tipo) {
       case 'INGRESO': return 'bg-emerald-600 text-white border-emerald-600';
       case 'SALIDA': return 'bg-amber-500 text-white border-amber-500';
-      case 'CREACION': return 'bg-blue-600 text-white border-blue-600';
+      case 'CREACION': return 'bg-slate-900 text-white border-slate-900';
       case 'ELIMINACION': return 'bg-red-600 text-white border-red-600';
       case 'EDICION': return 'bg-purple-600 text-white border-purple-600';
       case 'ETIQUETA': return 'bg-pink-600 text-white border-pink-600';
@@ -180,7 +180,7 @@ export default function ActividadPage() {
     switch (tipo) {
       case 'SALIDA': return { icon: <ArrowUpRight className="h-4 w-4" />, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', label: 'Retiro de equipo' };
       case 'INGRESO': return { icon: <ArrowDownLeft className="h-4 w-4" />, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', label: 'Ingreso de equipo' };
-      case 'CREACION': return { icon: <PlusCircle className="h-4 w-4" />, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', label: 'Registro Nuevo' };
+      case 'CREACION': return { icon: <PlusCircle className="h-4 w-4" />, color: 'text-slate-900', bg: 'bg-slate-100', border: 'border-slate-200', label: 'Registro Nuevo' };
       case 'ELIMINACION': return { icon: <Trash2 className="h-4 w-4" />, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', label: 'Eliminación' };
       case 'EDICION': return { icon: <Edit3 className="h-4 w-4" />, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', label: 'Modificación' };
       case 'ETIQUETA': return { icon: <Tag className="h-4 w-4" />, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-100', label: 'Cambio de Etiqueta' };
@@ -216,7 +216,7 @@ export default function ActividadPage() {
               placeholder="Buscar equipo, usuario, SKU..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 transition-all shadow-sm"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-900 transition-all shadow-sm"
             />
           </div>
 
@@ -225,7 +225,7 @@ export default function ActividadPage() {
             <select
               value={filterUsuario}
               onChange={e => setFilterUsuario(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-10 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm"
+              className="w-full appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-10 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-slate-900 transition-all cursor-pointer shadow-sm"
             >
               <option value="">Todos los usuarios</option>
               {usuarios.map(u => (
@@ -305,7 +305,7 @@ export default function ActividadPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-1 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100 text-blue-700 font-bold">
+                      <div className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-lg border border-slate-200 text-slate-900 font-bold">
                         <User className="h-3 w-3 shrink-0 opacity-50" />
                         <span className="truncate max-w-30">{mov.perfiles?.email}</span>
                       </div>

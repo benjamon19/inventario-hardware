@@ -14,7 +14,7 @@ type Ubicacion = { id: string; nombre: string };
 
 const colorClasses: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  blue: 'bg-blue-50 text-blue-700 border-blue-100',
+  blue: 'bg-slate-100 text-slate-900 border-slate-200',
   amber: 'bg-amber-50 text-amber-700 border-amber-100',
   red: 'bg-red-50 text-red-700 border-red-100',
   violet: 'bg-violet-50 text-violet-700 border-violet-100',
@@ -85,7 +85,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
           placeholder="Nombre..."
           value={newNombre}
           onChange={e => setNewNombre(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all"
         />
         {extraField?.type === 'text' && (
           <input
@@ -94,7 +94,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
             value={newExtra}
             onChange={e => setNewExtra(e.target.value.toUpperCase())}
             maxLength={5}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500 focus:bg-white transition-all"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono outline-none focus:border-slate-900 focus:bg-white transition-all"
           />
         )}
         {extraField?.type === 'color-pick' && (
@@ -116,7 +116,7 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
             type="button"
             onClick={handleAdd}
             disabled={saving || !newNombre.trim()}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-40 transition-all cursor-pointer"
           >
             {saving ? <div className="flex h-3.5 w-3.5 items-center justify-center"><TailChase size="14" speed="1.75" color="white" /></div> : <><Check className="h-3.5 w-3.5" /> Agregar</>}
           </button>
@@ -320,7 +320,7 @@ export default function NuevoEquipoModal({
                             <button
                               type="button"
                               onClick={() => { setShowCatEditor(v => !v); setShowEstEditor(false); setShowUbicEditor(false); }}
-                              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                              className="flex items-center gap-1 text-[10px] font-bold text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" /> Personalizar
                             </button>
@@ -328,7 +328,7 @@ export default function NuevoEquipoModal({
                           <select
                             value={formData.categoria}
                             onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             {sortedCategorias.map(c => (
                               <option key={c.id} value={c.nombre}>{c.nombre}</option>
@@ -356,7 +356,7 @@ export default function NuevoEquipoModal({
                             <button
                               type="button"
                               onClick={() => { setShowEstEditor(v => !v); setShowCatEditor(false); setShowUbicEditor(false); }}
-                              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                              className="flex items-center gap-1 text-[10px] font-bold text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" /> Personalizar
                             </button>
@@ -364,7 +364,7 @@ export default function NuevoEquipoModal({
                           <select
                             value={formData.estado}
                             onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             {sortedEstados.map(e => (
                               <option key={e.id} value={e.nombre}>{e.nombre}</option>
@@ -394,7 +394,7 @@ export default function NuevoEquipoModal({
                             placeholder="Ej: Lenovo ThinkPad T14"
                             value={formData.modelo}
                             onChange={(e) => setFormData({ ...formData, modelo: e.target.value.trimStart() })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-900 font-semibold"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all text-slate-900 font-semibold"
                           />
                         </div>
 
@@ -408,7 +408,7 @@ export default function NuevoEquipoModal({
                             <button
                               type="button"
                               onClick={() => { setShowUbicEditor(v => !v); setShowCatEditor(false); setShowEstEditor(false); }}
-                              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                              className="flex items-center gap-1 text-[10px] font-bold text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" /> Gestionar
                             </button>
@@ -416,7 +416,7 @@ export default function NuevoEquipoModal({
                           <select
                             value={formData.ubicacion}
                             onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all font-semibold cursor-pointer"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             <option value="">Sin asignar</option>
                             {sortedUbicaciones.map(u => (
@@ -461,7 +461,7 @@ export default function NuevoEquipoModal({
                               <div className="space-y-1.5">
                                 <div className="flex justify-between items-end mb-1">
                                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
-                                  <span className="text-[10px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-md">Auto-generado</span>
+                                  <span className="text-[10px] text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                                 </div>
                                 <input
                                   required
@@ -471,7 +471,7 @@ export default function NuevoEquipoModal({
                                   autoComplete="off"
                                   value={eq.sku}
                                   onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
                                 />
                               </div>
                               <div className="space-y-1.5">
@@ -482,7 +482,7 @@ export default function NuevoEquipoModal({
                                   onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
                                   placeholder={cantidad > 1 ? "Número de serie o detalle..." : "Motivo de ingreso, estado de mantención..."}
                                   rows={3}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-blue-500 transition-all resize-none text-slate-700"
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-slate-900 transition-all resize-none text-slate-700"
                                 />
                               </div>
                             </div>
@@ -493,7 +493,7 @@ export default function NuevoEquipoModal({
                           <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                            className="w-full flex justify-center items-center gap-2 rounded-2xl bg-slate-900 py-4 text-sm font-bold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                           >
                             {loading ? <div className="flex h-5 w-5 items-center justify-center"><TailChase size="20" speed="1.75" color="white" /></div> : <><Plus className="h-5 w-5" /> Guardar Equipo{cantidad > 1 ? 's' : ''}</>}
                           </button>

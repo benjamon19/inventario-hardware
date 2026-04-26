@@ -331,13 +331,13 @@ export default function GenerarQRPage() {
                 spellCheck="false"
                 autoComplete="off"
                 placeholder="Ingresa SKU (ej: LAP-1234)"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-semibold uppercase"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm font-semibold uppercase"
                 value={sku}
                 onChange={(e) => setSku(e.target.value.trim().toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && buscarEquipo()}
               />
             </div>
-            <button onClick={buscarEquipo} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all cursor-pointer text-sm">
+            <button onClick={buscarEquipo} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all cursor-pointer text-sm">
               Buscar
             </button>
           </div>
@@ -358,9 +358,9 @@ export default function GenerarQRPage() {
               </div>
             </div>
             <div className="flex flex-col justify-center gap-4">
-              <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                <h3 className="font-bold text-blue-900 flex items-center gap-2"><Package className="h-4 w-4" /> Datos del equipo</h3>
-                <ul className="mt-4 space-y-2 text-sm text-blue-800">
+              <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2"><Package className="h-4 w-4" /> Datos del equipo</h3>
+                <ul className="mt-4 space-y-2 text-sm text-slate-800">
                   <li><strong>Categoría:</strong> {item.categoria}</li>
                   <li><strong>Modelo:</strong> {item.modelo}</li>
                   <li><strong>Estado:</strong> {item.estado}</li>
@@ -433,7 +433,7 @@ export default function GenerarQRPage() {
               placeholder="Filtrar por modelo o SKU..."
               value={searchTerm}
               onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
             />
           </div>
 
@@ -443,7 +443,7 @@ export default function GenerarQRPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => { setFilterCategoria(''); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
               {sortedCategorias.map(cat => (
-                <button key={cat.id} onClick={() => { setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600'}`}>{cat.nombre}</button>
+                <button key={cat.id} onClick={() => { setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
               ))}
             </div>
           ) : null}
@@ -510,7 +510,7 @@ export default function GenerarQRPage() {
                     className={`group w-full text-left rounded-2xl border p-4 transition-all cursor-pointer flex items-center gap-4 ${
                       multiMode
                         ? isSelected ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-200' : 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/40'
-                        : isSelected ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200'       : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40'
+                        : isSelected ? 'border-slate-400 bg-slate-100 ring-2 ring-slate-200'       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-100/40'
                     }`}
                   >
                     {multiMode ? (
@@ -518,7 +518,7 @@ export default function GenerarQRPage() {
                         {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                       </div>
                     ) : (
-                      <div className={`shrink-0 rounded-xl p-2.5 transition-colors ${isSelected ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
+                      <div className={`shrink-0 rounded-xl p-2.5 transition-colors ${isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-900'}`}>
                         {getIconoCategoria(equipo.categoria)}
                       </div>
                     )}
@@ -539,7 +539,7 @@ export default function GenerarQRPage() {
                     <QrCode className={`h-4 w-4 shrink-0 transition-colors ${
                       multiMode
                         ? isSelected ? 'text-violet-400' : 'text-slate-200 group-hover:text-violet-300'
-                        : isSelected ? 'text-blue-500'   : 'text-slate-200 group-hover:text-blue-300'
+                        : isSelected ? 'text-slate-900'   : 'text-slate-200 group-hover:text-slate-300'
                     }`} />
                   </button>
                 );

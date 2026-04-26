@@ -113,10 +113,10 @@ export default function ScannerView() {
         <div>
           <div className="mb-6 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-medium tracking-tight text-slate-900">
-              <Camera className="h-5 w-5 text-blue-600" />
+              <Camera className="h-5 w-5 text-slate-900" />
               Lector de Hardware
             </h2>
-            <span className={`flex h-2.5 w-2.5 rounded-full ${isScanning ? 'animate-pulse bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'bg-slate-300'}`}></span>
+            <span className={`flex h-2.5 w-2.5 rounded-full ${isScanning ? 'animate-pulse bg-slate-900 shadow-[0_0_8px_rgba(15,23,42,0.4)]' : 'bg-slate-300'}`}></span>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default function ScannerView() {
                 <button 
                   disabled={isProcessing}
                   onClick={() => registrarMovimiento(scannedHardware.id, 'INGRESO')}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-100 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-200 disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-100 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:opacity-50"
                 >
                   <ArrowDownToLine className="h-4 w-4" /> Ingreso
                 </button>
@@ -182,7 +182,7 @@ export default function ScannerView() {
           className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all hover:cursor-pointer active:scale-[0.98] ${
             isScanning 
               ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200' 
-              : 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-slate-900 text-white shadow-md hover:bg-slate-800'
           }`}
         >
           {isScanning ? (

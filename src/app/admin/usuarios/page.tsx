@@ -292,7 +292,7 @@ export default function UsuariosPage() {
   const rolChipClass = (rol: typeof roles[number], active: boolean) => {
     if (!active) return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300';
     if (rol === 'SUPER_ADMIN') return 'bg-purple-600 text-white border-purple-600';
-    if (rol === 'ADMIN') return 'bg-blue-600 text-white border-blue-600';
+    if (rol === 'ADMIN') return 'bg-slate-900 text-white border-slate-900';
     if (rol === 'OPERADOR') return 'bg-emerald-600 text-white border-emerald-600';
     if (rol === 'PENDIENTE') return 'bg-amber-500 text-white border-amber-500';
     return 'bg-slate-900 text-white border-slate-900';
@@ -305,7 +305,7 @@ export default function UsuariosPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
             {!loading && totalItems > 0 && (
-              <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-100">
+              <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-900 border border-slate-200">
                 {totalItems} {totalItems === 1 ? 'usuario' : 'usuarios'}
               </span>
             )}
@@ -321,7 +321,7 @@ export default function UsuariosPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all w-full sm:w-auto shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-slate-200 hover:bg-slate-800 hover:-translate-y-0.5 transition-all w-full sm:w-auto shrink-0 cursor-pointer"
         >
           <UserPlus className="h-4 w-4" />
           Nuevo Usuario
@@ -338,7 +338,7 @@ export default function UsuariosPage() {
             placeholder="Buscar por correo..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value.trimStart())}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all shadow-sm"
           />
         </div>
 
@@ -380,7 +380,7 @@ export default function UsuariosPage() {
                 key={perfil.id}
                 className={`flex flex-col rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden ${isUpdating ? 'opacity-60 pointer-events-none' :
                   inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
-                    isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-blue-100'
+                    isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-slate-300'
                   }`}
               >
                 {/* Banner */}
@@ -405,7 +405,7 @@ export default function UsuariosPage() {
                             : perfil.avatar_gradient
                               ? `${perfil.avatar_gradient} text-white`
                               : perfil.rol === 'SUPER_ADMIN' ? 'from-purple-500 to-purple-700 text-white'
-                                : perfil.rol === 'ADMIN' ? 'from-blue-500 to-blue-700 text-white'
+                                : perfil.rol === 'ADMIN' ? 'from-slate-800 to-slate-950 text-white'
                                   : 'from-slate-300 to-slate-400 text-slate-700'
                           }`}
                       >
@@ -435,7 +435,7 @@ export default function UsuariosPage() {
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${inactivo ? 'bg-slate-200 text-slate-600 border-slate-300' :
                         perfil.rol === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                          perfil.rol === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          perfil.rol === 'ADMIN' ? 'bg-slate-100 text-slate-900 border-slate-200' :
                             perfil.rol === 'OPERADOR' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                               'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
@@ -519,13 +519,13 @@ export default function UsuariosPage() {
                                 </button>
                               )}
                               {perfil.rol !== 'ADMIN' && (
-                                <button
-                                  disabled={isUpdating}
-                                  onClick={() => cambiarRol(perfil, 'ADMIN')}
-                                  className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200 hover:border-blue-200 disabled:opacity-50"
-                                >
-                                  A Admin
-                                </button>
+                                  <button
+                                    disabled={isUpdating}
+                                    onClick={() => cambiarRol(perfil, 'ADMIN')}
+                                    className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200 hover:border-slate-300 disabled:opacity-50"
+                                  >
+                                    A Admin
+                                  </button>
                               )}
                             </>
                           )}
@@ -542,11 +542,11 @@ export default function UsuariosPage() {
 
       {paginationEl}
 
-      <div className="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-4 mt-4">
-        <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 rounded-2xl bg-slate-100 border border-slate-200 p-4 mt-4">
+        <Shield className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
         <div>
-          <h4 className="text-sm font-bold text-blue-900">Niveles de Acceso</h4>
-          <p className="text-xs font-medium text-blue-700 mt-1 opacity-90 leading-relaxed">
+          <h4 className="text-sm font-bold text-slate-900">Niveles de Acceso</h4>
+          <p className="text-xs font-medium text-slate-700 mt-1 opacity-90 leading-relaxed">
             El <strong>Super Admin</strong> tiene control total de las cuentas. Los <strong>Administradores</strong> ven estadísticas y configuraciones. Los <strong>Operadores</strong> gestionan el escaneo en bodega.
           </p>
         </div>
@@ -575,7 +575,7 @@ export default function UsuariosPage() {
                   </div>
 
                   <div className="flex flex-col items-center text-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-900 border border-slate-200">
                       <UserPlus className="h-7 w-7" />
                     </div>
                     <div>
@@ -599,7 +599,7 @@ export default function UsuariosPage() {
                           maxLength={100}
                           value={newEmail}
                           onChange={(e) => setNewEmail(e.target.value.trim())}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-colors"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/10 transition-colors"
                           placeholder="ejemplo@empresa.com"
                         />
                       </div>
@@ -616,7 +616,7 @@ export default function UsuariosPage() {
                           minLength={6}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/10 transition-all cursor-pointer"
                           placeholder="Mínimo 6 caracteres"
                         />
                       </div>
@@ -634,7 +634,7 @@ export default function UsuariosPage() {
                       <button
                         type="submit"
                         disabled={isCreating || !newEmail || !newPassword}
-                        className="w-full flex justify-center items-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full flex justify-center items-center gap-2 rounded-2xl bg-slate-900 py-4 text-sm font-bold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isCreating ? (
                           <><div className="flex h-5 w-5 items-center justify-center"><TailChase size="20" speed="1.75" color="white" /></div><span>Creando...</span></>

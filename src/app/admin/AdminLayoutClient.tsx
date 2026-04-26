@@ -61,7 +61,7 @@ export default function AdminLayoutClient({
   const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
     <div className="flex h-full flex-col bg-white">
       <div className="flex shrink-0 items-center gap-2 px-4 pt-5 pb-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
           <Package className="h-4 w-4" />
         </div>
         <span className={`font-extrabold tracking-tight text-sm leading-tight whitespace-nowrap overflow-hidden transition-all duration-300 text-slate-900 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
@@ -87,7 +87,7 @@ export default function AdminLayoutClient({
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 ${isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                    ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
               >
@@ -105,7 +105,7 @@ export default function AdminLayoutClient({
           <Link
             href="/admin/configuracion"
             className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 mb-3 ${pathname === '/admin/configuracion'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
           >
@@ -209,7 +209,7 @@ export default function AdminLayoutClient({
               <Link
                 href="/admin/perfil"
                 title="Ver mi perfil"
-                className="rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="rounded-full focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
               >
                 <div className={`flex h-8 w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs shadow-sm select-none transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 bg-gradient-to-br ${avatarGradient} text-white`}>
                   {initials}
@@ -248,35 +248,35 @@ export default function AdminLayoutClient({
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl p-6 sm:p-8 text-left shadow-2xl transition-all w-full max-w-sm border border-slate-200 bg-white">
-                  <div className="flex flex-col items-center text-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100">
-                      <AlertCircle className="h-7 w-7" />
+                <Dialog.Panel className="relative transform overflow-hidden rounded-[2.5rem] p-10 text-center shadow-2xl w-full max-w-sm border border-slate-100 bg-white">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+                      <LogOut className="h-10 w-10" />
                     </div>
                     <div>
-                      <Dialog.Title as="h3" className="text-xl font-bold leading-6 tracking-tight text-slate-900">
-                        ¿Cerrar sesión?
+                      <Dialog.Title as="h3" className="text-2xl font-black tracking-tight text-slate-900">
+                        ¿Nos vemos luego?
                       </Dialog.Title>
-                      <p className="mt-2 text-sm font-medium text-slate-500">
-                        Tendrás que ingresar tus credenciales nuevamente.
+                      <p className="mt-3 text-sm font-medium text-slate-500 leading-relaxed">
+                        Tu sesión se cerrará de forma segura. <br /> Asegúrate de haber terminado tus tareas pendientes.
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-8 flex flex-col gap-3">
+                  <div className="mt-10 flex flex-col gap-3">
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full rounded-xl bg-red-600 hover:bg-red-700 py-3 text-sm font-semibold text-white transition-all cursor-pointer"
+                      className="w-full rounded-2xl bg-red-600 hover:bg-red-700 py-4 text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-red-100 active:scale-95"
                     >
-                      Sí, salir
+                      Cerrar Sesión
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowLogoutModal(false)}
-                      className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold transition-all cursor-pointer text-slate-500 hover:bg-slate-50"
+                      className="w-full rounded-2xl bg-slate-50 py-4 text-sm font-bold transition-all cursor-pointer text-slate-500 hover:bg-slate-100"
                     >
-                      Cancelar
+                      Volver al Panel
                     </button>
                   </div>
                 </Dialog.Panel>

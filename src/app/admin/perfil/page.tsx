@@ -76,7 +76,7 @@ function ColorGrid({ selected, onSelect }: { selected: string; onSelect: (c: str
             {AVATAR_GRADIENTS.slice(row.start, row.end).map(g => (
               <button key={g.id} onClick={() => onSelect(g.class)} title={g.id}
                 className={`h-8 rounded-xl bg-gradient-to-br ${g.class} cursor-pointer transition-all duration-150 ${
-                  selected === g.class ? 'ring-2 ring-offset-2 ring-blue-500 scale-105' : 'opacity-80 hover:opacity-100 hover:scale-105'
+                  selected === g.class ? 'ring-2 ring-offset-2 ring-slate-900 scale-105' : 'opacity-80 hover:opacity-100 hover:scale-105'
                 }`}
                 style={{ '--tw-ring-offset-color': 'var(--bg-surface)', boxShadow: selected === g.class ? undefined : 'inset 0 0 0 1px rgba(0,0,0,0.12)' } as any}
               />
@@ -328,7 +328,7 @@ export default function MiPerfilPage() {
               onBlur={e => e.currentTarget.style.borderColor = 'var(--input-border)'} />
           </div>
           <div className="flex flex-col gap-2 pt-2">
-            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer">
+            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer">
               <Save className="h-4 w-4" /> Guardar
             </button>
             <button onClick={closeSub} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
@@ -349,7 +349,7 @@ export default function MiPerfilPage() {
           </div>
           <ColorGrid selected={editAvatarGradient} onSelect={setEditAvatarGradient} />
           <div className="flex flex-col gap-2 pt-2">
-            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer">
+            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer">
               <Save className="h-4 w-4" /> Guardar
             </button>
             <button onClick={closeSub} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
@@ -383,7 +383,7 @@ export default function MiPerfilPage() {
                 const isSel = editBannerPattern === p.id;
                 return (
                   <button key={p.id} onClick={() => setEditBannerPattern(p.id)} title={p.label}
-                    className={`relative h-11 rounded-xl overflow-hidden cursor-pointer transition-all bg-gradient-to-br ${editBannerGradient} ${isSel ? 'ring-2 ring-blue-500 ring-offset-2 scale-[1.04]' : 'opacity-75 hover:opacity-100'}`}
+                    className={`relative h-11 rounded-xl overflow-hidden cursor-pointer transition-all bg-gradient-to-br ${editBannerGradient} ${isSel ? 'ring-2 ring-slate-900 ring-offset-2 scale-[1.04]' : 'opacity-75 hover:opacity-100'}`}
                     style={{ '--tw-ring-offset-color': 'var(--bg-surface)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' } as any}>
                     {p.svg && <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: patternCSS(p.svg), backgroundRepeat: 'repeat' }} />}
                     <span className="absolute bottom-0.5 left-0 right-0 text-center text-[8px] font-bold text-white drop-shadow-sm leading-none">{p.label}</span>
@@ -394,7 +394,7 @@ export default function MiPerfilPage() {
           </div>
 
           <div className="flex flex-col gap-2 pt-2">
-            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer">
+            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer">
               <Save className="h-4 w-4" /> Guardar
             </button>
             <button onClick={closeSub} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
