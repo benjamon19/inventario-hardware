@@ -24,18 +24,24 @@ export default function LoginPage() {
     const applyScale = () => {
       if (!wrapperRef.current) return;
       const w = window.innerWidth;
+      const h = window.innerHeight;
       
-      if (w <= 390) {
-        wrapperRef.current.style.transform = 'scale(0.75)';
-        wrapperRef.current.style.transformOrigin = 'top center';
-      } 
-      else if (w >= 768 && w < 1350) {
-        wrapperRef.current.style.transform = 'scale(0.80)';
-        wrapperRef.current.style.transformOrigin = 'top center';
-      } 
-      else {
+      // Monitores Grandes (> 1350) - Sin cambios (Centrado estándar)
+      if (w >= 1350 && h >= 800) {
         wrapperRef.current.style.transform = '';
         wrapperRef.current.style.transformOrigin = '';
+        return;
+      }
+
+      // Pantallas Medianas / Laptops pequeñas (< 1350 o < 800)
+      if (w > 500) {
+        wrapperRef.current.style.transform = 'scale(0.85) translateY(380px)';
+        wrapperRef.current.style.transformOrigin = 'center center';
+      } 
+      // Pantallas Móviles (w <= 500) - No se hace pequeño ("nop"), pero baja más
+      else {
+        wrapperRef.current.style.transform = 'translateY(150px)';
+        wrapperRef.current.style.transformOrigin = 'center center';
       }
     };
     applyScale();
@@ -83,21 +89,33 @@ export default function LoginPage() {
       {/* ── Fondo animado ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]"></div>
+        
+        {/* Luces de fondo */}
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-amber-400/10 blur-3xl animate-[pulse_4s_ease-in-out_infinite]" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-sky-400/10 blur-3xl animate-[pulse_4s_ease-in-out_infinite_1s]" />
         
-        <div className="absolute top-[20%] left-[20%] w-2 h-2 bg-sky-400/60 rounded-full blur-[1px] animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
-        <div className="absolute bottom-[30%] right-[25%] w-3 h-3 bg-amber-400/50 rounded-full blur-[2px] animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite_1s]" />
-        
-        <div className="absolute top-[18%] md:top-[15%] left-1/2 -translate-x-1/2 w-44 h-44 md:w-56 md:h-56 rounded-full border border-amber-300/15 animate-[spin_10s_linear_infinite]">
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-400/80 shadow-[0_0_8px_2px_rgba(251,191,36,0.5)]" />
-        </div>
-        <div className="absolute top-[18%] md:top-[15%] left-1/2 -translate-x-1/2 w-36 h-36 md:w-44 md:h-44 rounded-full border border-sky-400/15 animate-[spin_7s_linear_infinite_reverse]">
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sky-400/90 shadow-[0_0_8px_2px_rgba(56,189,248,0.5)]" />
-        </div>
+        {/* Partículas variadas */}
+        <div className="absolute top-[20%] left-[20%] w-2 h-2 bg-sky-400/60 rounded-full blur-[1px] animate-[ping_3s_infinite]" />
+        <div className="absolute bottom-[30%] right-[25%] w-3 h-3 bg-amber-400/50 rounded-full blur-[2px] animate-[ping_4s_infinite_1s]" />
+        <div className="absolute top-[40%] right-[15%] w-1.5 h-1.5 bg-slate-400/40 rounded-full animate-[ping_5s_infinite_0.5s]" />
+        <div className="absolute bottom-[15%] left-[10%] w-2 h-2 bg-indigo-400/40 rounded-full animate-[ping_6s_infinite_2s]" />
+        <div className="absolute top-[65%] left-[35%] w-1 h-1 bg-sky-300/60 rounded-full animate-[ping_3.5s_infinite_1.5s]" />
+        <div className="absolute top-[10%] right-[40%] w-2.5 h-2.5 bg-amber-300/40 rounded-full animate-[ping_4.5s_infinite_0.2s]" />
       </div>
 
-      <div ref={wrapperRef} className="w-full max-w-md relative z-10 mt-16 md:mt-32 max-[390px]:mt-10">
+      <div ref={wrapperRef} className="w-full max-w-md relative z-10">
+        {/* Aros inteligentes que siguen al robot (dentro del contenedor) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0 pointer-events-none z-[-1]">
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-44 h-44 md:w-56 md:h-56 rounded-full border border-amber-300/20 animate-[spin_10s_linear_infinite]">
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-400/80 shadow-[0_0_8px_2px_rgba(251,191,36,0.5)]" />
+          </div>
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-36 h-36 md:w-44 md:h-44 rounded-full border border-sky-400/20 animate-[spin_7s_linear_infinite_reverse]">
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sky-400/90 shadow-[0_0_8px_2px_rgba(56,189,248,0.5)]" />
+          </div>
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full border border-slate-900/10 animate-[spin_12s_linear_infinite]">
+            <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-1 h-1 rounded-full bg-slate-900/40" />
+          </div>
+        </div>
         <div className="w-full rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-visible backdrop-blur-md">
 
           <InteractiveRobot ref={robotRef} />

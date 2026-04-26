@@ -19,7 +19,7 @@ const COLORS_ESTADOS = {
   'EN_MANTENCION': '#f59e0b',
   'DADO_DE_BAJA': '#ef4444'  
 };
-const COLORS_CATEGORIAS = ['#0f172a', '#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'];
+const COLORS_CATEGORIAS = ['#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bae6fd'];
 
 // --- Componentes Skeleton Internos ---
 const Skeleton = ({ className }: { className: string }) => (
