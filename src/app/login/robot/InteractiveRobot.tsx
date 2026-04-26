@@ -294,7 +294,7 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
   const isLongOnMobile = isMobile && speech.length > MOBILE_WRAP_THRESHOLD;
 
   return (
-    <div ref={containerRef} className="absolute -top-24 md:-top-32 max-[390px]:-top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
+    <div ref={containerRef} className="absolute -top-24 md:-top-[136px] max-[390px]:-top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform-origin-bottom flex flex-col items-center">
 
       {/* BURBUJA DE TEXTO (Speech Bubble) */}
       <div
@@ -315,9 +315,9 @@ const InteractiveRobot = forwardRef<RobotHandle>((_, ref) => {
         </p>
       </div>
 
-      <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-20 h-3 md:w-24 md:h-4 max-[390px]:w-14 max-[390px]:h-2 bg-black/20 rounded-full blur-md" />
+      <div className="robot-shadow absolute -bottom-4 left-1/2 -translate-x-1/2 w-18 h-2.5 md:w-20 md:h-3 max-[390px]:w-14 max-[390px]:h-2 bg-black/20 rounded-full blur-md" />
       
-      <svg ref={robotRef} viewBox="0 0 128 128" className="w-36 h-36 md:w-44 md:h-44 max-[390px]:w-28 max-[390px]:h-28 drop-shadow-2xl overflow-visible" xmlns="http://www.w3.org/2000/svg">
+      <svg ref={robotRef} viewBox="0 0 128 128" className="w-32 h-32 md:w-36 md:h-36 max-[390px]:w-28 max-[390px]:h-28 drop-shadow-2xl overflow-visible" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="antennaGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
