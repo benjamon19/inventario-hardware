@@ -5,7 +5,7 @@ import React from 'react';
  * Acepta cualquier className de Tailwind para dimensiones y forma.
  */
 export function Sk({ className, style }: { className: string; style?: React.CSSProperties }) {
-  return <div className={`animate-pulse rounded bg-slate-100 ${className}`} style={style} />;
+  return <div className={`animate-pulse rounded bg-slate-300 ${className}`} style={style} />;
 }
 
 /**

@@ -59,7 +59,7 @@ export default function AdminLayoutClient({
   };
 
   const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-slate-50">
       <div className="flex shrink-0 items-center gap-2 px-4 pt-5 pb-3">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
           <Package className="h-4 w-4" />
@@ -134,7 +134,7 @@ export default function AdminLayoutClient({
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50 transition-colors duration-300">
+    <div className="flex min-h-screen w-full bg-slate-100 transition-colors duration-300">
 
       {/* Sidebar móvil */}
       <Transition show={isMobileMenuOpen} as={Fragment}>
@@ -156,7 +156,7 @@ export default function AdminLayoutClient({
               leave="transition ease-in-out duration-300 transform"
               leaveFrom="translate-x-0" leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className="relative flex w-64 flex-col shadow-2xl border-r border-slate-200 bg-white">
+              <Dialog.Panel className="relative flex w-64 flex-col shadow-2xl border-r border-slate-200 bg-slate-50">
                 <SidebarContent collapsed={false} />
               </Dialog.Panel>
             </Transition.Child>
@@ -166,7 +166,7 @@ export default function AdminLayoutClient({
 
       {/* Sidebar escritorio */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 hidden md:flex flex-col border-r border-slate-200 bg-white
+        fixed inset-y-0 left-0 z-50 hidden md:flex flex-col border-r border-slate-200 bg-slate-50
         ${isSidebarExpanded ? 'w-52' : 'w-16'}
         transition-all duration-300 ease-in-out overflow-hidden print:hidden
       `}>
@@ -180,7 +180,7 @@ export default function AdminLayoutClient({
       `}>
 
         {/* Header */}
-        <header className="sticky top-0 z-40 flex items-center border-b border-slate-200 bg-white px-3 sm:px-5 h-14 2xl:h-16 print:hidden">
+        <header className="sticky top-0 z-40 flex items-center border-b border-slate-200 bg-slate-50/80 backdrop-blur-md px-3 sm:px-5 h-14 2xl:h-16 print:hidden">
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer text-slate-500 hover:bg-slate-50"

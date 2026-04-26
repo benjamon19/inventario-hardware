@@ -100,7 +100,7 @@ function UbicacionEditor({ items, onAdd, onDelete, onSelect, onClose }: Ubicacio
   };
 
   return (
-    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
+    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-50 border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Ubicaciones registradas</p>
       {sortedItems.length === 0 && (
         <p className="text-xs text-slate-400 italic px-2 py-1">Sin ubicaciones aún.</p>
@@ -186,7 +186,7 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
         Volver al inventario
       </button>
 
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
         <div className={`h-2 w-full ${dotClass}`} />
 
         <div className="p-6 sm:p-8">
@@ -592,7 +592,7 @@ export default function InventarioPage() {
             <div className="fixed inset-0 z-10 overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                  <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
+                  <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-slate-50 px-6 pb-8 pt-6 text-left shadow-2xl sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
                     <div className="absolute right-5 top-5">
                       <button type="button" onClick={() => setDeleteItem(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 cursor-pointer transition-colors"><X className="h-5 w-5" /></button>
                     </div>
@@ -607,7 +607,7 @@ export default function InventarioPage() {
                       <button type="button" onClick={handleDelete} disabled={deleteLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50">
                         {deleteLoading ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
                       </button>
-                      <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancelar</button>
+                      <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer">Cancelar</button>
                     </div>
                   </Dialog.Panel>
                 </Transition.Child>
@@ -645,7 +645,7 @@ export default function InventarioPage() {
             placeholder="Filtrar por modelo o SKU..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
           />
         </div>
 
@@ -653,9 +653,9 @@ export default function InventarioPage() {
           <SkeletonFilterRow count={6} height="h-8" />
         ) : sortedCategorias.length > 0 ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => setFilterCategoria('')} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
+            <button onClick={() => setFilterCategoria('')} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
             {sortedCategorias.map(cat => (
-              <button key={cat.id} onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
+              <button key={cat.id} onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
             ))}
           </div>
         ) : null}
@@ -688,7 +688,7 @@ export default function InventarioPage() {
               {sortedUbicaciones.map(ubic => {
                 const active = filterUbicacion === ubic.nombre;
                 return (
-                  <button key={ubic.id} onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}>
+                  <button key={ubic.id} onClick={() => setFilterUbicacion(active ? '' : ubic.nombre)} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}>
                     <MapPin className="h-3 w-3" />{ubic.nombre}
                   </button>
                 );
@@ -701,7 +701,7 @@ export default function InventarioPage() {
 
       {paginationEl}
 
-      <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (

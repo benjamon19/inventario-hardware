@@ -27,7 +27,7 @@ const Skeleton = ({ className }: { className: string }) => (
 );
 
 const KpiSkeleton = () => (
-  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
     <div className="flex flex-col items-start gap-3">
       <Skeleton className="h-9 w-9 rounded-lg" />
       <div className="w-full space-y-2">
@@ -43,7 +43,7 @@ const PieSkeleton = () => (
     {/* Donut placeholder */}
     <div className="relative flex items-center justify-center">
       <Skeleton className="h-44 w-44 rounded-full" />
-      <div className="absolute h-24 w-24 rounded-full bg-white" />
+      <div className="absolute h-24 w-24 rounded-full bg-slate-50" />
     </div>
     {/* Legend */}
     <div className="flex flex-wrap justify-center gap-3">
@@ -226,7 +226,7 @@ export default function AdminDashboard() {
         {loading 
           ? Array(6).fill(0).map((_, i) => <KpiSkeleton key={i} />)
           : stats.map((stat) => (
-            <div key={stat.name} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+            <div key={stat.name} className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex flex-col items-start gap-3">
                 <div className={`rounded-lg p-2 ${stat.bg} w-fit`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
 
       {/* Fila 1 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm min-h-95">
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm min-h-95">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Distribución de Estados por Categoría</h2>
           <div className="w-full">
             {loading ? (
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm min-h-95">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm min-h-95">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Estado General</h2>
           <div className="w-full flex justify-center">
             {loading ? (
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
 
       {/* Fila 2 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm min-h-100">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm min-h-100">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Equipos por Categoría</h2>
           <div className="w-full">
             {loading ? (
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-red-100 bg-white p-6 shadow-sm h-full flex flex-col relative overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm h-full flex flex-col relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <AlertTriangle className="w-32 h-32" />
           </div>

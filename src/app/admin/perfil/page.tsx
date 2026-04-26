@@ -103,7 +103,7 @@ function SubModal({ open, onClose, title, children }: { open: boolean; onClose: 
             <Transition.Child as={Fragment}
               enter="ease-out duration-250" enterFrom="opacity-0 scale-95 translate-y-2" enterTo="opacity-100 scale-100 translate-y-0"
               leave="ease-in duration-150" leaveFrom="opacity-100 scale-100 translate-y-0" leaveTo="opacity-0 scale-95 translate-y-2">
-              <Dialog.Panel className="relative w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden bg-white border border-slate-100">
+              <Dialog.Panel className="relative w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden bg-slate-50 border border-slate-100">
                 <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                   <Dialog.Title className="text-base font-bold text-slate-900">{title}</Dialog.Title>
                   <button onClick={onClose} className="p-1.5 rounded-lg cursor-pointer transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600">
@@ -275,7 +275,7 @@ export default function MiPerfilPage() {
             <Transition.Child as={Fragment}
               enter="transition ease-out duration-300 transform" enterFrom="translate-y-full" enterTo="translate-y-0"
               leave="transition ease-in duration-200 transform" leaveFrom="translate-y-0" leaveTo="translate-y-full">
-              <div className="relative pointer-events-auto w-full max-w-[340px] bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.1)] rounded-t-4xl border-x border-t border-slate-100 overflow-hidden pb-safe">
+              <div className="relative pointer-events-auto w-full max-w-[340px] bg-slate-50 shadow-[0_-10px_40px_rgba(15,23,42,0.1)] rounded-t-4xl border-x border-t border-slate-100 overflow-hidden pb-safe">
                 <div className="mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-100" />
                 <div className="px-3 pb-5 pt-1 space-y-1">
 

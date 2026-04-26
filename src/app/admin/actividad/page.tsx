@@ -15,7 +15,7 @@ import { Sk } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 
 const SkeletonLogRow = () => (
-  <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm">
+  <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 shadow-sm">
     <Sk className="h-9 w-9 rounded-xl shrink-0" />
     <div className="flex-1 flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function ActividadPage() {
   const tipos = ['TODOS', 'INGRESO', 'SALIDA', 'CREACION', 'EDICION', 'ELIMINACION', 'ETIQUETA'] as const;
 
   const tipoChipClass = (tipo: ActionType, active: boolean) => {
-    if (!active) return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300';
+    if (!active) return 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300';
     switch (tipo) {
       case 'INGRESO': return 'bg-emerald-600 text-white border-emerald-600';
       case 'SALIDA': return 'bg-amber-500 text-white border-amber-500';
@@ -216,7 +216,7 @@ export default function ActividadPage() {
               placeholder="Buscar equipo, usuario, SKU..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-900 transition-all shadow-sm"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-900 transition-all shadow-sm"
             />
           </div>
 
@@ -225,7 +225,7 @@ export default function ActividadPage() {
             <select
               value={filterUsuario}
               onChange={e => setFilterUsuario(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-10 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-slate-900 transition-all cursor-pointer shadow-sm"
+              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-10 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-slate-900 transition-all cursor-pointer shadow-sm"
             >
               <option value="">Todos los usuarios</option>
               {usuarios.map(u => (
@@ -257,7 +257,7 @@ export default function ActividadPage() {
             {Array(5).fill(0).map((_, i) => <SkeletonLogRow key={i} />)}
           </div>
         ) : movimientos.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+          <div className="py-20 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
             <Clock className="mx-auto h-12 w-12 text-slate-400 mb-3" />
             <p className="text-slate-500 font-medium">Sin actividad registrada.</p>
           </div>
@@ -267,7 +267,7 @@ export default function ActividadPage() {
             return (
               <div
                 key={mov.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200 group w-full"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200 group w-full"
               >
                 <div className="flex items-center gap-3 w-full min-w-0">
                   <div className={`rounded-xl p-2.5 shadow-inner border shrink-0 ${styles.bg} ${styles.color} ${styles.border}`}>

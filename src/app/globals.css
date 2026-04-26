@@ -2,7 +2,7 @@
 
 html {
   /* Forzamos a que no herede nada del sistema */
-  background-color: #f8fafc; /* bg-slate-50 */
+  background-color: #f1f5f9; /* bg-slate-100 */
   color: #0f172a; /* text-slate-900 */
 }
 

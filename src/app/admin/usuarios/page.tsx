@@ -23,7 +23,7 @@ import { Sk } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 
 const SkeletonUserCard = () => (
-  <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 shadow-sm gap-3">
+  <div className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 shadow-sm gap-3">
     <div className="flex flex-col gap-3">
       <Sk className="h-12 w-12 rounded-[1.1rem] shrink-0" />
       <div className="flex flex-col gap-2 flex-1">
@@ -290,7 +290,7 @@ export default function UsuariosPage() {
   const roles = ['TODOS', 'SUPER_ADMIN', 'ADMIN', 'OPERADOR', 'PENDIENTE'] as const;
 
   const rolChipClass = (rol: typeof roles[number], active: boolean) => {
-    if (!active) return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300';
+    if (!active) return 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300';
     if (rol === 'SUPER_ADMIN') return 'bg-purple-600 text-white border-purple-600';
     if (rol === 'ADMIN') return 'bg-slate-900 text-white border-slate-900';
     if (rol === 'OPERADOR') return 'bg-emerald-600 text-white border-emerald-600';
@@ -338,7 +338,7 @@ export default function UsuariosPage() {
             placeholder="Buscar por correo..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value.trimStart())}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all shadow-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all shadow-sm"
           />
         </div>
 
@@ -365,7 +365,7 @@ export default function UsuariosPage() {
             {Array(6).fill(0).map((_, i) => <SkeletonUserCard key={i} />)}
           </>
         ) : usuarios.length === 0 ? (
-          <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+          <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
             <Users className="mx-auto h-12 w-12 text-slate-400 mb-3" />
             <p className="text-slate-500 font-medium">No se encontraron usuarios.</p>
           </div>
@@ -378,7 +378,7 @@ export default function UsuariosPage() {
             return (
               <div
                 key={perfil.id}
-                className={`flex flex-col rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden ${isUpdating ? 'opacity-60 pointer-events-none' :
+                className={`flex flex-col rounded-2xl border bg-slate-50 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden ${isUpdating ? 'opacity-60 pointer-events-none' :
                   inactivo ? 'opacity-70 grayscale-[0.5] border-red-100 bg-slate-50' :
                     isOnline ? 'border-emerald-200 ring-1 ring-emerald-100/50' : 'border-slate-100 hover:border-slate-300'
                   }`}
@@ -562,7 +562,7 @@ export default function UsuariosPage() {
           <div className="fixed inset-0 z-10 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
+                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-slate-50 px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
                   <div className="absolute right-5 top-5">
                     <button
                       type="button"

@@ -21,7 +21,7 @@ import { colorClasses, colorDotClasses } from '@/lib/colorMaps';
 import { getIconoCategoria } from '@/lib/categoryIcon';
 
 const SkeletonQRCard = () => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4 flex items-center gap-4">
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-4">
     <Sk className="h-10 w-10 rounded-xl shrink-0" />
     <div className="flex-1 flex flex-col gap-2">
       <Sk className="h-4 w-32" />
@@ -319,7 +319,7 @@ export default function GenerarQRPage() {
       <div className="screen-only max-w-5xl mx-auto space-y-8">
 
         {/* Buscador */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+        <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Generador de Etiquetas QR</h1>
           <p className="text-slate-500 text-sm mt-1">Busca un equipo por SKU o selecciónalo desde el listado.</p>
           <div className="mt-6 flex gap-3">
@@ -346,9 +346,9 @@ export default function GenerarQRPage() {
         {/* Vista previa — modo individual */}
         {!multiMode && item && (
           <div className="grid md:grid-cols-2 gap-8 animate-in fade-in zoom-in-95 duration-300">
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 flex flex-col items-center justify-center gap-6">
+            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex flex-col items-center justify-center gap-6">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vista previa</p>
-              <div className="w-48 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm text-center">
+              <div className="w-48 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm text-center">
                 <div className="flex justify-center mb-5">
                   <QRCodeSVG value={item.sku} size={120} level="H" includeMargin={false} />
                 </div>
@@ -395,7 +395,7 @@ export default function GenerarQRPage() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                 multiMode
                   ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600'
               }`}
             >
               <Layers className="h-4 w-4" />
@@ -433,7 +433,7 @@ export default function GenerarQRPage() {
               placeholder="Filtrar por modelo o SKU..."
               value={searchTerm}
               onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
             />
           </div>
 
@@ -441,9 +441,9 @@ export default function GenerarQRPage() {
             <SkeletonFilterRow count={6} height="h-8" />
           ) : sortedCategorias.length > 0 ? (
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={() => { setFilterCategoria(''); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
+              <button onClick={() => { setFilterCategoria(''); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
               {sortedCategorias.map(cat => (
-                <button key={cat.id} onClick={() => { setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
+                <button key={cat.id} onClick={() => { setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
               ))}
             </div>
           ) : null}
@@ -476,7 +476,7 @@ export default function GenerarQRPage() {
                 {sortedUbicaciones.map(ubic => {
                   const active = filterUbicacion === ubic.nombre;
                   return (
-                    <button key={ubic.id} onClick={() => { setFilterUbicacion(active ? '' : ubic.nombre); setCurrentPage(1); }} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}>
+                    <button key={ubic.id} onClick={() => { setFilterUbicacion(active ? '' : ubic.nombre); setCurrentPage(1); }} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-teal-200 hover:text-teal-600'}`}>
                       <MapPin className="h-3 w-3" />{ubic.nombre}
                     </button>
                   );
@@ -509,8 +509,8 @@ export default function GenerarQRPage() {
                     onClick={() => seleccionarEquipo(equipo)}
                     className={`group w-full text-left rounded-2xl border p-4 transition-all cursor-pointer flex items-center gap-4 ${
                       multiMode
-                        ? isSelected ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-200' : 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/40'
-                        : isSelected ? 'border-slate-400 bg-slate-100 ring-2 ring-slate-200'       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-100/40'
+                        ? isSelected ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-200' : 'border-slate-200 bg-slate-50 hover:border-violet-200 hover:bg-violet-50/40'
+                        : isSelected ? 'border-slate-400 bg-slate-100 ring-2 ring-slate-200'       : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/40'
                     }`}
                   >
                     {multiMode ? (
@@ -567,7 +567,7 @@ export default function GenerarQRPage() {
         leaveTo="opacity-0 translate-y-10 scale-95"
       >
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center pointer-events-none print:hidden">
-          <div className="pointer-events-auto w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 sm:gap-5 bg-white px-5 py-3 sm:pl-7 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200">
+          <div className="pointer-events-auto w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 sm:gap-5 bg-slate-50 px-5 py-3 sm:pl-7 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200">
             <div className="flex flex-col justify-center">
               <p className="text-sm font-bold text-slate-800 leading-tight">
                 {selectedItemsMap.size} seleccionada{selectedItemsMap.size > 1 ? 's' : ''}

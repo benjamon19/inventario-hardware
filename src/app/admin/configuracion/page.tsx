@@ -45,7 +45,7 @@ export default function ConfiguracionPage() {
 
       <div className="grid gap-6">
         {/* ── Seguridad ── */}
-        <div className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
           <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-50">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 shadow-inner border border-emerald-200/50">
               <Shield className="h-6 w-6" />

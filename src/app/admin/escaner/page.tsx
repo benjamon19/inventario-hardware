@@ -217,21 +217,21 @@ export default function AdminScannerPage() {
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
         <button
           onClick={() => { setScanMode('TRANSACTION'); setSelectedItem(null); setIsScanning(true); }}
-          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'TRANSACTION' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
+          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'TRANSACTION' ? 'bg-slate-50 text-slate-900 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
             }`}
         >
           <ArrowLeftRight className="h-4 w-4" /> Mover Stock
         </button>
         <button
           onClick={() => { setScanMode('SEARCH'); setSelectedItem(null); setIsScanning(true); }}
-          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'SEARCH' ? 'bg-white text-violet-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
+          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'SEARCH' ? 'bg-slate-50 text-violet-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
             }`}
         >
           <Search className="h-4 w-4" /> Buscar Detalles
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-md shadow-slate-200/50 border border-slate-100">
+      <div className="overflow-hidden rounded-2xl bg-slate-50 shadow-md shadow-slate-200/50 border border-slate-100">
         {isScanning ? (
           <div className="relative h-44 bg-slate-100 w-full overflow-hidden border-b border-slate-200">
             <Scanner
@@ -328,7 +328,7 @@ export default function AdminScannerPage() {
               maxLength={50}
               spellCheck="false"
               autoComplete="off"
-              placeholder={scanMode === 'SEARCH' ? "Ingresa SKU para buscar..." : "Búsqueda manual..."}
+              placeholder={scanMode === 'SEARCH' ? "Ingresa SKU para buscar..." : "O búsqueda manual..."}
               value={manualSku}
               onChange={(e) => setManualSku(e.target.value.trim().toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && processSku(manualSku)}
@@ -365,7 +365,7 @@ export default function AdminScannerPage() {
                 <TailChase size="30" speed="1.75" color="#cbd5e1" />
               </div>
             ) : recentActivity.map((mov) => (
-              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-slate-200 transition-colors">
+              <div key={mov.id} className="flex items-start justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-100 shadow-sm gap-2 hover:border-slate-200 transition-colors">
                 <div className="flex items-start gap-2 flex-1">
                   <div className={`shrink-0 mt-0.5 rounded-md p-1.5 ${mov.tipo === 'SALIDA' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
                     {mov.tipo === 'SALIDA' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
