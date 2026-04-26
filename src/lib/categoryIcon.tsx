@@ -4,7 +4,7 @@ import {
   Mouse, Headphones, Speaker, Smartphone, Radio, Wifi,
   Server, Database, Disc, Plug, Battery, MemoryStick,
   Usb, Files, ShieldCheck, Cable, Gamepad, Webcam, Mic,
-  Router, Network, Power, Search, LayoutGrid
+  Router, Network, Power, Search, LayoutGrid, Hammer
 } from 'lucide-react';
 
 /**
@@ -32,14 +32,14 @@ const ICON_MAPPING = [
   { icon: Wifi,        keywords: ['wifi', 'inalambrico', 'inalámbrico', 'antena'] },
   { icon: Zap,         keywords: ['cargador', 'zap', 'energia', 'energía', 'transformador', 'fuente', 'power supply'] },
   { icon: Battery,     keywords: ['bateria', 'batería', 'pila', 'ups', 'no break'] },
-  { icon: Wrench,      keywords: ['herramientas', 'wrench', 'desarmador', 'destornillador', 'mantenimiento', 'kit', 'set', 'herramienta'] },
+  { icon: Wrench,      keywords: ['herramientas', 'herramienta', 'wrench', 'desarmador', 'destornillador', 'mantenimiento', 'soporte'] },
   { icon: Cable,       keywords: ['cable', 'hdmi', 'usb', 'vga', 'displayport', 'ethernet', 'alimentacion', 'conector'] },
   { icon: ShieldCheck, keywords: ['software', 'licencia', 'windows', 'office', 'antivirus', 'sistema'] },
   { icon: Gamepad,     keywords: ['control', 'mando', 'joystick', 'gamepad', 'consola', 'playstation', 'xbox'] },
   { icon: Usb,         keywords: ['pendrive', 'memoria usb', 'flash drive', 'periferico', 'periférico'] },
   { icon: Disc,        keywords: ['cd', 'dvd', 'disco optico', 'blue ray'] },
   { icon: Files,       keywords: ['documento', 'manual', 'guia', 'papel'] },
-  { icon: Box,         keywords: ['kit', 'pack', 'combo', 'caja', 'paquete'] },
+  { icon: Box,         keywords: ['kit', 'pack', 'combo', 'caja', 'paquete', 'maletin', 'maletín'] },
 ];
 
 /**
