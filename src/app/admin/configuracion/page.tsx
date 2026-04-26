@@ -128,19 +128,6 @@ export default function ConfiguracionPage() {
             </div>
           </form>
         </div>
-
-        {/* Info Box - Apariencia Optimizada */}
-        <div className="flex items-start gap-4 rounded-[2rem] bg-blue-50/50 p-6 border border-blue-100/50">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-            <Info className="h-5 w-5" />
-          </div>
-          <div className="flex flex-col justify-center">
-            <h3 className="text-sm font-bold text-blue-900 mb-1">Entorno de Visualización</h3>
-            <p className="text-xs text-blue-800/80 leading-relaxed max-w-2xl font-medium">
-              El sistema se encuentra permanentemente en <strong>Modo Claro</strong>. Con posible actualización para modo oscuro próximamente.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
