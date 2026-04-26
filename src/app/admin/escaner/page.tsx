@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ScanLine, Search, X, ArrowUpRight, ArrowDownLeft,
+  Camera, Search, X, ArrowUpRight, ArrowDownLeft,
   AlertCircle, CheckCircle2, History, ChevronLeft, ChevronRight,
   ArrowLeftRight, MapPin, Layers
 } from 'lucide-react';
@@ -233,7 +233,7 @@ export default function AdminScannerPage() {
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-md shadow-slate-200/50 border border-slate-100">
         {isScanning ? (
-          <div className="relative h-44 bg-slate-900 w-full">
+          <div className="relative h-44 bg-slate-100 w-full overflow-hidden border-b border-slate-200">
             <Scanner
               onScan={(result) => {
                 if (result && result.length > 0) {
@@ -243,15 +243,15 @@ export default function AdminScannerPage() {
               components={{ finder: false }}
               sound={false}
             />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 pointer-events-none">
-              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-black/10 ${scanMode === 'SEARCH' ? 'border-violet-500' : 'border-slate-900'
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-white/40 backdrop-blur-[1px] ${scanMode === 'SEARCH' ? 'border-violet-600' : 'border-slate-900'
                 }`}>
                 {scanMode === 'SEARCH'
-                  ? <Search className="h-8 w-8 text-violet-500 drop-shadow-md" />
-                  : <ScanLine className="h-8 w-8 text-slate-900 drop-shadow-md" />
+                  ? <Search className="h-8 w-8 text-violet-600 drop-shadow-sm" />
+                  : <Camera className="h-8 w-8 text-slate-900 drop-shadow-sm" />
                 }
               </div>
-              <p className="mt-2 text-[11px] font-medium bg-black/60 px-3 py-1 rounded-full text-white shadow-sm">
+              <p className="mt-3 text-[11px] font-bold bg-white/90 border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-900 shadow-sm backdrop-blur-md">
                 {scanMode === 'SEARCH' ? 'Enfoca para buscar detalles' : 'Enfoca para mover stock'}
               </p>
             </div>
@@ -311,7 +311,7 @@ export default function AdminScannerPage() {
                   onClick={() => { setIsScanning(true); setSelectedItem(null); setManualSku(''); }}
                   className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-violet-50 p-3 text-violet-700 border border-violet-100 hover:bg-violet-100 transition-all cursor-pointer shadow-sm"
                 >
-                  <ScanLine className="h-5 w-5" />
+                  <Camera className="h-5 w-5" />
                   <span className="text-xs font-bold uppercase tracking-wider">Escanear otro equipo</span>
                 </button>
               )}
