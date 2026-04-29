@@ -63,15 +63,19 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
         } catch (e) { console.error(e); }
       }
 
-      if (activeItem.id) {
-        setItemSettings({
-          [activeItem.id]: {
-            width: gW, height: gH, fontSize: gFS, wrapText: gWp,
-            text: `${activeItem.modelo} | ${activeItem.sku} | ${activeItem.categoria}`
-          }
-        });
-      }
+      const initialSettings: Record<string, ItemSettings> = {};
+      selectedItems.forEach(item => {
+        initialSettings[item.id] = {
+          width: gW, 
+          height: gH, 
+          fontSize: gFS, 
+          wrapText: gWp,
+          text: `${item.modelo} | ${item.sku} | ${item.categoria}`
+        };
+      });
+      setItemSettings(initialSettings);
       setCurrentIndex(0);
+
     }
   }, [isOpen]);
 

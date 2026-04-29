@@ -173,7 +173,8 @@ export default function GenerarQRPage() {
 
   // Cargar settings persistentes
   useEffect(() => {
-    const saved = localStorage.getItem('qr_print_settings_v2');
+    const saved = localStorage.getItem('qr_print_settings_v3');
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -401,8 +402,10 @@ export default function GenerarQRPage() {
               width: 5, 
               height: 2.5, 
               fontSize: 12, 
+              wrapText: true,
               text: `${eq.modelo} | ${eq.sku} | ${eq.categoria}` 
             };
+
 
             return (
               <div key={eq.id} className="etiqueta" style={{ width: `${s.width}cm`, height: `${s.height}cm` }}>
