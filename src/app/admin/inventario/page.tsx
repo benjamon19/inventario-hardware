@@ -329,9 +329,11 @@ export default function InventarioPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [currentPage, setCurrentPage] = useState(1);
-  // Inicialización correcta: sin useState(15) que luego cambia a 6/12
   const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage);
+
   const topRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
@@ -464,10 +466,32 @@ export default function InventarioPage() {
   }, [items]);
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpenId(null); };
+    const handleKey = (e: KeyboardEvent) => {
+      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+
+      if (e.key === 'Escape') {
+        setMenuOpenId(null);
+        setDetalleItem(null);
+        setEditItem(null);
+        setDeleteItem(null);
+        setIsModalOpen(false);
+      }
+
+      if (!isInput) {
+        if (e.key === '/') {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+        }
+        if (e.key.toLowerCase() === 'n') {
+          e.preventDefault();
+          setIsModalOpen(true);
+        }
+      }
+    };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
+
 
   const addCategoria = useCallback(async (nombre: string, extra?: Record<string, string>) => {
     const prefijo = (extra?.prefijo?.trim() || nombre.substring(0, 3)).toUpperCase();
@@ -717,10 +741,9 @@ export default function InventarioPage() {
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
+            ref={searchInputRef}
             type="text"
-            maxLength={50}
-            autoComplete="off"
-            placeholder="Filtrar por modelo o SKU..."
+            placeholder="Buscar por modelo, SKU o ubicación..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"

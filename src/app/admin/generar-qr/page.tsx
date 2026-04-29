@@ -1,6 +1,7 @@
 'use client';
 
-import { Fragment, useState, useEffect, useCallback, useMemo } from 'react';
+import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+
 import { QRCodeSVG } from 'qrcode.react';
 import { Transition } from '@headlessui/react';
 
@@ -70,6 +71,8 @@ export default function GenerarQRPage() {
   
   const [currentPage,     setCurrentPage]     = useState(1);
   const [itemsPerPage,    setItemsPerPage]    = useState(getInitialItemsPerPage);
+  const skuInputRef = useRef<HTMLInputElement>(null);
+
   const [refreshTrigger,  setRefreshTrigger]  = useState(0);
 
   const [multiMode,   setMultiMode]   = useState(false);
@@ -197,7 +200,22 @@ export default function GenerarQRPage() {
     }
   }, []);
 
-  // Ajustar cantidad de items por pantalla con rAF
+  const toggleMultiMode = useCallback(() => {
+    setMultiMode(prev => {
+      const nextMode = !prev;
+      if (nextMode && item) {
+        // Si entramos a modo múltiple y hay un item en preview, lo incluimos automáticamente
+        setSelectedItemsMap(new Map([[item.id, item]]));
+      } else if (!nextMode) {
+        // Al salir del modo múltiple, limpiamos el mapa
+        setSelectedItemsMap(new Map());
+      }
+      return nextMode;
+    });
+  }, [item]);
+
+
+  // Ajustar cantidad de items por pantalla y manejar atajos
   useEffect(() => {
     let rafId: ReturnType<typeof requestAnimationFrame>;
     const handleResize = () => {
@@ -208,8 +226,36 @@ export default function GenerarQRPage() {
     };
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => { window.removeEventListener('resize', handleResize); cancelAnimationFrame(rafId); };
-  }, []);
+
+    const handleKey = (e: KeyboardEvent) => {
+      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+
+      if (e.key === 'Escape') {
+        setIsPrintMenuOpen(false);
+        setItem(null);
+      }
+
+      if (!isInput) {
+        if (e.key === '/') {
+          e.preventDefault();
+          skuInputRef.current?.focus();
+        }
+        if (e.key.toLowerCase() === 'm') {
+          e.preventDefault();
+          toggleMultiMode();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+
+    return () => { 
+      window.removeEventListener('resize', handleResize); 
+      window.removeEventListener('keydown', handleKey);
+      cancelAnimationFrame(rafId); 
+    };
+  }, [toggleMultiMode]);
+
+
 
   const getBadgeClass = useCallback((estadoNombre: string) => {
     return badgeClassMap[estadoNombre] ?? colorClasses.slate;
@@ -236,11 +282,6 @@ export default function GenerarQRPage() {
     // Eliminado scrollTo para evitar mover la vista al seleccionar
   }, [multiMode, toggleSeleccion]);
 
-
-  const toggleMultiMode = useCallback(() => {
-    setMultiMode(v => !v);
-    setSelectedItemsMap(new Map());
-  }, []);
 
   const seleccionarTodosPagina = useCallback(() => {
     setSelectedItemsMap(prev => {
@@ -406,6 +447,7 @@ export default function GenerarQRPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
+                ref={skuInputRef}
                 type="text"
                 maxLength={50}
                 spellCheck="false"

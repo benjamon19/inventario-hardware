@@ -104,6 +104,27 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
     }));
   };
 
+  // Atajos de teclado
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+      if (!isInput) {
+        if (e.key === 'ArrowLeft') setCurrentIndex(prev => (prev - 1 + selectedItems.length) % selectedItems.length);
+        if (e.key === 'ArrowRight') setCurrentIndex(prev => (prev + 1) % selectedItems.length);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!isMobile) {
+          onConfirmPrint({ items: itemSettings });
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, selectedItems.length, itemSettings, isMobile, onConfirmPrint, onClose]);
+
+
   const handleInputChange = (field: 'width' | 'height' | 'fontSize', value: string) => {
     if (field === 'width') {
         setWidthInput(value);
