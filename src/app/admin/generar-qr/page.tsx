@@ -7,8 +7,9 @@ import { Transition } from '@headlessui/react';
 import {
   Search, Printer, Package, QrCode, Laptop, Monitor, Cpu,
   HardDrive, Tablet, Keyboard, ChevronLeft, ChevronRight,
-  CheckSquare, Square, X, Layers, MapPin,
+  CheckSquare, Square, X, Layers, MapPin, MonitorOff,
 } from 'lucide-react';
+
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { registrarLog } from '@/lib/logger';
@@ -19,6 +20,8 @@ import { Sk, SkeletonFilterRow } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 import { colorClasses, colorDotClasses } from '@/lib/colorMaps';
 import { getIconoCategoria } from '@/lib/categoryIcon';
+import MenuImpresion from './MenuImpresion';
+
 
 const SkeletonQRCard = () => (
   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-4">
@@ -73,6 +76,27 @@ export default function GenerarQRPage() {
   // Cambiamos el Set por un Map para guardar el objeto completo del equipo seleccionado 
   // y así no perder los datos al cambiar de página
   const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, any>>(new Map());
+  const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
+  const [showMobileToast, setShowMobileToast] = useState(false);
+
+  const triggerPrintMenu = () => {
+    if (window.innerWidth < 1024) {
+      setShowMobileToast(true);
+      setTimeout(() => setShowMobileToast(false), 3000);
+    } else {
+      setIsPrintMenuOpen(true);
+    }
+  };
+
+  const [printSettings, setPrintSettings] = useState({
+
+    items: {} as Record<string, { width: number, height: number, fontSize: number, text: string, wrapText: boolean }>
+  });
+
+
+
+
+
 
   // Listas ordenadas alfabéticamente
   const sortedCategorias  = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
@@ -144,6 +168,23 @@ export default function GenerarQRPage() {
     return () => clearTimeout(timer);
   }, [currentPage, itemsPerPage, searchTerm, filterCategoria, filterEstado, filterUbicacion, refreshTrigger]);
 
+  // Cargar settings persistentes
+  useEffect(() => {
+    const saved = localStorage.getItem('qr_print_settings_v2');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.items) {
+          setPrintSettings(parsed);
+        }
+      } catch (e) {
+        console.error('Error loading print settings', e);
+      }
+    }
+  }, []);
+
+
+
   // Manejar parámetro en URL
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -192,8 +233,9 @@ export default function GenerarQRPage() {
     if (multiMode) { toggleSeleccion(equipo); return; }
     setItem(equipo);
     setSku(equipo.sku);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Eliminado scrollTo para evitar mover la vista al seleccionar
   }, [multiMode, toggleSeleccion]);
+
 
   const toggleMultiMode = useCallback(() => {
     setMultiMode(v => !v);
@@ -210,17 +252,24 @@ export default function GenerarQRPage() {
 
   const deseleccionarTodos = useCallback(() => setSelectedItemsMap(new Map()), []);
   
-  const imprimir = useCallback(async () => {
+  const imprimir = useCallback(async (settings?: any) => {
+    if (settings) setPrintSettings(settings);
+    
     const lista = multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : []);
     for (const eq of lista) {
       await registrarLog('ETIQUETA', 'HARDWARE', eq.id, { 
         sku: eq.sku, 
         modelo: eq.modelo,
-        detalle: 'Impresión de etiqueta QR' 
+        detalle: 'Impresión de etiqueta QR personalizada' 
       });
     }
-    window.print();
+    
+    setTimeout(() => {
+      window.print();
+    }, 200);
   }, [multiMode, selectedItemsMap, item]);
+
+
 
 
 
@@ -247,6 +296,12 @@ export default function GenerarQRPage() {
 
   const listaImpresion = multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : []);
 
+  const firstItem = listaImpresion[0];
+  const firstItemSettings = (firstItem && printSettings?.items && printSettings.items[firstItem.id]) || { 
+    width: 5, 
+    height: 2.5 
+  };
+
   return (
     <>
       <style>{`
@@ -258,9 +313,10 @@ export default function GenerarQRPage() {
           .screen-only { display: none !important; }
 
           @page {
-            size: auto;
+            size: ${firstItemSettings.width}cm ${firstItemSettings.height}cm;
             margin: 0;
           }
+
 
           body, html {
             margin: 0;
@@ -273,13 +329,11 @@ export default function GenerarQRPage() {
           }
 
           .etiqueta {
-            height: 100vh;
-            width: 100;
             display: flex !important;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 5%;
+            padding: 0;
             box-sizing: border-box;
             background: white;
             font-family: system-ui, sans-serif;
@@ -297,23 +351,49 @@ export default function GenerarQRPage() {
         }
       `}</style>
 
+
       {/* ETIQUETAS PARA IMPRIMIR */}
       {listaImpresion.length > 0 && (
         <div className="print-only">
-          {listaImpresion.map((eq) => (
-            <div key={eq.id} className="etiqueta">
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyItems: 'center', width: '100%', minHeight: 0 }}>
-                <QRCodeSVG value={eq.sku} level="H" includeMargin={false} style={{ width: '100%', height: '100%' }} />
+          {listaImpresion.map((eq) => {
+            const s = (printSettings?.items && printSettings.items[eq.id]) || { 
+              width: 5, 
+              height: 2.5, 
+              fontSize: 12, 
+              text: `${eq.modelo} | ${eq.sku} | ${eq.categoria}` 
+            };
+
+            return (
+              <div key={eq.id} className="etiqueta" style={{ width: `${s.width}cm`, height: `${s.height}cm` }}>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%', height: '100%', padding: '0.5mm', gap: '2mm' }}>
+                  <div style={{ height: '96%', aspectRatio: '1/1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <QRCodeSVG value={eq.sku} size={512} level="H" includeMargin={false} style={{ height: '100%', width: '100%' }} />
+                  </div>
+                  <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+
+                    <p style={{ 
+                        color: 'black', 
+                        fontSize: `${s.fontSize}px`, 
+                        fontWeight: 900, 
+                        margin: 0, 
+                        lineHeight: 1.1, 
+                        whiteSpace: s.wrapText ? 'normal' : 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis' 
+                    }}>
+                        {s.text}
+                    </p>
+
+                  </div>
+                </div>
               </div>
-              <div style={{ flexShrink: 0, textAlign: 'center', width: '100%', marginTop: '2mm' }}>
-                <p style={{ color: 'black', fontSize: 'clamp(14px, 5vw, 48px)', fontWeight: 900, margin: 0, lineHeight: 1.1, letterSpacing: '0.05em' }}>{eq.sku}</p>
-                <p style={{ fontSize: 'clamp(10px, 3vw, 28px)', fontWeight: 700, color: '#444', margin: '2px 0 0 0', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.modelo}</p>
-                <p style={{ fontSize: 'clamp(8px, 2vw, 20px)', color: '#555', margin: '2px 0 0 0', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.categoria}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+
+
 
       {/* UI PANTALLA */}
       <div className="screen-only max-w-5xl mx-auto space-y-8">
@@ -368,9 +448,11 @@ export default function GenerarQRPage() {
                   {item.descripcion && <li><strong>Notas:</strong> <span className="font-normal">{item.descripcion}</span></li>}
                 </ul>
               </div>
-              <button onClick={imprimir} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all cursor-pointer">
+              <button onClick={triggerPrintMenu} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all cursor-pointer">
                 <Printer className="h-5 w-5" /> Imprimir Etiqueta
               </button>
+
+
               <button onClick={() => setItem(null)} className="flex items-center justify-center gap-2 border border-slate-200 text-slate-600 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all cursor-pointer text-sm">
                 Seleccionar otro equipo
               </button>
@@ -552,7 +634,9 @@ export default function GenerarQRPage() {
 
         </div>
 
-        {multiMode && selectedItemsMap.size > 0 && <div className="h-24" />}
+        {/* Espaciador constante para evitar saltos al aparecer la barra batch */}
+        <div className={`h-24 transition-all duration-300 ${multiMode && selectedItemsMap.size > 0 ? 'block' : 'hidden'}`} />
+
       </div>
 
       {/* BARRA STICKY BATCH */}
@@ -579,13 +663,17 @@ export default function GenerarQRPage() {
             <div className="w-px h-8 bg-slate-200 shrink-0" />
             <div className="flex items-center gap-1 sm:gap-2">
               <button 
-                onClick={imprimir} 
+                onClick={triggerPrintMenu} 
                 className="flex items-center gap-2 bg-violet-600 text-white px-4 sm:px-6 py-2.5 rounded-full font-bold hover:bg-violet-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer text-sm whitespace-nowrap"
               >
-                <Printer className="h-4 w-4" /> 
-                <span className="hidden sm:inline">Imprimir todas</span>
-                <span className="sm:hidden">Imprimir</span>
-              </button>
+
+                  <Printer className="h-4 w-4" /> 
+                  <span className="hidden sm:inline">Imprimir todas</span>
+                  <span className="sm:hidden">Imprimir</span>
+                </button>
+
+
+
               <button 
                 onClick={deseleccionarTodos} 
                 title="Limpiar selección" 
@@ -597,6 +685,31 @@ export default function GenerarQRPage() {
           </div>
         </div>
       </Transition>
+
+      <MenuImpresion
+        isOpen={isPrintMenuOpen}
+        onClose={() => setIsPrintMenuOpen(false)}
+        onConfirmPrint={imprimir}
+        selectedCount={multiMode ? selectedItemsMap.size : (item ? 1 : 0)}
+        selectedItems={multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : [])}
+      />
+
+
+      {/* Toast de advertencia Mobile */}
+      <Transition show={showMobileToast} as={Fragment} enter="transition ease-out duration-300 transform" enterFrom="opacity-0 translate-y-10 scale-95" enterTo="opacity-100 translate-y-0 scale-100" leave="transition ease-in duration-200 transform" leaveFrom="opacity-100 translate-y-0 scale-100" leaveTo="opacity-0 translate-y-10 scale-95">
+        <div className="fixed bottom-0 left-0 right-0 z-[100] p-6 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-3 bg-white px-6 py-3.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-red-100">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <MonitorOff className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-slate-800 leading-tight">Impresión no disponible</p>
+              <p className="text-[11px] text-red-500 font-medium leading-tight">Por favor, usa una computadora para imprimir etiquetas.</p>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </>
   );
+
 }

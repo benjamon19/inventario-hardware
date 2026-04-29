@@ -7,8 +7,9 @@ import {
   Plus, Search, MoreVertical,
   X, Check, Trash2, Edit2, AlertTriangle,
   ArrowLeft, Tag, Layers, FileText,
-  MapPin, Pencil
+  MapPin, Pencil, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
+
 import { supabase } from '@/lib/supabase';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { TailChase } from 'ldrs/react';
@@ -19,6 +20,8 @@ import { getIconoCategoria } from '@/lib/categoryIcon';
 import { Sk, SkeletonFilterRow } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 import NuevoEquipoModal from './NuevoEquipoModal';
+import AccionesMenu from './AccionesMenu';
+
 
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Estado = { id: string; nombre: string; color: string };
@@ -162,10 +165,13 @@ type DetalleViewProps = {
   onBack: () => void;
   onEdit: (item: HardwareItem) => void;
   onDelete: (item: HardwareItem) => void;
+  onMoveStock: (item: HardwareItem, tipo: 'SALIDA' | 'INGRESO') => Promise<void>;
   getBadgeClass: (estado: string) => string;
+
 };
 
-function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getBadgeClass }: DetalleViewProps) {
+function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, onMoveStock, getBadgeClass }: DetalleViewProps) {
+
   const est = estados.find(e => e.nombre === item.estado);
   const dotClass = colorDotClasses[est?.color ?? 'slate'] ?? 'bg-slate-400';
 
@@ -266,6 +272,23 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
           </p>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => onMoveStock(item, 'SALIDA')}
+              disabled={item.estado === 'EN_USO'}
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 transition-all cursor-pointer disabled:opacity-30"
+            >
+              <ArrowUpRight className="h-3.5 w-3.5" /> Retirar
+            </button>
+            <button
+              onClick={() => onMoveStock(item, 'INGRESO')}
+              disabled={item.estado === 'DISPONIBLE'}
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all cursor-pointer disabled:opacity-30"
+            >
+              <ArrowDownLeft className="h-3.5 w-3.5" /> Devolver
+            </button>
+
+            <div className="w-px h-6 bg-slate-200 mx-1" />
+
+            <button
               onClick={() => onDelete(item)}
               className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
             >
@@ -278,6 +301,7 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, getB
               <Edit2 className="h-3.5 w-3.5" /> Editar equipo
             </button>
           </div>
+
         </div>
       </div>
     </div>
@@ -315,8 +339,16 @@ export default function InventarioPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [toastContent, setToastContent] = useState({ title: '', subtitle: '' });
+
+  const triggerToast = useCallback((title: string, subtitle: string) => {
+    setToastContent({ title, subtitle });
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 3000);
+  }, []);
 
   const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
+
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
@@ -490,7 +522,51 @@ export default function InventarioPage() {
     }
   }, []);
 
+  const handleMoveStock = useCallback(async (item: HardwareItem, tipo: 'SALIDA' | 'INGRESO') => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const nuevoEstado = tipo === 'SALIDA' ? 'EN_USO' : 'DISPONIBLE';
+    
+    // 1. Registrar transacción
+    const { error: transError } = await supabase
+      .from('transacciones')
+      .insert([{
+        sku: item.sku,
+        hardware_id: item.id,
+        operador_id: user.id,
+        tipo: tipo,
+        timestamp: new Date().toISOString()
+      }]);
+
+    // 2. Actualizar hardware
+    const { error: hwError } = await supabase
+      .from('hardware')
+      .update({ estado: nuevoEstado })
+      .eq('id', item.id);
+
+    if (!transError && !hwError) {
+      await registrarLog(tipo, 'HARDWARE', item.id, {
+        sku: item.sku,
+        modelo: item.modelo,
+        notas: `Cambio de estado desde Menú Acciones. Nuevo estado: ${nuevoEstado}`
+      });
+      setRefreshTrigger(prev => prev + 1);
+      
+      const title = tipo === 'SALIDA' ? 'Equipo retirado' : 'Equipo devuelto';
+      const subtitle = tipo === 'SALIDA' 
+        ? `${item.modelo} marcado como en uso` 
+        : `${item.modelo} marcado como disponible`;
+      
+      triggerToast(title, subtitle);
+    } else {
+      console.error('Error al registrar movimiento:', transError || hwError);
+    }
+
+  }, []);
+
   const openEdit = (item: HardwareItem) => {
+
     setEditItem(item);
     setEditFormData({
       modelo: item.modelo,
@@ -581,7 +657,9 @@ export default function InventarioPage() {
           onBack={() => setDetalleItem(null)}
           onEdit={openEdit}
           onDelete={(item) => { setDeleteItem(item); }}
+          onMoveStock={handleMoveStock}
           getBadgeClass={getBadgeClass}
+
         />
 
         <Transition show={!!deleteItem} as={Fragment}>
@@ -840,9 +918,9 @@ export default function InventarioPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
           setRefreshTrigger(prev => prev + 1);
-          setShowSuccessToast(true);
-          setTimeout(() => setShowSuccessToast(false), 3000);
+          triggerToast('Listo, equipo registrado', 'El inventario se ha actualizado correctamente');
         }}
+
         categorias={categorias}
         estados={estados}
         ubicaciones={ubicacion}
@@ -854,44 +932,16 @@ export default function InventarioPage() {
         deleteUbicacion={deleteUbicacion}
       />
 
-      {typeof document !== 'undefined' && createPortal(
-        <Transition show={!!menuOpenId} as={Fragment}>
-          <div className="fixed inset-0 z-50 pointer-events-none flex items-end justify-center">
-            <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
-              <div className="absolute inset-0 pointer-events-auto bg-slate-900/10 backdrop-blur-[2px]" onClick={() => setMenuOpenId(null)} />
-            </Transition.Child>
+      <AccionesMenu
+        menuOpenId={menuOpenId}
+        items={items}
+        onClose={() => setMenuOpenId(null)}
+        onEdit={openEdit}
+        onDelete={(item) => { setDeleteItem(item); }}
+        onMoveStock={handleMoveStock}
+      />
 
-            <Transition.Child as={Fragment} enter="transition ease-out duration-300 transform" enterFrom="translate-y-full" enterTo="translate-y-0" leave="transition ease-in duration-200 transform" leaveFrom="translate-y-0" leaveTo="translate-y-full">
-              <div className="relative pointer-events-auto w-full max-w-[320px] bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.1)] rounded-t-4xl border-x border-t border-slate-100 overflow-hidden pb-safe">
-                <div className="mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-100" />
-                <div className="px-3 pb-5 pt-1 space-y-1">
-                  <button
-                    onClick={() => {
-                      const item = items.find(i => i.id === menuOpenId);
-                      if (item) openEdit(item);
-                      setMenuOpenId(null);
-                    }}
-                    className="flex w-full items-center gap-4 px-5 py-4 text-sm font-bold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors rounded-2xl"
-                  >
-                    <Edit2 className="h-5 w-5 text-slate-400" /> Editar equipo
-                  </button>
-                  <div className="mx-4 border-t border-slate-50" />
-                  <button
-                    onClick={() => {
-                      const item = items.find(i => i.id === menuOpenId);
-                      if (item) { setDeleteItem(item); setMenuOpenId(null); }
-                    }}
-                    className="flex w-full items-center gap-4 px-5 py-4 text-sm font-bold text-red-600 hover:bg-red-50 cursor-pointer transition-colors rounded-2xl"
-                  >
-                    <Trash2 className="h-5 w-5" /> Eliminar equipo
-                  </button>
-                </div>
-              </div>
-            </Transition.Child>
-          </div>
-        </Transition>,
-        document.body
-      )}
+
 
       {/* Modal Editar */}
       <Transition show={!!editItem} as={Fragment}>
@@ -1022,9 +1072,10 @@ export default function InventarioPage() {
               <Check className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
-              <p className="text-sm font-bold text-slate-800 leading-tight">Listo, equipo registrado</p>
-              <p className="text-[11px] text-slate-400 font-medium">El inventario se ha actualizado correctamente</p>
+              <p className="text-sm font-bold text-slate-800 leading-tight">{toastContent.title}</p>
+              <p className="text-[11px] text-slate-400 font-medium">{toastContent.subtitle}</p>
             </div>
+
           </div>
         </div>
       </Transition>
