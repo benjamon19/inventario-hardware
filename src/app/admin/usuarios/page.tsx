@@ -320,6 +320,7 @@ export default function UsuariosPage() {
           )}
         </div>
         <button
+          id="tour-nuevo-usuario"
           onClick={() => setIsModalOpen(true)}
           className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-slate-200 hover:bg-slate-800 hover:-translate-y-0.5 transition-all w-full sm:w-auto shrink-0 cursor-pointer"
         >

@@ -730,6 +730,7 @@ export default function InventarioPage() {
           <p className="text-sm text-slate-500">Gestiona y registra los activos tecnológicos de la bodega.</p>
         </div>
         <button
+          id="tour-nuevo-equipo"
           onClick={() => setIsModalOpen(true)}
           className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
         >

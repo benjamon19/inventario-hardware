@@ -6,12 +6,37 @@ import 'ldrs/react/TailChase.css';
 import { supabase } from '@/lib/supabase';
 import { registrarLog } from '@/lib/logger';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import wallIco from '@/app/wall-ico.svg';
 
 export default function ConfiguracionPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const router = useRouter();
+  const [isRestartingTour, setIsRestartingTour] = useState(false);
+
+  const handleRestartTour = async () => {
+    setIsRestartingTour(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('perfiles')
+          .update({ ha_visto_tour: false })
+          .eq('id', user.id);
+
+        // Redirigimos al admin que lanzará el tour de nuevo
+        window.location.href = '/admin';
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRestartingTour(false);
+    }
+  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,6 +152,33 @@ export default function ConfiguracionPage() {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <div className="grid gap-6">
+        {/* ── Recorrido de Bienvenida ── */}
+        <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 shadow-inner">
+              <img src={typeof wallIco === 'object' ? (wallIco as any).src ?? String(wallIco) : String(wallIco)} alt="" className="h-7 w-7 object-contain drop-shadow-sm" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Recorrido de Bienvenida</h2>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">Vuelve a ver el tutorial interactivo de la plataforma</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <p className="text-sm text-slate-600 max-w-md leading-relaxed">
+              Si quieres repasar cómo funcionan las distintas herramientas y vistas de Wall, puedes reiniciar el recorrido interactivo.
+            </p>
+            <button
+              onClick={handleRestartTour}
+              disabled={isRestartingTour}
+              className="flex shrink-0 items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {isRestartingTour ? 'Reiniciando...' : 'Repetir recorrido'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

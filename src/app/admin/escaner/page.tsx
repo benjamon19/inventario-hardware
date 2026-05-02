@@ -216,6 +216,7 @@ export default function AdminScannerPage() {
       {/* TABS DE MODO */}
       <div className="flex bg-slate-100 p-1.5 rounded-xl mb-4">
         <button
+          id="tour-mover-stock"
           onClick={() => { setScanMode('TRANSACTION'); setSelectedItem(null); setIsScanning(true); }}
           className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'TRANSACTION' ? 'bg-slate-50 text-slate-900 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
             }`}
@@ -223,6 +224,7 @@ export default function AdminScannerPage() {
           <ArrowLeftRight className="h-4 w-4" /> Mover Stock
         </button>
         <button
+          id="tour-buscar-detalles"
           onClick={() => { setScanMode('SEARCH'); setSelectedItem(null); setIsScanning(true); }}
           className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'SEARCH' ? 'bg-slate-50 text-violet-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
             }`}
@@ -231,7 +233,7 @@ export default function AdminScannerPage() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-slate-50 shadow-md shadow-slate-200/50 border border-slate-100">
+      <div id="tour-scanner-view" className="overflow-hidden rounded-2xl bg-slate-50 shadow-md shadow-slate-200/50 border border-slate-100">
         {isScanning ? (
           <div className="relative h-44 bg-slate-100 w-full overflow-hidden border-b border-slate-200">
             <Scanner

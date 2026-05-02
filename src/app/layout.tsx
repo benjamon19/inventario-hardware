@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Inventario Hardware | Bodega",
+  title: "Wall | Sistema de Inventario",
   description: "Sistema de control de ingreso y salida de equipos",
 };
 

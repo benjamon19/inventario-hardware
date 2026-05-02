@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { registrarLog } from '@/lib/logger';
 import { useAvatar } from '@/components/useAvatar';
+import OnboardingTour from '@/components/OnboardingTour';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -44,12 +45,12 @@ export default function AdminLayoutClient({
   };
 
   const menuItems = useMemo(() => [
-    { name: 'Panel Principal', href: '/admin', icon: LayoutDashboard },
-    { name: 'Inventario', href: '/admin/inventario', icon: Box },
-    { name: 'Generar QR', href: '/admin/generar-qr', icon: QrCode },
-    { name: 'Escáner', href: '/admin/escaner', icon: ScanLine },
-    { name: 'Actividad', href: '/admin/actividad', icon: History },
-    { name: 'Usuarios', href: '/admin/usuarios', icon: Users },
+    { name: 'Panel Principal', href: '/admin', icon: LayoutDashboard, id: 'tour-dashboard' },
+    { name: 'Inventario', href: '/admin/inventario', icon: Box, id: 'tour-inventario-menu' },
+    { name: 'Generar QR', href: '/admin/generar-qr', icon: QrCode, id: 'tour-generar-qr-menu' },
+    { name: 'Escáner', href: '/admin/escaner', icon: ScanLine, id: 'tour-escaner-menu' },
+    { name: 'Actividad', href: '/admin/actividad', icon: History, id: 'tour-actividad-menu' },
+    { name: 'Usuarios', href: '/admin/usuarios', icon: Users, id: 'tour-usuarios-menu' },
   ], []);
 
   const handleLogout = async () => {
@@ -66,7 +67,7 @@ export default function AdminLayoutClient({
         </div>
         <span className={`font-extrabold tracking-tight text-sm leading-tight whitespace-nowrap overflow-hidden transition-all duration-300 text-slate-900 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
           }`}>
-          Bodega Informática
+          Wall | Sistema Inventario
         </span>
       </div>
 
@@ -85,10 +86,11 @@ export default function AdminLayoutClient({
               <Link
                 key={item.name}
                 href={item.href}
+                id={item.id}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 ${isActive
-                    ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -104,9 +106,11 @@ export default function AdminLayoutClient({
         <div className="px-3 pb-5">
           <Link
             href="/admin/configuracion"
+            id="tour-configuracion"
+            onClick={() => setIsMobileMenuOpen(false)}
             className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 mb-3 ${pathname === '/admin/configuracion'
-                ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
           >
             <Settings className="h-4 w-4 shrink-0" />
@@ -118,7 +122,8 @@ export default function AdminLayoutClient({
 
           <div className="border-t border-slate-100 pt-3">
             <button
-              onClick={() => setShowLogoutModal(true)}
+              id="tour-cerrar-sesion"
+              onClick={() => { setShowLogoutModal(true); setIsMobileMenuOpen(false); }}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors group cursor-pointer text-red-500 hover:bg-red-50"
             >
               <LogOut className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
@@ -196,7 +201,7 @@ export default function AdminLayoutClient({
           </button>
 
           <div className="flex flex-1 items-center justify-between ml-3 min-w-0">
-            <h2 className="text-xs font-bold uppercase tracking-widest truncate pr-4 text-slate-400">
+            <h2 id="tour-header-title" className="text-xs font-bold uppercase tracking-widest truncate pr-4 text-slate-400">
               {pathname === '/admin/configuracion'
                 ? 'Configuración'
                 : pathname === '/admin/perfil'
@@ -208,6 +213,7 @@ export default function AdminLayoutClient({
             <div className="flex shrink-0 items-center">
               <Link
                 href="/admin/perfil"
+                id="tour-perfil"
                 title="Ver mi perfil"
                 className="rounded-full focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
               >
@@ -221,7 +227,7 @@ export default function AdminLayoutClient({
           </div>
         </header>
 
-        <main className="p-4 sm:p-5 2xl:p-8 print:p-0">
+        <main id="tour-main-content" className="p-4 sm:p-5 2xl:p-8 print:p-0">
           {children}
         </main>
       </div>
@@ -253,7 +259,7 @@ export default function AdminLayoutClient({
                     <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner mb-6 shrink-0">
                       <LogOut className="h-10 w-10" />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Dialog.Title as="h3" className="text-2xl font-black tracking-tight text-slate-900">
                         ¿Nos vemos luego?
@@ -286,6 +292,9 @@ export default function AdminLayoutClient({
           </div>
         </Dialog>
       </Transition>
+
+      {/* Onboarding Tour */}
+      <OnboardingTour />
     </div>
   );
 }

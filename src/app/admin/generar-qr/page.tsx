@@ -48,7 +48,9 @@ type Ubicacion = { id: string; nombre: string };
 // --- INICIALIZADOR DE PAGINACIÓN ---
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
-  return window.innerWidth >= 1350 ? 12 : 6;
+  if (window.innerWidth >= 1350) return 12;
+  if (window.innerWidth >= 768)  return 8;
+  return 4;
 };
 
 export default function GenerarQRPage() {
@@ -222,7 +224,8 @@ export default function GenerarQRPage() {
     const handleResize = () => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
+        const w = window.innerWidth;
+        setItemsPerPage(w >= 1350 ? 12 : w >= 768 ? 8 : 4);
       });
     };
     handleResize();
@@ -443,7 +446,7 @@ export default function GenerarQRPage() {
       <div className="screen-only max-w-5xl mx-auto space-y-8">
 
         {/* Buscador */}
-        <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
+        <div id="tour-generar-qr-general" className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Generador de Etiquetas QR</h1>
           <p className="text-slate-500 text-sm mt-1">Busca un equipo por SKU o selecciónalo desde el listado.</p>
           <div className="mt-6 flex gap-3">
@@ -470,10 +473,10 @@ export default function GenerarQRPage() {
 
         {/* Vista previa — modo individual */}
         {!multiMode && item && (
-          <div className="grid md:grid-cols-2 gap-8 animate-in fade-in zoom-in-95 duration-300">
+          <div id="tour-qr-preview" className="grid md:grid-cols-2 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex flex-col items-center justify-center gap-6">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vista previa</p>
-              <div className="w-48 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm text-center">
+              <div id="tour-qr-code-only" className="w-48 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm text-center">
                 <div className="flex justify-center mb-5">
                   <QRCodeSVG value={item.sku} size={120} level="H" includeMargin={false} />
                 </div>
@@ -628,11 +631,12 @@ export default function GenerarQRPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {disponibles.map((equipo) => {
+              {disponibles.map((equipo, index) => {
                 const isSelected = multiMode ? selectedItemsMap.has(equipo.id) : item?.id === equipo.id;
                 return (
                   <button
                     key={equipo.id}
+                    id={index === 0 ? "tour-qr-item-0" : undefined}
                     onClick={() => seleccionarEquipo(equipo)}
                     className={`group w-full text-left rounded-2xl border p-4 transition-all cursor-pointer flex items-center gap-4 ${
                       multiMode
