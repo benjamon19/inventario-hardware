@@ -68,10 +68,15 @@ export function patternCSS(svg: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+export interface InitialAvatarData {
+  initials?: string;
+  avatarGradient?: string;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
-export function useAvatar() {
-  const [initials,       setInitials]       = useState('U');
-  const [avatarGradient, setAvatarGradient] = useState(AVATAR_GRADIENTS[1].class);
+export function useAvatar(initialData?: InitialAvatarData) {
+  const [initials,       setInitials]       = useState(initialData?.initials || 'U');
+  const [avatarGradient, setAvatarGradient] = useState(initialData?.avatarGradient || AVATAR_GRADIENTS[1].class);
   const [bannerGradient, setBannerGradient] = useState(AVATAR_GRADIENTS[2].class);
   const [bannerPattern,  setBannerPattern]  = useState('none');
 
@@ -86,15 +91,27 @@ export function useAvatar() {
     if (sbg) setBannerGradient(sbg);
     if (sbp) setBannerPattern(sbp);
 
+    const setCookie = (name: string, value: string) => {
+      document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000`;
+    };
+
     if (!si && !sag) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         const namePart = user.email.split('@')[0].split('.')[0];
         const gen = namePart.substring(0, 2).toUpperCase() || 'U';
         const isFemale = namePart.toLowerCase().endsWith('a');
+        const grad = isFemale ? AVATAR_GRADIENTS[10].class : AVATAR_GRADIENTS[1].class;
+        const ban = isFemale ? AVATAR_GRADIENTS[11].class : AVATAR_GRADIENTS[2].class;
+        
         setInitials(gen);
-        setAvatarGradient(isFemale ? AVATAR_GRADIENTS[10].class : AVATAR_GRADIENTS[1].class);
-        setBannerGradient(isFemale ? AVATAR_GRADIENTS[11].class : AVATAR_GRADIENTS[2].class);
+        setAvatarGradient(grad);
+        setBannerGradient(ban);
+        
+        localStorage.setItem('ti_bodega_avatar_initials', gen);
+        localStorage.setItem('ti_bodega_avatar_gradient', grad);
+        setCookie('ti_bodega_avatar_initials', gen);
+        setCookie('ti_bodega_avatar_gradient', grad);
       }
     }
 
@@ -104,8 +121,16 @@ export function useAvatar() {
       try {
         const { data } = await supabase.from('perfiles').select('avatar_initials, avatar_gradient, banner_gradient, banner_pattern').eq('id', user.id).single();
         if (data && (data.avatar_initials || data.avatar_gradient)) {
-          if (data.avatar_initials) { setInitials(data.avatar_initials); localStorage.setItem('ti_bodega_avatar_initials', data.avatar_initials); }
-          if (data.avatar_gradient) { setAvatarGradient(data.avatar_gradient); localStorage.setItem('ti_bodega_avatar_gradient', data.avatar_gradient); }
+          if (data.avatar_initials) { 
+            setInitials(data.avatar_initials); 
+            localStorage.setItem('ti_bodega_avatar_initials', data.avatar_initials);
+            setCookie('ti_bodega_avatar_initials', data.avatar_initials);
+          }
+          if (data.avatar_gradient) { 
+            setAvatarGradient(data.avatar_gradient); 
+            localStorage.setItem('ti_bodega_avatar_gradient', data.avatar_gradient);
+            setCookie('ti_bodega_avatar_gradient', data.avatar_gradient);
+          }
           if (data.banner_gradient) { setBannerGradient(data.banner_gradient); localStorage.setItem('ti_bodega_banner_gradient', data.banner_gradient); }
           if (data.banner_pattern) { setBannerPattern(data.banner_pattern); localStorage.setItem('ti_bodega_banner_pattern', data.banner_pattern); }
         }
@@ -128,11 +153,20 @@ export function useAvatar() {
     newBannerGradient: string,
     newBannerPattern: string,
   ) => {
+    const setCookie = (name: string, value: string) => {
+      document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000`;
+    };
+
     const fin = newInitials.trim().substring(0, 2).toUpperCase() || 'U';
+    
     localStorage.setItem('ti_bodega_avatar_initials', fin);
     localStorage.setItem('ti_bodega_avatar_gradient', newAvatarGradient);
+    setCookie('ti_bodega_avatar_initials', fin);
+    setCookie('ti_bodega_avatar_gradient', newAvatarGradient);
+
     localStorage.setItem('ti_bodega_banner_gradient', newBannerGradient);
     localStorage.setItem('ti_bodega_banner_pattern',  newBannerPattern);
+    
     setInitials(fin);
     setAvatarGradient(newAvatarGradient);
     setBannerGradient(newBannerGradient);

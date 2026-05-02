@@ -8,11 +8,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const cookieStore = await cookies(); 
   const cookieValue = cookieStore.get('ti_bodega_sidebar_expanded')?.value;
   
+  const initialAvatarInitials = cookieStore.get('ti_bodega_avatar_initials')?.value;
+  const initialAvatarGradient = cookieStore.get('ti_bodega_avatar_gradient')?.value;
+  
   // LÓGICA ESTRICTA
   const isExpanded = cookieValue === 'false' ? false : true;
 
+  const initialAvatar = {
+    initials: initialAvatarInitials ? decodeURIComponent(initialAvatarInitials) : undefined,
+    avatarGradient: initialAvatarGradient ? decodeURIComponent(initialAvatarGradient) : undefined,
+  };
+
   return (
-    <AdminLayoutClient initialExpanded={isExpanded}>
+    <AdminLayoutClient initialExpanded={isExpanded} initialAvatar={initialAvatar}>
       {children}
     </AdminLayoutClient>
   );

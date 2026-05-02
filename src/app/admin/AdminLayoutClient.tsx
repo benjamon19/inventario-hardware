@@ -11,17 +11,19 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { registrarLog } from '@/lib/logger';
-import { useAvatar } from '@/components/useAvatar';
+import { useAvatar, InitialAvatarData } from '@/components/useAvatar';
 import OnboardingTour from '@/components/OnboardingTour';
 
 const MOBILE_BREAKPOINT = 768;
 
 export default function AdminLayoutClient({
   children,
-  initialExpanded
+  initialExpanded,
+  initialAvatar
 }: {
   children: React.ReactNode;
   initialExpanded: boolean;
+  initialAvatar?: InitialAvatarData;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,7 +35,7 @@ export default function AdminLayoutClient({
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(initialExpanded);
 
   // Avatar centralizado
-  const { initials, avatarGradient } = useAvatar();
+  const { initials, avatarGradient } = useAvatar(initialAvatar);
 
   // Al hacer clic, cambiamos el estado y lo guardamos en una Cookie por 1 año
   const toggleSidebar = () => {
