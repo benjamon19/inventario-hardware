@@ -298,21 +298,21 @@ export default function NuevoEquipoModal({
           <div className="absolute inset-0 overflow-hidden">
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
               <Transition.Child as={Fragment} enter="transform transition ease-in-out duration-400 sm:duration-500" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in-out duration-400 sm:duration-500" leaveFrom="translate-x-0" leaveTo="translate-x-full">
-                <Dialog.Panel className="pointer-events-auto w-screen sm:max-w-md flex">
+                <Dialog.Panel className="pointer-events-auto w-screen sm:max-w-[400px] lg:max-w-md flex">
                   <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
                     {/* Cabecera */}
-                    <div className="px-6 sm:px-8 py-7 border-b border-slate-100 flex items-center justify-between shrink-0">
-                      <Dialog.Title as="h3" className="text-xl font-bold text-slate-900 tracking-tight">Registrar Equipo</Dialog.Title>
+                    <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                      <Dialog.Title as="h3" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Registrar Equipo</Dialog.Title>
                       <button onClick={onClose} className="rounded-full p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors cursor-pointer">
-                        <X className="h-5 w-5" />
+                        <X className="h-4 w-4 sm:h-5 sm:w-5" />
                       </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
-                      <form onSubmit={handleSubmit} className="space-y-6 pb-12">
+                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
+                      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 pb-6 sm:pb-8">
 
                         {/* 1. Categoría */}
-                        <div className="space-y-1.5 relative">
+                        <div className="space-y-1 relative">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Categoría <span className="text-red-500">*</span>
@@ -328,7 +328,7 @@ export default function NuevoEquipoModal({
                           <select
                             value={formData.categoria}
                             onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             {sortedCategorias.map(c => (
                               <option key={c.id} value={c.nombre}>{c.nombre}</option>
@@ -348,7 +348,7 @@ export default function NuevoEquipoModal({
                         </div>
 
                         {/* 2. Estado */}
-                        <div className="space-y-1.5 relative">
+                        <div className="space-y-1 relative">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Estado <span className="text-red-500">*</span>
@@ -364,7 +364,7 @@ export default function NuevoEquipoModal({
                           <select
                             value={formData.estado}
                             onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             {sortedEstados.map(e => (
                               <option key={e.id} value={e.nombre}>{e.nombre}</option>
@@ -384,7 +384,7 @@ export default function NuevoEquipoModal({
                         </div>
 
                         {/* 3. Modelo */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                           <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                             Modelo del Equipo <span className="text-red-500">*</span>
                           </label>
@@ -394,12 +394,12 @@ export default function NuevoEquipoModal({
                             placeholder="Ej: Lenovo ThinkPad T14"
                             value={formData.modelo}
                             onChange={(e) => setFormData({ ...formData, modelo: e.target.value.trimStart() })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all text-slate-900 font-semibold"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 focus:bg-white transition-all text-slate-900 font-semibold"
                           />
                         </div>
 
                         {/* 4. Ubicación */}
-                        <div className="space-y-1.5 relative">
+                        <div className="space-y-1 relative">
                           <div className="flex items-center justify-between">
                             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
                               <MapPin className="h-3.5 w-3.5" /> Ubicación / Estante
@@ -416,7 +416,7 @@ export default function NuevoEquipoModal({
                           <select
                             value={formData.ubicacion}
                             onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-semibold cursor-pointer"
                           >
                             <option value="">Sin asignar</option>
                             {sortedUbicaciones.map(u => (
@@ -436,8 +436,8 @@ export default function NuevoEquipoModal({
                         </div>
 
                         {/* Cantidad */}
-                        <div className="pt-2">
-                          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                        <div className="pt-1">
+                          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Unidades a registrar
                             </label>
@@ -450,16 +450,16 @@ export default function NuevoEquipoModal({
                         </div>
 
                         {/* Listado de equipos (SKU y Notas) */}
-                        <div className="border-t border-slate-100 pt-2 space-y-6">
+                        <div className="border-t border-slate-100 pt-2 sm:pt-3 space-y-4">
                           {equipos.map((eq, index) => (
-                            <div key={eq.id} className={cantidad > 1 ? "relative p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-6" : "space-y-6"}>
+                            <div key={eq.id} className={cantidad > 1 ? "relative p-3 sm:p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3 sm:space-y-4" : "space-y-3 sm:space-y-4"}>
                               {cantidad > 1 && (
                                 <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
                                   {index + 1}
                                 </div>
                               )}
-                              <div className="space-y-1.5">
-                                <div className="flex justify-between items-end mb-1">
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-end">
                                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
                                   <span className="text-[10px] text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                                 </div>
@@ -471,29 +471,29 @@ export default function NuevoEquipoModal({
                                   autoComplete="off"
                                   value={eq.sku}
                                   onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
                                 />
                               </div>
-                              <div className="space-y-1.5">
+                              <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
                                 <textarea
                                   maxLength={255}
                                   value={eq.descripcion}
                                   onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
                                   placeholder={cantidad > 1 ? "Número de serie o detalle..." : "Motivo de ingreso, estado de mantención..."}
-                                  rows={3}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-slate-900 transition-all resize-none text-slate-700"
+                                  rows={2}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all resize-none text-slate-700"
                                 />
                               </div>
                             </div>
                           ))}
                         </div>
 
-                        <div className="pt-2">
+                        <div className="pt-1">
                           <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex justify-center items-center gap-2 rounded-2xl bg-slate-900 py-4 text-sm font-bold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                            className="w-full flex justify-center items-center gap-2 rounded-2xl bg-slate-900 py-3 sm:py-3.5 text-[13px] sm:text-sm font-bold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                           >
                             {loading ? <div className="flex h-5 w-5 items-center justify-center"><TailChase size="20" speed="1.75" color="white" /></div> : <><Plus className="h-5 w-5" /> Guardar Equipo{cantidad > 1 ? 's' : ''}</>}
                           </button>

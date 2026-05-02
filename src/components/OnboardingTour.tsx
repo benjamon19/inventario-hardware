@@ -296,11 +296,11 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
       content: 'Busca cualquier equipo y obtén su etiqueta QR lista para imprimir y pegar al activo físico.',
       placement: 'bottom', skipBeacon: true, skipScroll: true, data: { route: '/admin/generar-qr' }
     },
-    // Step 6 — target: 'body', el spotlight real lo maneja useManualSpotlight
+    // Step 6 — target: '#tour-qr-item-0', el spotlight real lo maneja useManualSpotlight
     {
-      target: 'body', title: 'Seleccionar equipo',
+      target: '#tour-qr-item-0', title: 'Seleccionar equipo',
       content: 'Pulsa el botón siguiente para generar su código QR al instante.',
-      placement: C, skipBeacon: true, skipScroll: true,
+      placement: 'top', skipBeacon: true, skipScroll: true,
       data: { route: '/admin/generar-qr', manualSpotlight: 'tour-qr-item-0' }
     },
     {
@@ -372,6 +372,7 @@ export default function OnboardingTour() {
   const [stepIndex, setStepIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isSmall, setIsSmall] = useState(false);
 
@@ -386,6 +387,7 @@ export default function OnboardingTour() {
   const skipRouteRef = useRef(false);
   const qrScrolledRef = useRef(false);
   const qrPreviewScrolledRef = useRef(false);
+  const nuevoUsuarioScrolledRef = useRef(false);
 
   // ── Callback que avanza el tour cuando se hace click en el spotlight manual ──
   const handleManualSpotlightClick = useCallback(() => {
@@ -435,6 +437,8 @@ export default function OnboardingTour() {
       } catch (err) {
         console.error('Error checking tour status:', err);
         setIsDone(true);
+      } finally {
+        setHasCheckedStatus(true);
       }
     };
     checkTourStatus();
@@ -455,15 +459,23 @@ export default function OnboardingTour() {
       const el = document.getElementById('tour-qr-item-0');
       if (el) {
         qrScrolledRef.current = true;
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        setTimeout(() => { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+        if (isMobile) {
+          const y = el.getBoundingClientRect().top + window.scrollY - 280;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          setTimeout(() => {
+            const y = el.getBoundingClientRect().top + window.scrollY - 250;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }, 50);
+        }
       } else if (attempts < 25) {
         attempts++;
         setTimeout(tryScroll, 200);
       }
     };
     tryScroll();
-  }, [stepIndex, pathname, isMounted, run, isDone]);
+  }, [stepIndex, pathname, isMounted, run, isDone, isMobile]);
 
   // ── Scroll QR preview ──
   useEffect(() => {
@@ -487,6 +499,21 @@ export default function OnboardingTour() {
     tryWaitAndScroll();
   }, [stepIndex, pathname, isMounted, run, isDone]);
 
+  // ── Scroll al top en paso 13 (#tour-nuevo-usuario) en móvil ──
+  // El botón "Crear Usuario" suele quedar en la parte superior de la página,
+  // pero si el usuario hizo scroll previo, el tooltip placement:bottom puede
+  // quedar cortado. Forzamos scroll al top para que encaje bien.
+  useEffect(() => {
+    if (stepIndex !== 13 || pathname !== '/admin/usuarios') {
+      nuevoUsuarioScrolledRef.current = false;
+      return;
+    }
+    if (!isMounted || !run || isDone || !isMobile || nuevoUsuarioScrolledRef.current) return;
+
+    nuevoUsuarioScrolledRef.current = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [stepIndex, pathname, isMounted, run, isDone, isMobile]);
+
   // ── Clicks nativos del tour (nuevo equipo y qr item via listener global) ──
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -503,22 +530,22 @@ export default function OnboardingTour() {
   }, [stepIndex, run, isMounted, isDone]);
 
   useEffect(() => {
-    if (!isMounted || isDone || isFinishingRef.current || skipRouteRef.current) return;
+    if (!isMounted || !hasCheckedStatus || isDone || isFinishingRef.current || skipRouteRef.current) return;
     const step = steps[stepIndex];
     if (step?.data?.route && step.data.route !== pathname) {
       setRun(false);
       router.push(step.data.route);
     }
-  }, [stepIndex, isMounted, isDone, pathname, router]);
+  }, [stepIndex, isMounted, hasCheckedStatus, isDone, pathname, router]);
 
   useEffect(() => {
-    if (!isMounted || isDone || isFinishingRef.current) return;
+    if (!isMounted || !hasCheckedStatus || isDone || isFinishingRef.current) return;
     const step = steps[stepIndex];
     if (!run && step?.data?.route === pathname) {
       const t = setTimeout(() => setRun(true), 700);
       return () => clearTimeout(t);
     }
-  }, [pathname, stepIndex, run, isMounted, isDone]);
+  }, [pathname, stepIndex, run, isMounted, hasCheckedStatus, isDone]);
 
   const finishTour = useCallback(async () => {
     isFinishingRef.current = true;
@@ -589,7 +616,7 @@ export default function OnboardingTour() {
         spotlightRadius: 12,
         spotlightPadding: 8,
         offset: 14,
-        scrollOffset: 80,
+        scrollOffset: 250,
         targetWaitTimeout: 3000,
       }}
     />
