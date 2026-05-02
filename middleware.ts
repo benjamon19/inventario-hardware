@@ -1,29 +1,65 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+// Map de fallback para cuando no hay Upstash configurado
 const rateLimitMap = new Map<string, { count: number, resetTime: number }>();
 const RATE_LIMIT_MAX = 100; // Peticiones máximas
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minuto
 
+// Inicializar redis solo si existen las variables
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
+
+// Crear un limitador de tasa usando una ventana deslizante
+const ratelimit = redis
+  ? new Ratelimit({
+      redis: redis,
+      limiter: Ratelimit.slidingWindow(100, "1 m"), // 100 peticiones por minuto
+      analytics: true,
+    })
+  : null;
+
 export async function middleware(request: NextRequest) {
-  // --- RATE LIMITING BÁSICO ---
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-  const now = Date.now();
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
-  const clientData = rateLimitMap.get(ip);
-  if (!clientData || now > clientData.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-  } else {
-    clientData.count++;
-    if (clientData.count > RATE_LIMIT_MAX) {
-      return new NextResponse('Too Many Requests. Please try again later.', { status: 429 });
+  // --- RATE LIMITING ---
+  if (ratelimit) {
+    // Uso de Upstash (Redis distribuido para Serverless/Edge)
+    const { success, pending, limit, reset, remaining } = await ratelimit.limit(`ratelimit_${ip}`);
+    if (!success) {
+      return new NextResponse('Too Many Requests. Please try again later.', { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString()
+        }
+      });
     }
-  }
-
-  // Limpieza periódica del Map para evitar fugas de memoria
-  if (Math.random() < 0.05) {
-    for (const [key, val] of rateLimitMap.entries()) {
-      if (now > val.resetTime) rateLimitMap.delete(key);
+  } else {
+    // Fallback: Uso del Map en memoria (no recomendado para Vercel Edge, pero sirve de fallback)
+    const now = Date.now();
+    const clientData = rateLimitMap.get(ip);
+    if (!clientData || now > clientData.resetTime) {
+      rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    } else {
+      clientData.count++;
+      if (clientData.count > RATE_LIMIT_MAX) {
+        return new NextResponse('Too Many Requests. Please try again later.', { status: 429 });
+      }
+    }
+    // Limpieza periódica del Map
+    if (Math.random() < 0.05) {
+      for (const [key, val] of rateLimitMap.entries()) {
+        if (now > val.resetTime) rateLimitMap.delete(key);
+      }
     }
   }
   // --- FIN RATE LIMITING ---

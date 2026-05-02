@@ -21,6 +21,16 @@ const securityHeaders = [
     // Controla cuánta información se envía en la cabecera Referer
     key: 'Referrer-Policy',
     value: 'strict-origin-when-cross-origin',
+  },
+  {
+    // Política de Seguridad de Contenido (CSP)
+    key: 'Content-Security-Policy',
+    value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fastly.jsdelivr.net;",
+  },
+  {
+    // Política de Permisos
+    key: 'Permissions-Policy',
+    value: 'camera=(self), microphone=(), geolocation=(), browsing-topics=()',
   }
 ];
 

@@ -6,6 +6,7 @@ import { X, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
 import { TailChase } from 'ldrs/react';
 import 'ldrs/react/TailChase.css';
 import { supabase } from '@/lib/supabase';
+import { z } from 'zod';
 
 // --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -248,7 +249,29 @@ export default function NuevoEquipoModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.modelo.trim()) return;
+    
+    // VALIDACIÓN ESTRICTA CON ZOD
+    const equipoSchema = z.object({
+      categoria: z.string().min(1, "La categoría es obligatoria"),
+      estado: z.string().min(1, "El estado es obligatorio"),
+      modelo: z.string().trim().min(1, "El modelo es obligatorio").max(150, "El modelo no puede exceder los 150 caracteres"),
+      ubicacion: z.string().optional(),
+      equipos: z.array(z.object({
+        sku: z.string().trim().min(1, "El SKU es obligatorio").max(50, "El SKU no puede exceder 50 caracteres"),
+        descripcion: z.string().max(255, "La descripción no puede exceder 255 caracteres").optional(),
+      })).min(1, "Debe registrar al menos un equipo"),
+    });
+
+    const validacion = equipoSchema.safeParse({
+      ...formData,
+      equipos,
+    });
+
+    if (!validacion.success) {
+      alert("Por favor corrige los siguientes errores:\n" + validacion.error.issues.map(err => `- ${err.message}`).join('\n'));
+      return;
+    }
+
     setLoading(true);
 
     const toInsert = equipos.map(eq => ({
