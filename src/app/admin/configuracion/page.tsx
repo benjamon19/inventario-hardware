@@ -28,12 +28,13 @@ export default function ConfiguracionPage() {
           .update({ ha_visto_tour: false })
           .eq('id', user.id);
 
+        localStorage.removeItem('wall_tour_completed');
+
         // Redirigimos al admin que lanzará el tour de nuevo
         window.location.href = '/admin';
       }
     } catch (e) {
       console.error(e);
-    } finally {
       setIsRestartingTour(false);
     }
   };
@@ -176,7 +177,16 @@ export default function ConfiguracionPage() {
               disabled={isRestartingTour}
               className="flex shrink-0 items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
             >
-              {isRestartingTour ? 'Reiniciando...' : 'Repetir recorrido'}
+              {isRestartingTour ? (
+                <>
+                  <div className="flex h-4 w-4 items-center justify-center">
+                    <TailChase size="16" speed="1.75" color="#0f172a" />
+                  </div>
+                  <span>Iniciando...</span>
+                </>
+              ) : (
+                'Repetir recorrido'
+              )}
             </button>
           </div>
         </div>

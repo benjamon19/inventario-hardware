@@ -123,11 +123,13 @@ export default function AdminScannerPage() {
     setLoading(true);
     setStatusMsg(null);
 
-    const { data: item, error } = await supabase
+    const { data: items, error } = await supabase
       .from('hardware')
       .select('*')
-      .eq('sku', sku)
-      .single();
+      .or(`sku.eq.${sku},numero_serie.eq.${sku}`)
+      .limit(1);
+
+    const item = items?.[0];
 
     if (error || !item) {
       setStatusMsg({ type: 'error', text: 'Equipo no encontrado en inventario.' });
@@ -176,6 +178,7 @@ export default function AdminScannerPage() {
         detalles: {
           sku: selectedItem.sku,
           modelo: selectedItem.modelo,
+          numero_serie: selectedItem.numero_serie,
           notas: `Cambio de estado desde Escáner. Nuevo estado: ${nuevoEstado}`
         }
       }]);
@@ -271,7 +274,15 @@ export default function AdminScannerPage() {
             </div>
 
             <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedItem.modelo}</h2>
-            <p className="text-xs font-mono text-slate-500 mt-0.5">SKU: {selectedItem.sku}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+              <p className="text-xs font-mono text-slate-500">SKU: {selectedItem.sku}</p>
+              {selectedItem.numero_serie && (
+                <>
+                  <span className="text-slate-300 text-[10px]">•</span>
+                  <p className="text-xs font-mono text-slate-400 font-bold">S/N: {selectedItem.numero_serie}</p>
+                </>
+              )}
+            </div>
 
             {scanMode === 'SEARCH' && (
               <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-2">

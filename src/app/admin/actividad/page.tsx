@@ -111,7 +111,7 @@ export default function ActividadPage() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchingUsers = usuarios.filter(u => u.email.toLowerCase().includes(term)).map(u => u.id);
-        let orQuery = `detalles->>modelo.ilike.%${term}%,detalles->>nombre.ilike.%${term}%,detalles->>sku.ilike.%${term}%,detalles->>email_afectado.ilike.%${term}%`;
+        let orQuery = `detalles->>modelo.ilike.%${term}%,detalles->>nombre.ilike.%${term}%,detalles->>sku.ilike.%${term}%,detalles->>numero_serie.ilike.%${term}%,detalles->>email_afectado.ilike.%${term}%`;
         if (matchingUsers.length > 0) {
           orQuery += `,usuario_id.in.(${matchingUsers.join(',')})`;
         }
@@ -137,7 +137,10 @@ export default function ActividadPage() {
             operador_id: log.usuario_id,
             perfiles: Array.isArray(log.perfiles) ? log.perfiles[0] : (log.perfiles || { email: 'Sistema' }),
             detalles: log.detalles,
-            hardware: { modelo: log.detalles?.modelo || log.detalles?.nombre || null }
+            hardware: { 
+              modelo: log.detalles?.modelo || log.detalles?.nombre || null,
+              numero_serie: log.detalles?.numero_serie || null
+            }
           };
         });
 
@@ -280,9 +283,16 @@ export default function ActividadPage() {
                         {styles.label}
                       </span>
                       {mov.sku && (
-                        <span className="text-[9px] font-mono font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
-                          {mov.sku}
-                        </span>
+                        <div className="flex gap-1 items-center">
+                          <span className="text-[9px] font-mono font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                            {mov.sku}
+                          </span>
+                          {mov.hardware?.numero_serie && (
+                            <span className="text-[9px] font-mono font-bold text-slate-400">
+                              SN: {mov.hardware.numero_serie}
+                            </span>
+                          )}
+                        </div>
                       )}
                       <span className={`sm:hidden ml-auto text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${tipoChipClass(mov.tipo as ActionType, true)}`}>
                         {mov.tipo}

@@ -13,7 +13,7 @@ const FORCE_TOUR = false;
 const TOUR_CSS = `
   /* Overlay fijo en mobile */
   .react-joyride__overlay { position: fixed !important; }
-  .__floater { z-index: 10001 !important; }
+  .__floater { z-index: 100010 !important; }
   @media (max-width: 480px) { .__floater { padding: 0 4px !important; } }
 
   @keyframes ti-slide-in {
@@ -263,7 +263,7 @@ function useManualSpotlight(
 function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): Step[] {
   const C = 'center' as const;
   const sT = (id: string) => isMobile ? 'body' : id;
-  const sP = (p: 'right' | 'bottom') => (isMobile ? C : p) as Step['placement'];
+  const sP = (p: Step['placement']) => (isMobile ? C : p) as Step['placement'];
 
   return [
     {
@@ -287,9 +287,9 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
       placement: 'bottom', skipBeacon: true, data: { route: '/admin/inventario' }
     },
     {
-      target: 'body', title: 'Formulario de registro',
+      target: '#tour-modal-nuevo-equipo', title: 'Formulario de registro',
       content: 'Completa el modelo, categoría, estado y ubicación para registrar un equipo nuevo.',
-      placement: C, skipBeacon: true, skipScroll: true, data: { route: '/admin/inventario', action: 'open_modal_nuevo_equipo' }
+      placement: sP('left'), skipBeacon: true, skipScroll: true, data: { route: '/admin/inventario', action: 'open_modal_nuevo_equipo' }
     },
     {
       target: '#tour-generar-qr-general', title: 'Generar QR',
@@ -341,9 +341,9 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
       placement: 'bottom', skipBeacon: true, data: { route: '/admin/usuarios' }
     },
     {
-      target: 'body', title: 'Formulario de registro',
+      target: '#tour-modal-nuevo-usuario', title: 'Formulario de registro',
       content: 'Ingresa el correo y asigna una contraseña inicial. Por defecto, los usuarios nuevos tendrán rol de OPERADOR.',
-      placement: C, skipBeacon: true, skipScroll: true, data: { route: '/admin/usuarios', action: 'open_modal_nuevo_usuario' }
+      placement: sP('right'), skipBeacon: true, skipScroll: true, data: { route: '/admin/usuarios', action: 'open_modal_nuevo_usuario' }
     },
     {
       target: sT('#tour-configuracion'), title: 'Configuración',
@@ -429,8 +429,13 @@ export default function OnboardingTour() {
           .eq('id', user.id)
           .single();
 
-        if (perfil && perfil.ha_visto_tour === true) {
+        const localDone = localStorage.getItem('wall_tour_completed');
+        
+        if (perfil?.ha_visto_tour === true || localDone === 'true') {
           setIsDone(true);
+          if (localDone !== 'true' && perfil?.ha_visto_tour === true) {
+            localStorage.setItem('wall_tour_completed', 'true');
+          }
         } else {
           setRun(true);
         }
@@ -557,6 +562,7 @@ export default function OnboardingTour() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        localStorage.setItem('wall_tour_completed', 'true');
         await supabase
           .from('perfiles')
           .update({ ha_visto_tour: true })
@@ -610,7 +616,7 @@ export default function OnboardingTour() {
       }}
       options={{
         primaryColor: '#0f172a',
-        zIndex: 10000,
+        zIndex: 100000,
         overlayColor: 'rgba(15,23,42,0.55)',
         overlayClickAction: false,
         spotlightRadius: 12,

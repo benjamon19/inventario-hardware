@@ -6,7 +6,7 @@ import { Transition, Dialog } from '@headlessui/react';
 import {
   Mail, Shield, Activity, Calendar,
   Fingerprint, Copy, Check, Info, Palette, Save, X,
-  Type, Image, Layers
+  Type, Image, Layers, User, Phone, CreditCard, AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
@@ -17,18 +17,18 @@ import { useAvatar, AVATAR_GRADIENTS, BANNER_PATTERNS, patternCSS } from '@/comp
 
 const ROL_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   SUPER_ADMIN: { label: 'Super Admin', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-  ADMIN:       { label: 'Admin',       color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
-  OPERADOR:    { label: 'Operador',    color: '#0f766e', bg: '#f0fdfa', border: '#99f6e4' },
-  PENDIENTE:   { label: 'Pendiente',   color: '#92400e', bg: '#fffbeb', border: '#fde68a' },
+  ADMIN: { label: 'Admin', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+  OPERADOR: { label: 'Operador', color: '#0f766e', bg: '#f0fdfa', border: '#99f6e4' },
+  PENDIENTE: { label: 'Pendiente', color: '#92400e', bg: '#fffbeb', border: '#fde68a' },
 };
 
 const COLOR_ROWS = [
-  { label: 'Azules',   start: 0,  end: 5  },
-  { label: 'Lilas',    start: 5,  end: 10 },
-  { label: 'Rosas',    start: 10, end: 15 },
+  { label: 'Azules', start: 0, end: 5 },
+  { label: 'Lilas', start: 5, end: 10 },
+  { label: 'Rosas', start: 10, end: 15 },
   { label: 'Naranjas', start: 15, end: 20 },
-  { label: 'Verdes',   start: 20, end: 25 },
-  { label: 'Neutros',  start: 25, end: 30 },
+  { label: 'Verdes', start: 20, end: 25 },
+  { label: 'Neutros', start: 25, end: 30 },
 ];
 
 function CopyButton({ text }: { text: string }) {
@@ -75,9 +75,8 @@ function ColorGrid({ selected, onSelect }: { selected: string; onSelect: (c: str
           <div className="grid grid-cols-5 gap-1.5">
             {AVATAR_GRADIENTS.slice(row.start, row.end).map(g => (
               <button key={g.id} onClick={() => onSelect(g.class)} title={g.id}
-                className={`h-8 rounded-xl bg-gradient-to-br ${g.class} cursor-pointer transition-all duration-150 ${
-                  selected === g.class ? 'ring-2 ring-offset-2 ring-slate-900 scale-105' : 'opacity-80 hover:opacity-100 hover:scale-105'
-                }`}
+                className={`h-8 rounded-xl bg-gradient-to-br ${g.class} cursor-pointer transition-all duration-150 ${selected === g.class ? 'ring-2 ring-offset-2 ring-slate-900 scale-105' : 'opacity-80 hover:opacity-100 hover:scale-105'
+                  }`}
                 style={{ '--tw-ring-offset-color': 'var(--bg-surface)', boxShadow: selected === g.class ? undefined : 'inset 0 0 0 1px rgba(0,0,0,0.12)' } as any}
               />
             ))}
@@ -130,11 +129,23 @@ export default function MiPerfilPage() {
   // Estado de los sub-modales
   const [subModal, setSubModal] = useState<'initials' | 'avatar' | 'banner' | null>(null);
 
+  // ── NUEVO: estado de guardado del avatar ──
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const [avatarSaveError, setAvatarSaveError] = useState<string | null>(null);
+
+  const [personalData, setPersonalData] = useState({
+    nombre_completo: '',
+    rut: '',
+    telefono: ''
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
   // Valores de edición
-  const [editInitials,       setEditInitials]       = useState('');
+  const [editInitials, setEditInitials] = useState('');
   const [editAvatarGradient, setEditAvatarGradient] = useState('');
   const [editBannerGradient, setEditBannerGradient] = useState('');
-  const [editBannerPattern,  setEditBannerPattern]  = useState('none');
+  const [editBannerPattern, setEditBannerPattern] = useState('none');
 
   useEffect(() => {
     const fetchPerfil = async () => {
@@ -143,6 +154,11 @@ export default function MiPerfilPage() {
       if (user) {
         const { data } = await supabase.from('perfiles').select('*').eq('id', user.id).single();
         setPerfil({ ...data, email: user.email, created_at: data?.created_at || user.created_at });
+        setPersonalData({
+          nombre_completo: data?.nombre_completo || '',
+          rut: data?.rut || '',
+          telefono: data?.telefono || ''
+        });
       }
       setLoading(false);
     };
@@ -158,26 +174,98 @@ export default function MiPerfilPage() {
   };
 
   const openSub = (key: 'initials' | 'avatar' | 'banner') => {
+    setAvatarSaveError(null); // limpiar error anterior al abrir
     setMenuOpen(false);
     setTimeout(() => setSubModal(key), 180);
   };
 
-  const closeSub = () => setSubModal(null);
+  const closeSub = () => {
+    setAvatarSaveError(null);
+    setSubModal(null);
+  };
 
-  const save = () => {
-    updateAvatar(editInitials, editAvatarGradient, editBannerGradient, editBannerPattern);
+  // ── NUEVO: save con manejo de error real ──
+  const save = async () => {
+    setIsSavingAvatar(true);
+    setAvatarSaveError(null);
+
+    const result = await updateAvatar(editInitials, editAvatarGradient, editBannerGradient, editBannerPattern);
+
+    setIsSavingAvatar(false);
+
+    if (!result.success) {
+      setAvatarSaveError(result.error || 'Error al guardar en la base de datos.');
+      // No cerramos el modal — el usuario ve el error
+      return;
+    }
+
     closeSub();
   };
 
+  const savePersonalData = async () => {
+    setSavingProfile(true);
+    setProfileSaved(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('perfiles').update({
+        nombre_completo: personalData.nombre_completo,
+        rut: personalData.rut,
+        telefono: personalData.telefono
+      }).eq('id', user.id);
+
+      setPerfil((prev: any) => ({
+        ...prev,
+        nombre_completo: personalData.nombre_completo,
+        rut: personalData.rut,
+        telefono: personalData.telefono
+      }));
+
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    }
+    setSavingProfile(false);
+  };
+
   const currentPatternSVG = BANNER_PATTERNS.find(p => p.id === bannerPattern)?.svg ?? '';
-  const editPatternSVG    = BANNER_PATTERNS.find(p => p.id === editBannerPattern)?.svg ?? '';
+  const editPatternSVG = BANNER_PATTERNS.find(p => p.id === editBannerPattern)?.svg ?? '';
+
+  // ── Botones de guardar/cancelar compartidos entre sub-modales ──
+  const SubModalActions = () => (
+    <div className="flex flex-col gap-2 pt-2">
+      {/* Mensaje de error */}
+      {avatarSaveError && (
+        <div className="flex items-start gap-2 rounded-xl p-3 bg-red-50 border border-red-100 text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <p className="text-xs font-semibold leading-relaxed">{avatarSaveError}</p>
+        </div>
+      )}
+      <button
+        onClick={save}
+        disabled={isSavingAvatar}
+        className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer disabled:opacity-60"
+      >
+        {isSavingAvatar ? (
+          <><div className="flex h-5 w-5 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div><span>Guardando...</span></>
+        ) : (
+          <><Save className="h-4 w-4" /> Guardar</>
+        )}
+      </button>
+      <button
+        onClick={closeSub}
+        disabled={isSavingAvatar}
+        className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-60"
+      >
+        Cancelar
+      </button>
+    </div>
+  );
 
   if (loading) {
     return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-slate-500">
-      <TailChase size="40" speed="1.75" color="#cbd5e1" />
-      <p className="text-sm font-semibold tracking-wide">Cargando tu información...</p>
-    </div>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-slate-500">
+        <TailChase size="40" speed="1.75" color="#cbd5e1" />
+        <p className="text-sm font-semibold tracking-wide">Cargando tu información...</p>
+      </div>
     );
   }
 
@@ -189,7 +277,7 @@ export default function MiPerfilPage() {
     );
   }
 
-  const rolCfg   = ROL_CONFIG[perfil.rol] ?? { label: perfil.rol ?? 'Sin Rol', color: '#475569', bg: '#f8fafc', border: '#e2e8f0' };
+  const rolCfg = ROL_CONFIG[perfil.rol] ?? { label: perfil.rol ?? 'Sin Rol', color: '#475569', bg: '#f8fafc', border: '#e2e8f0' };
   const isActive = perfil.estado === 'ACTIVO';
 
   return (
@@ -231,8 +319,7 @@ export default function MiPerfilPage() {
                 style={{ color: rolCfg.color, backgroundColor: rolCfg.bg, border: `1px solid ${rolCfg.border}` }}>
                 <Shield className="h-3 w-3" />{rolCfg.label}
               </span>
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                isActive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-red-700 bg-red-50 border border-red-200'}`}>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-red-700 bg-red-50 border border-red-200'}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                 <Activity className="h-3 w-3" />{perfil.estado || 'N/A'}
               </span>
@@ -254,15 +341,92 @@ export default function MiPerfilPage() {
           <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Datos de la cuenta</p>
         </div>
         <div className="px-6 pb-2">
-          <InfoField icon={<Mail className="h-4 w-4" />}        label="Correo electrónico" value={perfil.email}      copiable />
-          <InfoField icon={<Shield className="h-4 w-4" />}      label="Nivel de acceso"    value={rolCfg.label} />
-          <InfoField icon={<Fingerprint className="h-4 w-4" />} label="ID de usuario"      value={perfil.id}         mono copiable />
-          <InfoField icon={<Calendar className="h-4 w-4" />}    label="Miembro desde"
+          <InfoField icon={<Mail className="h-4 w-4" />} label="Correo electrónico" value={perfil.email} copiable />
+          <InfoField icon={<Shield className="h-4 w-4" />} label="Nivel de acceso" value={rolCfg.label} />
+          <InfoField icon={<Fingerprint className="h-4 w-4" />} label="ID de usuario" value={perfil.id} mono copiable />
+          <InfoField icon={<Calendar className="h-4 w-4" />} label="Miembro desde"
             value={perfil.created_at ? format(new Date(perfil.created_at), "d 'de' MMMM, yyyy — HH:mm", { locale: es }) : 'No disponible'} last />
         </div>
       </div>
 
-      {/* ── Bottom Sheet — menú principal (idéntico al de inventario) ── */}
+      {/* Completa tu perfil */}
+      <div className="rounded-2xl shadow-sm mt-5" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-base)' }}>
+        <div className="px-6 pt-5 pb-3">
+          <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Completa tu perfil</h3>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Agrega más información a tu cuenta.</p>
+        </div>
+        <div className="px-6 pb-6 space-y-4 border-t" style={{ borderColor: 'var(--border-soft)' }}>
+          <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <User className="h-3 w-3" /> Nombre Completo
+              </label>
+              <input
+                type="text"
+                value={personalData.nombre_completo}
+                onChange={e => setPersonalData({ ...personalData, nombre_completo: e.target.value })}
+                placeholder="Ej. Juan Pérez"
+                className="w-full px-3 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
+                style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--input-border)'}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <CreditCard className="h-3 w-3" /> RUT
+              </label>
+              <input
+                type="text"
+                value={personalData.rut}
+                onChange={e => setPersonalData({ ...personalData, rut: e.target.value })}
+                placeholder="Ej. 12.345.678-9"
+                className="w-full px-3 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
+                style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--input-border)'}
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <Phone className="h-3 w-3" /> Teléfono
+              </label>
+              <input
+                type="text"
+                value={personalData.telefono}
+                onChange={e => setPersonalData({ ...personalData, telefono: e.target.value })}
+                placeholder="Ej. +56 9 1234 5678"
+                className="w-full px-3 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
+                style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--input-border)'}
+              />
+            </div>
+
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={savePersonalData}
+              disabled={savingProfile}
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {savingProfile ? (
+                <>Guardando...</>
+              ) : profileSaved ? (
+                <><Check className="h-3.5 w-3.5" /> Guardado</>
+              ) : (
+                <><Save className="h-3.5 w-3.5" /> Guardar cambios</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bottom Sheet — menú principal ── */}
       {typeof document !== 'undefined' && createPortal(
         <Transition show={menuOpen} as={Fragment}>
           <div className="fixed inset-0 z-50 pointer-events-none flex items-end justify-center">
@@ -327,14 +491,7 @@ export default function MiPerfilPage() {
               onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--input-border)'} />
           </div>
-          <div className="flex flex-col gap-2 pt-2">
-            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer">
-              <Save className="h-4 w-4" /> Guardar
-            </button>
-            <button onClick={closeSub} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
-              Cancelar
-            </button>
-          </div>
+          <SubModalActions />
         </div>
       </SubModal>
 
@@ -348,14 +505,7 @@ export default function MiPerfilPage() {
             <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Vista previa del avatar</p>
           </div>
           <ColorGrid selected={editAvatarGradient} onSelect={setEditAvatarGradient} />
-          <div className="flex flex-col gap-2 pt-2">
-            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer">
-              <Save className="h-4 w-4" /> Guardar
-            </button>
-            <button onClick={closeSub} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
-              Cancelar
-            </button>
-          </div>
+          <SubModalActions />
         </div>
       </SubModal>
 
@@ -393,14 +543,7 @@ export default function MiPerfilPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 pt-2">
-            <button onClick={save} className="w-full flex justify-center items-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-all cursor-pointer">
-              <Save className="h-4 w-4" /> Guardar
-            </button>
-            <button onClick={closeSub} className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
-              Cancelar
-            </button>
-          </div>
+          <SubModalActions />
         </div>
       </SubModal>
 

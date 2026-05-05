@@ -34,6 +34,7 @@ type HardwareItem = {
   estado: string;
   ubicacion?: string;
   descripcion?: string;
+  numero_serie?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -212,9 +213,19 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, onMo
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight wrap-break-word">
                   {item.modelo}
                 </h2>
-                <p className="mt-1.5 font-mono text-sm text-slate-400 font-bold tracking-widest break-all">
-                  {item.sku}
-                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  <p className="font-mono text-sm text-slate-400 font-bold tracking-widest break-all">
+                    SKU: {item.sku}
+                  </p>
+                  {item.numero_serie && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <p className="font-mono text-sm text-slate-500 font-bold tracking-widest break-all">
+                        S/N: {item.numero_serie}
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -358,7 +369,7 @@ export default function InventarioPage() {
 
   const [editItem, setEditItem] = useState<HardwareItem | null>(null);
   const [editFormData, setEditFormData] = useState({
-    modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: ''
+    modelo: '', categoria: '', estado: '', sku: '', descripcion: '', ubicacion: '', numero_serie: ''
   });
   const [editLoading, setEditLoading] = useState(false);
   const [showUbicacionEditorInEdit, setShowUbicacionEditorInEdit] = useState(false);
@@ -417,7 +428,7 @@ export default function InventarioPage() {
         .range(from, to);
 
       if (searchTerm) {
-        query = query.or(`modelo.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,ubicacion.ilike.%${searchTerm}%`);
+        query = query.or(`modelo.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,ubicacion.ilike.%${searchTerm}%,numero_serie.ilike.%${searchTerm}%`);
       }
       if (filterCategoria) query = query.eq('categoria', filterCategoria);
       if (filterEstado) query = query.eq('estado', filterEstado);
@@ -470,11 +481,11 @@ export default function InventarioPage() {
       const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
 
       if (e.key === 'Escape') {
+        if (isModalOpen) { setIsModalOpen(false); return; }
+        if (deleteItem) { setDeleteItem(null); return; }
+        if (editItem) { setEditItem(null); return; }
+        if (detalleItem) { setDetalleItem(null); return; }
         setMenuOpenId(null);
-        setDetalleItem(null);
-        setEditItem(null);
-        setDeleteItem(null);
-        setIsModalOpen(false);
       }
 
       if (!isInput) {
@@ -490,7 +501,7 @@ export default function InventarioPage() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+  }, [isModalOpen, deleteItem, editItem, detalleItem]);
 
 
   const addCategoria = useCallback(async (nombre: string, extra?: Record<string, string>) => {
@@ -551,7 +562,7 @@ export default function InventarioPage() {
     if (!user) return;
 
     const nuevoEstado = tipo === 'SALIDA' ? 'EN_USO' : 'DISPONIBLE';
-    
+
     // 1. Registrar transacción
     const { error: transError } = await supabase
       .from('transacciones')
@@ -573,15 +584,16 @@ export default function InventarioPage() {
       await registrarLog(tipo, 'HARDWARE', item.id, {
         sku: item.sku,
         modelo: item.modelo,
+        numero_serie: item.numero_serie,
         notas: `Cambio de estado desde Menú Acciones. Nuevo estado: ${nuevoEstado}`
       });
       setRefreshTrigger(prev => prev + 1);
-      
+
       const title = tipo === 'SALIDA' ? 'Equipo retirado' : 'Equipo devuelto';
-      const subtitle = tipo === 'SALIDA' 
-        ? `${item.modelo} marcado como en uso` 
+      const subtitle = tipo === 'SALIDA'
+        ? `${item.modelo} marcado como en uso`
         : `${item.modelo} marcado como disponible`;
-      
+
       triggerToast(title, subtitle);
     } else {
       console.error('Error al registrar movimiento:', transError || hwError);
@@ -599,6 +611,7 @@ export default function InventarioPage() {
       sku: item.sku,
       descripcion: item.descripcion ?? '',
       ubicacion: item.ubicacion ?? '',
+      numero_serie: item.numero_serie ?? '',
     });
     setShowUbicacionEditorInEdit(false);
     setMenuOpenId(null);
@@ -614,6 +627,7 @@ export default function InventarioPage() {
       await registrarLog('EDITAR', 'HARDWARE', editItem.id, {
         sku: editItem.sku,
         modelo: editItem.modelo,
+        numero_serie: editFormData.numero_serie,
         cambios: editFormData
       });
       setRefreshTrigger(prev => prev + 1);
@@ -785,7 +799,7 @@ export default function InventarioPage() {
           <SkeletonFilterRow count={5} />
         ) : sortedUbicaciones.length > 0 ? (
           <div className="flex items-center gap-3 px-1 w-full">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> Estante:</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> Ubicación:</span>
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mask-fade-right">
               {sortedUbicaciones.map(ubic => {
                 const active = filterUbicacion === ubic.nombre;
@@ -833,6 +847,11 @@ export default function InventarioPage() {
                         <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                           {item.sku}
                         </span>
+                        {item.numero_serie && (
+                          <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                            SN: {item.numero_serie}
+                          </span>
+                        )}
                         {item.ubicacion && (
                           <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5 truncate">
                             <MapPin className="h-3 w-3 shrink-0" /> {item.ubicacion}
@@ -905,7 +924,10 @@ export default function InventarioPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{item.sku}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-mono text-xs text-slate-800 font-bold">{item.sku}</div>
+                      {item.numero_serie && <div className="font-mono text-[10px] text-slate-400 mt-0.5">SN: {item.numero_serie}</div>}
+                    </td>
                     <td className="px-6 py-4 text-slate-600">{item.categoria}</td>
                     <td className="px-6 py-4 text-slate-500 text-xs font-semibold">
                       {item.ubicacion ? (
@@ -1010,7 +1032,7 @@ export default function InventarioPage() {
                     <div className="space-y-1.5 relative">
                       <div className="flex items-center justify-between">
                         <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                          <MapPin className="h-3 w-3" /> Ubicación / Estante
+                          <MapPin className="h-3 w-3" /> Ubicación
                         </label>
                         <button type="button" onClick={() => setShowUbicacionEditorInEdit(v => !v)} className="flex items-center gap-1 text-[10px] font-bold text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer">
                           <Pencil className="h-3 w-3" /> Gestionar
@@ -1033,9 +1055,15 @@ export default function InventarioPage() {
                       )}
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
-                      <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
+                        <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">N° de Serie (Opcional)</label>
+                        <input type="text" maxLength={100} spellCheck="false" autoComplete="off" value={editFormData.numero_serie} onChange={e => setEditFormData({ ...editFormData, numero_serie: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" placeholder="Ej: SN-123456" />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción</label>

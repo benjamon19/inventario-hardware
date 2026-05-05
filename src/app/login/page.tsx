@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import { TailChase } from 'ldrs/react';
 import 'ldrs/react/TailChase.css';
-import { procesarLogin } from './actions';
+import { procesarLogin, recuperarPassword } from './actions';
+import { Transition, Dialog } from '@headlessui/react';
+import { Fragment } from 'react';
 import InteractiveRobot, { RobotHandle } from './robot/InteractiveRobot';
 
 export default function LoginPage() {
@@ -18,6 +20,25 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryMsg, setRecoveryMsg] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  const handleRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsRecovering(true);
+    setRecoveryMsg(null);
+    const result = await recuperarPassword(recoveryEmail);
+    if (result.error) {
+      setRecoveryMsg({ text: result.error, type: 'error' });
+    } else {
+      setRecoveryMsg({ text: 'Correo enviado. Revisa tu bandeja de entrada o spam.', type: 'success' });
+      setRecoveryEmail('');
+    }
+    setIsRecovering(false);
+  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -171,18 +192,23 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Checkbox Recuérdame */}
-              <div className="flex items-center gap-2 mt-2 md:mt-3 px-1">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-200 text-slate-900 accent-slate-900 focus:ring-slate-900 cursor-pointer"
-                />
-                <label htmlFor="remember" className="text-xs md:text-sm text-slate-500 font-bold cursor-pointer select-none">
-                  Recuérdame
-                </label>
+              <div className="flex items-center justify-between mt-2 md:mt-3 px-1">
+                {/* Checkbox Recuérdame */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-200 text-slate-900 accent-slate-900 focus:ring-slate-900 cursor-pointer"
+                  />
+                  <label htmlFor="remember" className="text-xs md:text-sm text-slate-500 font-bold cursor-pointer select-none">
+                    Recuérdame
+                  </label>
+                </div>
+                <button type="button" onClick={() => setIsRecoveryOpen(true)} className="text-xs md:text-sm font-bold text-sky-600 hover:text-sky-500 cursor-pointer transition-colors">
+                  ¿Olvidaste tu contraseña?
+                </button>
               </div>
 
               <button
@@ -199,6 +225,56 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Recuperación */}
+      <Transition show={isRecoveryOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-[100]" onClose={() => setIsRecoveryOpen(false)}>
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
+          </Transition.Child>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95 translate-y-4" enterTo="opacity-100 scale-100 translate-y-0" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100 translate-y-0" leaveTo="opacity-0 scale-95 translate-y-4">
+                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-7 shadow-2xl transition-all border border-slate-100">
+                  <Dialog.Title as="h3" className="text-lg font-bold text-slate-900 mb-1.5 tracking-tight">Recuperar Contraseña</Dialog.Title>
+                  <p className="text-xs md:text-sm text-slate-500 mb-6 font-medium leading-relaxed">Ingresa el correo asociado a tu cuenta. Te enviaremos un enlace para que puedas restablecerla.</p>
+                  
+                  {recoveryMsg && (
+                    <div className={`mb-5 p-3.5 rounded-xl text-xs md:text-sm font-bold text-center ${recoveryMsg.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                      {recoveryMsg.text}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleRecovery} className="space-y-5">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                        <Mail className="h-4 w-4 md:h-5 md:w-5 text-slate-400 group-focus-within:text-slate-600 transition-colors" />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        value={recoveryEmail}
+                        onChange={(e) => setRecoveryEmail(e.target.value.trim())}
+                        className="block w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-slate-900 focus:bg-white transition-all shadow-sm"
+                        placeholder="tu@correo.com"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 pt-2">
+                      <button type="submit" disabled={isRecovering} className="w-full rounded-2xl bg-slate-900 py-3.5 text-sm font-bold text-white hover:bg-slate-800 hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer disabled:opacity-70 disabled:hover:translate-y-0 flex justify-center items-center">
+                        {isRecovering ? <TailChase size="18" speed="1.75" color="white" /> : 'Enviar enlace seguro'}
+                      </button>
+                      <button type="button" onClick={() => setIsRecoveryOpen(false)} className="w-full rounded-2xl border border-slate-200 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </main>
   );
 }

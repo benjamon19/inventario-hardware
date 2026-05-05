@@ -70,7 +70,7 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
           height: gH, 
           fontSize: gFS, 
           wrapText: gWp,
-          text: `${item.modelo} | ${item.sku} | ${item.categoria}`
+          text: item.sku
         };
       });
       setItemSettings(initialSettings);
@@ -93,7 +93,7 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
     height: parseFloat(heightInput) || 0,
     fontSize: parseInt(fontSizeInput) || 0,
     wrapText: globalWrap,
-    text: `${activeItem.modelo} | ${activeItem.sku} | ${activeItem.categoria}`
+    text: activeItem.sku
   };
 
   const updateCurrent = (updates: Partial<ItemSettings>) => {
@@ -147,7 +147,7 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
     selectedItems.forEach(item => {
         newSettings[item.id] = {
             ...current,
-            text: itemSettings[item.id]?.text || `${item.modelo} | ${item.sku} | ${item.categoria}`
+            text: itemSettings[item.id]?.text || item.sku
         };
     });
     setItemSettings(newSettings);
@@ -163,12 +163,11 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enterTo="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 translate-y-0 sm:scale-100" leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-              <Dialog.Panel className="relative transform overflow-hidden rounded-[3.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-6xl border border-slate-100 flex flex-col md:flex-row">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all w-full max-w-6xl border border-slate-100 flex flex-col md:flex-row">
                 
                 <div className="w-full md:w-[360px] p-8 sm:p-10 flex flex-col gap-8 bg-white border-b md:border-b-0 md:border-r border-slate-100 shrink-0">
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Personalizar</h3>
-                    <p className="text-sm text-slate-500 font-medium italic">Ajustes finales.</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-6">
@@ -216,8 +215,8 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
                             <p className="text-[10px] text-red-600 font-bold leading-tight">Usa una computadora para imprimir etiquetas QR.</p>
                         </div>
                     ) : (
-                        <button onClick={() => { onConfirmPrint({ items: itemSettings }); onClose(); }} className="w-full flex justify-center items-center gap-3 rounded-[1.5rem] bg-slate-900 py-4 text-sm font-bold text-white hover:bg-slate-800 transition-all cursor-pointer shadow-xl shadow-slate-200">
-                          <Printer className="h-5 w-5" /> Imprimir lote
+                        <button onClick={() => { onConfirmPrint({ items: itemSettings }); onClose(); }} className="w-full flex justify-center items-center gap-3 rounded-2xl bg-slate-900 py-4 text-sm font-bold text-white hover:bg-slate-800 transition-all cursor-pointer shadow-xl shadow-slate-200">
+                          <Printer className="h-5 w-5" /> {selectedItems.length > 1 ? 'Imprimir lote' : 'Imprimir etiqueta'}
                         </button>
                     )}
                     <button onClick={onClose} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest text-center">Cancelar</button>

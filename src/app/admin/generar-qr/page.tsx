@@ -145,7 +145,7 @@ export default function GenerarQRPage() {
 
       // Aplicar filtros en la base de datos
       if (searchTerm) {
-        query = query.or(`modelo.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`);
+        query = query.or(`modelo.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,numero_serie.ilike.%${searchTerm}%`);
       }
       if (filterCategoria) query = query.eq('categoria', filterCategoria);
       if (filterEstado)    query = query.eq('estado', filterEstado);
@@ -198,8 +198,8 @@ export default function GenerarQRPage() {
     const skuParam = params.get('sku');
     if (skuParam) {
       setSku(skuParam);
-      supabase.from('hardware').select('*').eq('sku', skuParam.trim()).single()
-        .then(({ data }) => { if (data) setItem(data); });
+      supabase.from('hardware').select('*').or(`sku.eq.${skuParam.trim()},numero_serie.eq.${skuParam.trim()}`).limit(1)
+        .then(({ data }) => { if (data?.[0]) setItem(data[0]); });
     }
   }, []);
 
@@ -235,8 +235,11 @@ export default function GenerarQRPage() {
       const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
 
       if (e.key === 'Escape') {
-        setIsPrintMenuOpen(false);
-        setItem(null);
+        if (isPrintMenuOpen) {
+          setIsPrintMenuOpen(false);
+        } else {
+          setItem(null);
+        }
       }
 
       if (!isInput) {
@@ -257,7 +260,7 @@ export default function GenerarQRPage() {
       window.removeEventListener('keydown', handleKey);
       cancelAnimationFrame(rafId); 
     };
-  }, [toggleMultiMode]);
+  }, [toggleMultiMode, isPrintMenuOpen, item]);
 
 
 
@@ -267,8 +270,8 @@ export default function GenerarQRPage() {
 
   const buscarEquipo = useCallback(async () => {
     if (!sku.trim()) return;
-    const { data } = await supabase.from('hardware').select('*').eq('sku', sku.trim()).single();
-    setItem(data ?? null);
+    const { data } = await supabase.from('hardware').select('*').or(`sku.eq.${sku.trim()},numero_serie.eq.${sku.trim()}`).limit(1);
+    setItem(data?.[0] ?? null);
   }, [sku]);
 
   const toggleSeleccion = useCallback((equipo: any) => {
@@ -283,7 +286,7 @@ export default function GenerarQRPage() {
     if (multiMode) { toggleSeleccion(equipo); return; }
     setItem(equipo);
     setSku(equipo.sku);
-    // Eliminado scrollTo para evitar mover la vista al seleccionar
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [multiMode, toggleSeleccion]);
 
 
@@ -406,7 +409,7 @@ export default function GenerarQRPage() {
               height: 2.5, 
               fontSize: 12, 
               wrapText: true,
-              text: `${eq.modelo} | ${eq.sku} | ${eq.categoria}` 
+              text: eq.sku 
             };
 
 
@@ -481,8 +484,7 @@ export default function GenerarQRPage() {
                   <QRCodeSVG value={item.sku} size={120} level="H" includeMargin={false} />
                 </div>
                 <p className="text-slate-900 text-base font-black tracking-widest">{item.sku}</p>
-                <p className="text-slate-700 text-xs font-bold truncate mt-2">{item.modelo}</p>
-                <p className="text-slate-400 text-[10px] truncate mt-1">{item.categoria}</p>
+                {item.numero_serie && <p className="text-slate-500 text-xs font-bold tracking-widest mt-1">SN: {item.numero_serie}</p>}
               </div>
             </div>
             <div className="flex flex-col justify-center gap-4">
@@ -492,7 +494,7 @@ export default function GenerarQRPage() {
                   <li><strong>Categoría:</strong> {item.categoria}</li>
                   <li><strong>Modelo:</strong> {item.modelo}</li>
                   <li><strong>Estado:</strong> {item.estado}</li>
-                  {item.ubicacion && <li><strong>Estante:</strong> {item.ubicacion}</li>}
+                  {item.ubicacion && <li><strong>Ubicación:</strong> {item.ubicacion}</li>}
                   {item.descripcion && <li><strong>Notas:</strong> <span className="font-normal">{item.descripcion}</span></li>}
                 </ul>
               </div>
@@ -601,7 +603,7 @@ export default function GenerarQRPage() {
             <SkeletonFilterRow count={5} />
           ) : sortedUbicaciones.length > 0 ? (
             <div className="flex items-center gap-3 w-full">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> Estante:</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> Ubicación:</span>
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 grow">
                 {sortedUbicaciones.map(ubic => {
                   const active = filterUbicacion === ubic.nombre;
@@ -656,6 +658,7 @@ export default function GenerarQRPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-slate-900 text-sm truncate">{equipo.modelo}</p>
                       <p className="font-mono text-[11px] text-slate-400 truncate">{equipo.sku}</p>
+                      {equipo.numero_serie && <p className="font-mono text-[10px] text-slate-400 truncate">SN: {equipo.numero_serie}</p>}
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold border ${getBadgeClass(equipo.estado)}`}>
                           {equipo.estado}

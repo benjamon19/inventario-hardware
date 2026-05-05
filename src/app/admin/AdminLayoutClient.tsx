@@ -67,10 +67,14 @@ export default function AdminLayoutClient({
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
           <Package className="h-4 w-4" />
         </div>
-        <span className={`font-extrabold tracking-tight text-sm leading-tight whitespace-nowrap overflow-hidden transition-all duration-300 text-slate-900 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
-          }`}>
-          Wall | Sistema Inventario
-        </span>
+        <div className={`flex flex-col min-w-0 transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'flex-1 opacity-100'}`}>
+          <span className="font-extrabold tracking-tight text-sm leading-none text-slate-900 whitespace-nowrap">
+            Wall <span className="text-slate-400 font-medium ml-0.5">| Inventario</span>
+          </span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 whitespace-nowrap">
+            Sistema de Gestión
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col justify-between overflow-y-auto mt-2">

@@ -67,3 +67,29 @@ export async function procesarLogin(email: string, pass: string, recordar: boole
 
   return { success: true, rol: perfil?.rol };
 }
+
+export async function recuperarPassword(email: string) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll() {},
+      },
+    }
+  );
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/actualizar-password`,
+  });
+
+  if (error) {
+    return { error: 'Error al enviar el correo. Verifica que tu email sea válido y esté registrado.' };
+  }
+
+  return { success: true };
+}

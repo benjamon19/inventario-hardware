@@ -13,6 +13,7 @@ type HardwareItem = {
   estado: string;
   ubicacion?: string;
   descripcion?: string;
+  numero_serie?: string;
 };
 
 type AccionesMenuProps = {

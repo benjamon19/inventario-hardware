@@ -27,7 +27,7 @@ const colorOptions = ['emerald', 'blue', 'amber', 'red', 'violet', 'slate'];
 // Sub-componente: Editor inline
 // =============================================
 type InlineEditorProps = {
-  items: { id: string; nombre: string; [key: string]: any }[];
+  items: { id: string; nombre: string;[key: string]: any }[];
   onAdd: (nombre: string, extra?: Record<string, string>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onSelect?: (nombre: string) => void;
@@ -105,9 +105,8 @@ function InlineEditor({ items, onAdd, onDelete, onSelect, extraField, onClose, t
                 key={c}
                 type="button"
                 onClick={() => setNewExtra(c)}
-                className={`w-5 h-5 rounded-full border-2 transition-all cursor-pointer ${
-                  newExtra === c ? 'border-slate-500 scale-110' : 'border-transparent'
-                } ${colorClasses[c]}`}
+                className={`w-5 h-5 rounded-full border-2 transition-all cursor-pointer ${newExtra === c ? 'border-slate-500 scale-110' : 'border-transparent'
+                  } ${colorClasses[c]}`}
               />
             ))}
           </div>
@@ -165,7 +164,7 @@ export default function NuevoEquipoModal({
   });
 
   const [cantidad, setCantidad] = useState(1);
-  const [equipos, setEquipos] = useState<{ id: number; sku: string; descripcion: string }[]>([]);
+  const [equipos, setEquipos] = useState<{ id: number; sku: string; descripcion: string; numero_serie: string }[]>([]);
 
   const [showCatEditor, setShowCatEditor] = useState(false);
   const [showEstEditor, setShowEstEditor] = useState(false);
@@ -190,7 +189,7 @@ export default function NuevoEquipoModal({
       });
       setCantidad(1);
       const prefijo = categorias.find(c => c.nombre === defaultCat)?.prefijo ?? 'HW';
-      setEquipos([{ id: Date.now(), sku: generarSKU(prefijo), descripcion: '' }]);
+      setEquipos([{ id: Date.now(), sku: generarSKU(prefijo), descripcion: '', numero_serie: '' }]);
       setShowCatEditor(false);
       setShowEstEditor(false);
       setShowUbicEditor(false);
@@ -215,7 +214,8 @@ export default function NuevoEquipoModal({
         const nuevos = Array.from({ length: toAdd }).map((_, i) => ({
           id: Date.now() + i,
           sku: generarSKU(prefijo),
-          descripcion: ''
+          descripcion: '',
+          numero_serie: ''
         }));
         return [...prev, ...nuevos];
       } else {
@@ -224,7 +224,7 @@ export default function NuevoEquipoModal({
     });
   };
 
-  const updateEquipo = (id: number, field: 'sku' | 'descripcion', value: string) => {
+  const updateEquipo = (id: number, field: 'sku' | 'descripcion' | 'numero_serie', value: string) => {
     setEquipos(prev => prev.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
   };
 
@@ -249,7 +249,7 @@ export default function NuevoEquipoModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // VALIDACIÓN ESTRICTA CON ZOD
     const equipoSchema = z.object({
       categoria: z.string().min(1, "La categoría es obligatoria"),
@@ -259,6 +259,7 @@ export default function NuevoEquipoModal({
       equipos: z.array(z.object({
         sku: z.string().trim().min(1, "El SKU es obligatorio").max(50, "El SKU no puede exceder 50 caracteres"),
         descripcion: z.string().max(255, "La descripción no puede exceder 255 caracteres").optional(),
+        numero_serie: z.string().max(100, "El N° de serie no puede exceder 100 caracteres").optional(),
       })).min(1, "Debe registrar al menos un equipo"),
     });
 
@@ -281,11 +282,12 @@ export default function NuevoEquipoModal({
       estado: formData.estado,
       ubicacion: formData.ubicacion || null,
       descripcion: eq.descripcion.trim() || null,
+      numero_serie: eq.numero_serie.trim() || null,
     }));
 
     const { data: insertedData, error } = await supabase.from('hardware').insert(toInsert).select();
-    
-    if (!error && insertedData) { 
+
+    if (!error && insertedData) {
       const { data: { user } } = await supabase.auth.getUser();
 
       const logsToInsert = insertedData.map(eq => ({
@@ -296,14 +298,15 @@ export default function NuevoEquipoModal({
           sku: eq.sku,
           modelo: eq.modelo,
           categoria: eq.categoria,
+          numero_serie: eq.numero_serie,
           notas: eq.descripcion || 'Registro inicial en el sistema'
         }
       }));
 
       await supabase.from('auditoria_logs').insert(logsToInsert);
 
-      onSuccess(); 
-      onClose(); 
+      onSuccess();
+      onClose();
     } else {
       alert('Error al guardar: ' + (error?.message || 'Error desconocido'));
     }
@@ -312,16 +315,16 @@ export default function NuevoEquipoModal({
 
   return (
     <Transition show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-[100]" onClose={onClose}>
         <Transition.Child as={Fragment} enter="transition-opacity ease-linear duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="transition-opacity ease-linear duration-300" leaveFrom="opacity-100" leaveTo="opacity-0">
           <div className="fixed inset-0 bg-slate-900/40" />
         </Transition.Child>
 
-        <div className="fixed inset-0 overflow-hidden">
+        <div className="fixed inset-0 z-[101] overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
               <Transition.Child as={Fragment} enter="transform transition ease-in-out duration-400 sm:duration-500" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in-out duration-400 sm:duration-500" leaveFrom="translate-x-0" leaveTo="translate-x-full">
-                <Dialog.Panel className="pointer-events-auto w-screen sm:max-w-[400px] lg:max-w-md flex">
+                <Dialog.Panel id="tour-modal-nuevo-equipo" className="pointer-events-auto w-screen sm:max-w-[400px] lg:max-w-md flex">
                   <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
                     {/* Cabecera */}
                     <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -424,9 +427,9 @@ export default function NuevoEquipoModal({
                         {/* 4. Ubicación */}
                         <div className="space-y-1 relative">
                           <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                              <MapPin className="h-3.5 w-3.5" /> Ubicación / Estante
-                              <span className="lowercase font-normal text-[10px] ml-1">(Opcional)</span>
+                            <label className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-slate-500">
+                              <MapPin className="h-3.5 w-3.5" /> Ubicación
+                              <span className="font-normal text-[10px] ml-1">(Opcional)</span>
                             </label>
                             <button
                               type="button"
@@ -481,21 +484,36 @@ export default function NuevoEquipoModal({
                                   {index + 1}
                                 </div>
                               )}
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-end">
-                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
-                                  <span className="text-[10px] text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Auto-generado</span>
+                              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-end">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
+                                    <span className="text-[10px] text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Auto-generado</span>
+                                  </div>
+                                  <input
+                                    required
+                                    type="text"
+                                    maxLength={50}
+                                    spellCheck="false"
+                                    autoComplete="off"
+                                    value={eq.sku}
+                                    onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                  />
                                 </div>
-                                <input
-                                  required
-                                  type="text"
-                                  maxLength={50}
-                                  spellCheck="false"
-                                  autoComplete="off"
-                                  value={eq.sku}
-                                  onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
-                                />
+                                <div className="space-y-1">
+                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">N° Serie <span className="font-normal text-[10px] ml-1 normal-case">(Opcional)</span></label>
+                                  <input
+                                    type="text"
+                                    maxLength={100}
+                                    spellCheck="false"
+                                    autoComplete="off"
+                                    value={eq.numero_serie}
+                                    onChange={(e) => updateEquipo(eq.id, 'numero_serie', e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                    placeholder="Ej: SN-123"
+                                  />
+                                </div>
                               </div>
                               <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>

@@ -42,13 +42,6 @@ const SkeletonUserCard = () => (
   </div>
 );
 
-const PRIORIDAD_ROLES: Record<string, number> = {
-  'SUPER_ADMIN': 1,
-  'ADMIN': 2,
-  'OPERADOR': 3,
-  'PENDIENTE': 4
-};
-
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -66,7 +59,6 @@ export default function UsuariosPage() {
 
   const onlineUsers = usePresence();
 
-  // Avatar del usuario actual (sincronizado con perfil)
   const {
     initials: myInitials,
     avatarGradient: myAvatarGradient,
@@ -119,7 +111,6 @@ export default function UsuariosPage() {
     setLastUpdate(new Date());
   }, []);
 
-  // ── Realtime real: escucha INSERT, UPDATE y DELETE en perfiles ──
   useRealtimeTable({
     table: 'perfiles',
     events: ['INSERT', 'UPDATE', 'DELETE'],
@@ -135,11 +126,24 @@ export default function UsuariosPage() {
     const from = (currentPage - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
 
+    // ── 1. Traer el perfil del usuario actual por separado (siempre primero) ──
+    let myPerfil: any = null;
+    if (currentUserId) {
+      const { data } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('id', currentUserId)
+        .single();
+      myPerfil = data ?? null;
+    }
+
+    // ── 2. Query principal paginada, excluyendo al usuario actual ──
     let query = supabase
       .from('perfiles')
       .select('*', { count: 'estimated' })
       .range(from, to);
 
+    if (currentUserId) query = query.neq('id', currentUserId);
     if (searchTerm) query = query.ilike('email', `%${searchTerm}%`);
     if (filterRol !== 'TODOS') query = query.eq('rol', filterRol);
 
@@ -151,10 +155,23 @@ export default function UsuariosPage() {
       return;
     }
 
-    if (count !== null) setTotalItems(count);
+    // ── 3. Determinar si mi perfil aplica a los filtros actuales ──
+    const myMatchesFilter = !filterRol || filterRol === 'TODOS' || myPerfil?.rol === filterRol;
+    const myMatchesSearch = !searchTerm || myPerfil?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const includeMe = myPerfil && myMatchesFilter && myMatchesSearch;
 
-    const userIds = perfilesData?.map(p => p.id) || [];
-    let perfilesConStats = perfilesData || [];
+    // Ajustar el total sumando mi perfil si aplica
+    if (count !== null) setTotalItems(count + (includeMe ? 1 : 0));
+
+    // ── 4. Mi perfil siempre primero, el resto como venga de la DB ──
+    const perfilesConcat = [
+      ...(includeMe ? [myPerfil] : []),
+      ...(perfilesData || []),
+    ];
+
+    // ── 6. Stats de movimientos ──
+    const userIds = perfilesConcat.map(p => p.id);
+    let perfilesConStats = perfilesConcat;
 
     if (userIds.length > 0) {
       const { data: logsData } = await supabase
@@ -174,33 +191,24 @@ export default function UsuariosPage() {
         }
       });
 
-      perfilesConStats = perfilesData!.map(perfil => ({
+      perfilesConStats = perfilesConcat.map(perfil => ({
         ...perfil,
         totalMovimientos: logsByUser.get(perfil.id)?.total ?? 0,
         ultimaActividad: logsByUser.get(perfil.id)?.ultima ?? null,
       }));
     }
 
-    const myId = currentUserId;
-    const usuariosOrdenados = perfilesConStats.sort((a, b) => {
-      if (a.id === myId) return -1;
-      if (b.id === myId) return 1;
-      const prioridadA = PRIORIDAD_ROLES[a.rol] || 99;
-      const prioridadB = PRIORIDAD_ROLES[b.rol] || 99;
-      if (prioridadA !== prioridadB) return prioridadA - prioridadB;
-      return (a.email || '').localeCompare(b.email || '');
-    });
-
-    setUsuarios(usuariosOrdenados);
+    setUsuarios(perfilesConStats);
     setLoading(false);
   }, [currentPage, itemsPerPage, searchTerm, filterRol, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return; // esperar a tener el ID antes de cargar
     const timer = setTimeout(() => {
       fetchUsuarios();
     }, 300);
     return () => clearTimeout(timer);
-  }, [fetchUsuarios, refreshTrigger]);
+  }, [fetchUsuarios, refreshTrigger, currentUserId]);
 
   const cambiarRol = async (perfil: any, nuevoRol: string) => {
     setUpdatingId(perfil.id);
@@ -217,7 +225,7 @@ export default function UsuariosPage() {
         rol_anterior: perfil.rol,
         rol_nuevo: nuevoRol
       });
-      await fetchUsuarios(); // <--- RECARGA FORZADA AQUÍ
+      await fetchUsuarios();
     }
     setUpdatingId(null);
   };
@@ -237,7 +245,7 @@ export default function UsuariosPage() {
         email_afectado: perfil.email,
         accion_estado: nuevoEstado
       });
-      await fetchUsuarios(); // <--- RECARGA FORZADA AQUÍ
+      await fetchUsuarios();
     }
     setUpdatingId(null);
   };
@@ -262,10 +270,8 @@ export default function UsuariosPage() {
 
     setCreateMsg({ type: 'success', text: 'Usuario creado exitosamente.' });
 
-    // Le damos un respiro muy cortito (500ms) para que el trigger de Supabase 
-    // termine de crear el perfil antes de forzar la recarga
     setTimeout(async () => {
-      await fetchUsuarios(); // <--- RECARGA FORZADA AQUÍ
+      await fetchUsuarios();
       setIsModalOpen(false);
       setNewEmail('');
       setNewPassword('');
@@ -395,7 +401,6 @@ export default function UsuariosPage() {
 
                 <div className="flex flex-col p-3 sm:p-4 relative">
 
-                  {/* Contenedor del Avatar (se monta sobre el banner) */}
                   <div className={`${!inactivo ? '-mt-8 relative z-10 mb-2' : 'mb-2'}`}>
                     <div className="relative inline-block shrink-0">
                       <div
@@ -428,7 +433,6 @@ export default function UsuariosPage() {
                     </div>
                   </div>
 
-                  {/* Textos y Badges (quedan abajo del avatar, completamente fuera del banner) */}
                   <div className="flex-1 min-w-0">
                     <h3 className={`font-bold text-[15px] truncate ${inactivo ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                       {perfil.email}
@@ -454,7 +458,6 @@ export default function UsuariosPage() {
                     </div>
                   </div>
 
-                  {/* Resto del contenido (estadísticas, botones, etc) */}
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded-xl border border-slate-100">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
@@ -520,13 +523,13 @@ export default function UsuariosPage() {
                                 </button>
                               )}
                               {perfil.rol !== 'ADMIN' && (
-                                  <button
-                                    disabled={isUpdating}
-                                    onClick={() => cambiarRol(perfil, 'ADMIN')}
-                                    className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200 hover:border-slate-300 disabled:opacity-50"
-                                  >
-                                    A Admin
-                                  </button>
+                                <button
+                                  disabled={isUpdating}
+                                  onClick={() => cambiarRol(perfil, 'ADMIN')}
+                                  className="rounded-lg px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200 hover:border-slate-300 disabled:opacity-50"
+                                >
+                                  A Admin
+                                </button>
                               )}
                             </>
                           )}
@@ -555,15 +558,15 @@ export default function UsuariosPage() {
 
       {/* Modal creación */}
       <Transition show={isModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => !isCreating && setIsModalOpen(false)}>
+        <Dialog as="div" className="relative z-[100]" onClose={() => !isCreating && setIsModalOpen(false)}>
           <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px]" />
           </Transition.Child>
 
-          <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="fixed inset-0 z-[101] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-slate-50 px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
+                <Dialog.Panel id="tour-modal-nuevo-usuario" className="relative transform overflow-hidden rounded-3xl bg-slate-50 px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">
                   <div className="absolute right-5 top-5">
                     <button
                       type="button"
@@ -617,7 +620,7 @@ export default function UsuariosPage() {
                           minLength={6}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/10 transition-all cursor-pointer"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/10 transition-all"
                           placeholder="Mínimo 6 caracteres"
                         />
                       </div>
