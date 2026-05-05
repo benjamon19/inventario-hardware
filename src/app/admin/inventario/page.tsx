@@ -615,7 +615,6 @@ export default function InventarioPage() {
     });
     setShowUbicacionEditorInEdit(false);
     setMenuOpenId(null);
-    setDetalleItem(null);
   };
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -631,6 +630,9 @@ export default function InventarioPage() {
         cambios: editFormData
       });
       setRefreshTrigger(prev => prev + 1);
+      if (detalleItem?.id === editItem.id) {
+        setDetalleItem({ ...detalleItem, ...editFormData });
+      }
       setEditItem(null);
     } else {
       alert('Error al editar: ' + error.message);
@@ -685,9 +687,11 @@ export default function InventarioPage() {
     setMenuOpenId(itemId);
   };
 
-  if (detalleItem) {
-    return (
-      <div className="space-y-6">
+
+
+  return (
+    <div ref={topRef} className="space-y-4 relative overflow-x-hidden">
+      {detalleItem ? (
         <DetalleView
           item={detalleItem}
           estados={estados}
@@ -697,46 +701,9 @@ export default function InventarioPage() {
           onDelete={(item) => { setDeleteItem(item); }}
           onMoveStock={handleMoveStock}
           getBadgeClass={getBadgeClass}
-
         />
-
-        <Transition show={!!deleteItem} as={Fragment}>
-          <Dialog as="div" className="relative z-50" onClose={() => setDeleteItem(null)}>
-            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-              <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px] transition-opacity" />
-            </Transition.Child>
-            <div className="fixed inset-0 z-10 overflow-y-auto">
-              <div className="flex min-h-full items-center justify-center p-4">
-                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                  <Dialog.Panel className="relative transform overflow-hidden rounded-3xl bg-slate-50 px-6 pb-8 pt-6 text-left shadow-2xl sm:w-full sm:max-w-sm sm:p-8 border border-slate-100">
-                    <div className="absolute right-5 top-5">
-                      <button type="button" onClick={() => setDeleteItem(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 cursor-pointer transition-colors"><X className="h-5 w-5" /></button>
-                    </div>
-                    <div className="flex flex-col items-center text-center gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 border border-red-100"><AlertTriangle className="h-7 w-7" /></div>
-                      <div>
-                        <Dialog.Title as="h3" className="text-xl font-bold text-slate-950">¿Eliminar equipo?</Dialog.Title>
-                        <p className="mt-2.5 text-sm text-slate-500 font-medium">Estás a punto de eliminar <span className="font-bold text-slate-800">{deleteItem?.modelo}</span> ({deleteItem?.sku}). Esta acción no se puede deshacer.</p>
-                      </div>
-                    </div>
-                    <div className="mt-8 flex flex-col gap-3">
-                      <button type="button" onClick={handleDelete} disabled={deleteLoading} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50">
-                        {deleteLoading ? <div className="flex h-4 w-4 items-center justify-center"><TailChase size="16" speed="1.75" color="white" /></div> : <><Trash2 className="h-4 w-4" /> Sí, eliminar</>}
-                      </button>
-                      <button type="button" onClick={() => setDeleteItem(null)} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer">Cancelar</button>
-                    </div>
-                  </Dialog.Panel>
-                </Transition.Child>
-              </div>
-            </div>
-          </Dialog>
-        </Transition>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={topRef} className="space-y-4 relative overflow-x-hidden">
+      ) : (
+        <>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -978,14 +945,16 @@ export default function InventarioPage() {
         deleteUbicacion={deleteUbicacion}
       />
 
-      <AccionesMenu
-        menuOpenId={menuOpenId}
-        items={items}
-        onClose={() => setMenuOpenId(null)}
-        onEdit={openEdit}
-        onDelete={(item) => { setDeleteItem(item); }}
-        onMoveStock={handleMoveStock}
-      />
+          <AccionesMenu
+            menuOpenId={menuOpenId}
+            items={items}
+            onClose={() => setMenuOpenId(null)}
+            onEdit={openEdit}
+            onDelete={(item) => { setDeleteItem(item); }}
+            onMoveStock={handleMoveStock}
+          />
+        </>
+      )}
 
 
 

@@ -7,7 +7,6 @@ export interface HardwareItem {
   categoria: string;
   modelo: string;
   estado: ItemStatus;
-  asignado_a?: string | null;
   ubicacion?: string;
   updated_at: string;
 }
