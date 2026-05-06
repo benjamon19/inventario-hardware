@@ -91,8 +91,9 @@ export async function middleware(request: NextRequest) {
   // Obtenemos el usuario actual de la sesión
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. Si no hay usuario y no está en la página de login, redirigir a login
-  if (!user && request.nextUrl.pathname !== '/login') {
+  // 1. Si no hay usuario y no está en la página de login o actualizar-password, redirigir a login
+  const publicRoutes = ['/login', '/actualizar-password'];
+  if (!user && !publicRoutes.includes(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
