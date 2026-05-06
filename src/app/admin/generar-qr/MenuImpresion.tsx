@@ -55,12 +55,16 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
           gW = parsed.width / 10;
           gH = parsed.height / 10;
           gFS = parsed.fontSize;
-          gWp = !!parsed.wrapText;
+          gWp = parsed.wrapText !== undefined ? !!parsed.wrapText : true;
           setWidthInput(gW.toString());
           setHeightInput(gH.toString());
           setFontSizeInput(gFS.toString());
           setGlobalWrap(gWp);
         } catch (e) { console.error(e); }
+      } else {
+        // Valores por defecto si no hay guardados
+        gWp = true;
+        setGlobalWrap(true);
       }
 
       const initialSettings: Record<string, ItemSettings> = {};
@@ -70,7 +74,7 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
           height: gH, 
           fontSize: gFS, 
           wrapText: gWp,
-          text: item.sku
+          text: `${item.sku}\n${item.modelo}\n${item.categoria}${item.numero_serie ? `\nSN: ${item.numero_serie}` : ''}`
         };
       });
       setItemSettings(initialSettings);
@@ -147,7 +151,9 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
     selectedItems.forEach(item => {
         newSettings[item.id] = {
             ...current,
-            text: itemSettings[item.id]?.text || item.sku
+            text: itemSettings[item.id]?.text && itemSettings[item.id].text !== activeItem.sku
+                ? itemSettings[item.id].text 
+                : `${item.sku}\n${item.modelo}\n${item.categoria}${item.numero_serie ? `\nSN: ${item.numero_serie}` : ''}`
         };
     });
     setItemSettings(newSettings);
@@ -236,7 +242,7 @@ export default function MenuImpresion({ isOpen, onClose, onConfirmPrint, selecte
                             <QRCodeSVG value={activeItem.sku} size={512} level="H" style={{ height: '100%', width: '100%' }} />
                         </div>
                         <div className="flex-1 flex items-center pl-[2%] pr-2 overflow-hidden h-full">
-                            <p className="font-black text-slate-900 leading-[1.1]" style={{ fontSize: `${current.fontSize * 1.5}px`, whiteSpace: current.wrapText ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{current.text}</p>
+                            <p className="font-black text-slate-900 leading-[1.1]" style={{ fontSize: `${current.fontSize * 1.5}px`, whiteSpace: current.wrapText ? 'pre-wrap' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{current.text}</p>
                         </div>
                     </div>
                   </div>

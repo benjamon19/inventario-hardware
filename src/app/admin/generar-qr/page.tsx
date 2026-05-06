@@ -409,7 +409,7 @@ export default function GenerarQRPage() {
               height: 2.5, 
               fontSize: 12, 
               wrapText: true,
-              text: eq.sku 
+              text: `${eq.sku}\n${eq.modelo}\n${eq.categoria}${eq.numero_serie ? `\nSN: ${eq.numero_serie}` : ''}`
             };
 
 
@@ -427,7 +427,7 @@ export default function GenerarQRPage() {
                         fontWeight: 900, 
                         margin: 0, 
                         lineHeight: 1.1, 
-                        whiteSpace: s.wrapText ? 'normal' : 'nowrap', 
+                        whiteSpace: s.wrapText ? 'pre-wrap' : 'nowrap', 
                         overflow: 'hidden', 
                         textOverflow: 'ellipsis' 
                     }}>

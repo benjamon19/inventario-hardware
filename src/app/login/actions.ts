@@ -76,12 +76,12 @@ export async function recuperarPassword(email: string) {
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },
-        setAll() {},
+        setAll() { },
       },
     }
   );
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://inventario-hardware.vercel.app';
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/actualizar-password`,
