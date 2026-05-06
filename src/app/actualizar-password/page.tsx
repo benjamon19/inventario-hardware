@@ -133,21 +133,6 @@ export default function ActualizarPasswordPage() {
             borderBottom: '1px solid #f1f5f9',
           }}
         >
-          <table width="100%" cellPadding={0} cellSpacing={0} style={{ marginBottom: '18px' }}>
-            <tbody>
-              <tr>
-                <td style={{ textAlign: 'center' }}>
-                  <img
-                    src="/wall-ico.svg"
-                    alt=""
-                    width={56}
-                    height={56}
-                    style={{ display: 'block', margin: '0 auto', width: 56, height: 56, objectFit: 'contain' }}
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
           <p style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.4px' }}>
             Restablecer contraseña
           </p>
