@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { Lock, CheckCircle, AlertCircle, KeyRound, Loader2 } from 'lucide-react';
+import { Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import GlobalLoading from '@/app/loading';
 
 export default function ActualizarPasswordPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function ActualizarPasswordPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isChecking, setIsChecking] = useState(true); // Nuevo estado de validación
+  const [isChecking, setIsChecking] = useState(true);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,39 +22,60 @@ export default function ActualizarPasswordPage() {
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Verificación inicial por si la sesión ya está establecida mediante SSR/Cookies
-    const verifySession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && mounted) {
-        setIsChecking(false);
-      }
-    };
-    verifySession();
-
-    // Escuchar eventos de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
-      if (event === 'PASSWORD_RECOVERY' || session) {
+      if (event === 'PASSWORD_RECOVERY' || event === 'TOKEN_REFRESHED') {
+        clearTimeout(timeoutId);
         setErrorMsg(null);
-        setIsChecking(false); // Sesión válida, quitamos el loader
-      } else if (event === 'SIGNED_OUT') {
-        // Le damos 2 segundos a Supabase para procesar la URL antes de declarar el enlace inválido
-        setTimeout(() => {
-          if (mounted && !session) {
-            setErrorMsg('El enlace de recuperación no es válido o ha expirado.');
-            setIsChecking(false);
-          }
-        }, 2000);
+        setIsChecking(false);
+        return;
+      }
+
+      if (session) {
+        clearTimeout(timeoutId);
+        setIsChecking(false);
+        return;
       }
     });
 
+    timeoutId = setTimeout(async () => {
+      if (!mounted) return;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        setIsChecking(false);
+      } else {
+        const hasToken =
+          window.location.hash.includes('access_token') ||
+          window.location.search.includes('code=');
+
+        if (hasToken) {
+          setTimeout(async () => {
+            if (!mounted) return;
+            const { data: { session: retrySession } } = await supabase.auth.getSession();
+            if (retrySession) {
+              setIsChecking(false);
+            } else {
+              setErrorMsg('El enlace de recuperación no es válido o ha expirado.');
+              setIsChecking(false);
+            }
+          }, 2000);
+        } else {
+          setErrorMsg('El enlace de recuperación no es válido o ha expirado.');
+          setIsChecking(false);
+        }
+      }
+    }, 800);
+
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,134 +86,291 @@ export default function ActualizarPasswordPage() {
       setErrorMsg('Las contraseñas no coinciden.');
       return;
     }
-
     if (password.length < 6) {
       setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     setIsUpdating(true);
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    });
+    const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
       setErrorMsg('Hubo un error al actualizar la contraseña: ' + error.message);
       setIsUpdating(false);
     } else {
       setSuccessMsg('¡Contraseña actualizada con éxito!');
-      // Redirigir al login después de mostrar el éxito
-      setTimeout(() => {
-        router.push('/login');
-      }, 2500);
+      setTimeout(() => router.push('/login'), 2500);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-12 w-12 bg-slate-100 text-slate-800 rounded-full flex items-center justify-center mb-4">
-            <KeyRound className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 text-center">Restablecer Contraseña</h1>
-          <p className="text-sm text-slate-500 text-center mt-2">
-            Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta.
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#f8fafc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '480px',
+          backgroundColor: '#ffffff',
+          borderRadius: '20px',
+          border: '1px solid #e2e8f0',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '40px 32px 32px',
+            textAlign: 'center',
+            borderBottom: '1px solid #f1f5f9',
+          }}
+        >
+          <table width="100%" cellPadding={0} cellSpacing={0} style={{ marginBottom: '18px' }}>
+            <tbody>
+              <tr>
+                <td style={{ textAlign: 'center' }}>
+                  <img
+                    src="/wall-ico.svg"
+                    alt=""
+                    width={56}
+                    height={56}
+                    style={{ display: 'block', margin: '0 auto', width: 56, height: 56, objectFit: 'contain' }}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.4px' }}>
+            Restablecer contraseña
+          </p>
+          <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+            Sistema de Inventario
           </p>
         </div>
 
-        {isChecking ? (
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
-            <p className="text-sm text-slate-500 animate-pulse">Verificando enlace seguro...</p>
-          </div>
-        ) : errorMsg && !successMsg && !password ? (
-          // Vista cuando el enlace expira (escondemos el formulario)
-          <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex flex-col items-center text-center gap-3">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <p className="text-sm font-semibold text-red-700">{errorMsg}</p>
-            <button
-              onClick={() => router.push('/login')}
-              className="mt-2 text-sm font-medium text-red-600 hover:text-red-800 underline underline-offset-2"
+        {/* Content */}
+        <div style={{ padding: '32px' }}>
+          {isChecking ? (
+            <GlobalLoading />
+          ) : errorMsg && !password ? (
+            /* Enlace inválido */
+            <div
+              style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '12px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: '12px',
+              }}
             >
-              Volver al inicio de sesión
-            </button>
-          </div>
-        ) : (
-          // Vista del formulario
-          <>
-            {errorMsg && (
-              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 transition-all">
-                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm font-medium text-red-800">{errorMsg}</p>
-              </div>
-            )}
-
-            {successMsg && (
-              <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-3 transition-all">
-                <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-emerald-800">{successMsg}</p>
-                  <p className="text-xs font-medium text-emerald-600 mt-1">Redirigiendo al inicio de sesión...</p>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleUpdate} className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Nueva Contraseña</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    disabled={!!successMsg || isUpdating}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent focus:bg-white transition-all disabled:opacity-50"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Confirmar Contraseña</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    disabled={!!successMsg || isUpdating}
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent focus:bg-white transition-all disabled:opacity-50"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
+              <AlertCircle size={32} color="#ef4444" />
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#b91c1c', margin: 0 }}>
+                {errorMsg}
+              </p>
               <button
-                type="submit"
-                disabled={isUpdating || !!successMsg}
-                className="w-full mt-6 bg-slate-900 text-white font-medium py-3 rounded-xl shadow-sm hover:bg-slate-800 hover:shadow-md transition-all focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                onClick={() => router.push('/login')}
+                style={{
+                  marginTop: 4,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#dc2626',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '2px',
+                }}
               >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Actualizando...
-                  </>
-                ) : (
-                  'Guardar nueva contraseña'
-                )}
+                Volver al inicio de sesión
               </button>
-            </form>
-          </>
-        )}
+            </div>
+          ) : (
+            <>
+              {errorMsg && (
+                <div
+                  style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fee2e2',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: 13, fontWeight: 500, color: '#b91c1c', margin: 0 }}>
+                    {errorMsg}
+                  </p>
+                </div>
+              )}
+
+              {successMsg && (
+                <div
+                  style={{
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <CheckCircle size={18} color="#22c55e" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#15803d', margin: '0 0 2px' }}>
+                      {successMsg}
+                    </p>
+                    <p style={{ fontSize: 12, color: '#16a34a', margin: 0 }}>
+                      Redirigiendo al inicio de sesión...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Campo nueva contraseña */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                    Nueva contraseña
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock
+                      size={16}
+                      color="#94a3b8"
+                      style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+                    />
+                    <input
+                      type="password"
+                      required
+                      disabled={!!successMsg || isUpdating}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        backgroundColor: '#f8fafc',
+                        padding: '11px 14px 11px 36px',
+                        fontSize: 14,
+                        color: '#0f172a',
+                        outline: 'none',
+                        opacity: !!successMsg || isUpdating ? 0.5 : 1,
+                      }}
+                      onFocus={e => {
+                        e.target.style.borderColor = '#0f172a';
+                        e.target.style.backgroundColor = '#ffffff';
+                      }}
+                      onBlur={e => {
+                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.backgroundColor = '#f8fafc';
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Campo confirmar contraseña */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                    Confirmar contraseña
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock
+                      size={16}
+                      color="#94a3b8"
+                      style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+                    />
+                    <input
+                      type="password"
+                      required
+                      disabled={!!successMsg || isUpdating}
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        backgroundColor: '#f8fafc',
+                        padding: '11px 14px 11px 36px',
+                        fontSize: 14,
+                        color: '#0f172a',
+                        outline: 'none',
+                        opacity: !!successMsg || isUpdating ? 0.5 : 1,
+                      }}
+                      onFocus={e => {
+                        e.target.style.borderColor = '#0f172a';
+                        e.target.style.backgroundColor = '#ffffff';
+                      }}
+                      onBlur={e => {
+                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.backgroundColor = '#f8fafc';
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+
+                <button
+                  type="submit"
+                  disabled={isUpdating || !!successMsg}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: 14,
+                    padding: '13px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: isUpdating || !!successMsg ? 'not-allowed' : 'pointer',
+                    opacity: isUpdating || !!successMsg ? 0.7 : 1,
+                    letterSpacing: '-0.2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  {isUpdating ? 'Actualizando...' : 'Guardar nueva contraseña'}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            borderTop: '1px solid #f1f5f9',
+            padding: '16px 32px',
+            textAlign: 'center',
+          }}
+        >
+          <p style={{ fontSize: 12, color: '#cbd5e1', margin: 0 }}>
+            Sistema de Inventario · Asistente Wall
+          </p>
+        </div>
       </div>
     </div>
   );
