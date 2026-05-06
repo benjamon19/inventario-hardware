@@ -6,24 +6,22 @@ import { Redis } from '@upstash/redis';
 
 // Map de fallback para cuando no hay Upstash configurado
 const rateLimitMap = new Map<string, { count: number, resetTime: number }>();
-const RATE_LIMIT_MAX = 100; // Peticiones máximas
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minuto
+const RATE_LIMIT_MAX = 100;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
-// Inicializar redis solo si existen las variables
 const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  })
   : null;
 
-// Crear un limitador de tasa usando una ventana deslizante
 const ratelimit = redis
   ? new Ratelimit({
-      redis: redis,
-      limiter: Ratelimit.slidingWindow(100, "1 m"), // 100 peticiones por minuto
-      analytics: true,
-    })
+    redis: redis,
+    limiter: Ratelimit.slidingWindow(100, "1 m"),
+    analytics: true,
+  })
   : null;
 
 export async function middleware(request: NextRequest) {
@@ -31,10 +29,9 @@ export async function middleware(request: NextRequest) {
 
   // --- RATE LIMITING ---
   if (ratelimit) {
-    // Uso de Upstash (Redis distribuido para Serverless/Edge)
-    const { success, pending, limit, reset, remaining } = await ratelimit.limit(`ratelimit_${ip}`);
+    const { success, limit, reset, remaining } = await ratelimit.limit(`ratelimit_${ip}`);
     if (!success) {
-      return new NextResponse('Too Many Requests. Please try again later.', { 
+      return new NextResponse('Too Many Requests. Please try again later.', {
         status: 429,
         headers: {
           'X-RateLimit-Limit': limit.toString(),
@@ -44,7 +41,6 @@ export async function middleware(request: NextRequest) {
       });
     }
   } else {
-    // Fallback: Uso del Map en memoria (no recomendado para Vercel Edge, pero sirve de fallback)
     const now = Date.now();
     const clientData = rateLimitMap.get(ip);
     if (!clientData || now > clientData.resetTime) {
@@ -55,7 +51,6 @@ export async function middleware(request: NextRequest) {
         return new NextResponse('Too Many Requests. Please try again later.', { status: 429 });
       }
     }
-    // Limpieza periódica del Map
     if (Math.random() < 0.05) {
       for (const [key, val] of rateLimitMap.entries()) {
         if (now > val.resetTime) rateLimitMap.delete(key);
@@ -63,9 +58,8 @@ export async function middleware(request: NextRequest) {
     }
   }
   // --- FIN RATE LIMITING ---
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,10 +70,8 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -88,45 +80,37 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Obtenemos el usuario actual de la sesión
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. Si no hay usuario y no está en la página de login o actualizar-password, redirigir a login
-  const publicRoutes = ['/login', '/actualizar-password'];
+  // Rutas públicas — no requieren sesión
+  const publicRoutes = ['/login', '/actualizar-password', '/auth/callback'];
   if (!user && !publicRoutes.includes(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. Protecciones para rutas internas (solo si hay usuario)
+  // Protección de rutas internas
   if (user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/operador'))) {
 
-    // Consultamos SIEMPRE la tabla perfiles para verificar rol y si está ACTIVO
-    // Esto es el seguro de vida contra usuarios desactivados con la sesión "recordada"
     const { data: perfil } = await supabase
       .from('perfiles')
       .select('rol, estado')
       .eq('id', user.id)
       .single();
 
-    // Si el usuario fue desactivado, destruimos la sesión y lo pateamos al login
     if (perfil?.estado !== 'ACTIVO') {
       await supabase.auth.signOut();
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // PROTECCIÓN ESPECÍFICA DE RUTAS /admin
     if (request.nextUrl.pathname.startsWith('/admin')) {
-      // Priorizamos el rol de la tabla (que está fresco), o caemos al de metadata
       const rol = perfil?.rol || user?.app_metadata?.user_role;
 
-      // DEBUG para Vercel Logs
       console.log("=== DEBUG MIDDLEWARE PROD ===");
       console.log("Usuario:", user?.email);
       console.log("Rol Final Detectado:", rol);
       console.log("Estado:", perfil?.estado);
       console.log("=============================");
 
-      // Si después de todo no es ADMIN, lo mandamos a la zona de operador
       if (!['ADMIN', 'SUPER_ADMIN'].includes(rol)) {
         return NextResponse.redirect(new URL('/operador', request.url));
       }
@@ -138,13 +122,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match todas las rutas excepto:
-     * - _next/static (archivos estáticos)
-     * - _next/image (optimización de imágenes)
-     * - favicon.ico (icono del sitio)
-     * - archivos con extensiones (svg, png, jpg, etc.)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
