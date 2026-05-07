@@ -6,8 +6,11 @@ export interface HardwareItem {
   sku: string;
   categoria: string;
   modelo: string;
-  estado: ItemStatus;
-  ubicacion?: string;
+  estado: string;
+  ubicacion: string | null;
+  descripcion: string | null;
+  numero_serie: string | null;
+  created_at: string;
   updated_at: string;
 }
 

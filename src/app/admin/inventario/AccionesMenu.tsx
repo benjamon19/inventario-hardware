@@ -4,17 +4,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Transition } from '@headlessui/react';
 import { Edit2, Trash2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-
-type HardwareItem = {
-  id: string;
-  sku: string;
-  modelo: string;
-  categoria: string;
-  estado: string;
-  ubicacion?: string;
-  descripcion?: string;
-  numero_serie?: string;
-};
+import { HardwareItem } from '@/types';
 
 type AccionesMenuProps = {
   menuOpenId: string | null;

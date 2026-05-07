@@ -15,7 +15,10 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Pagination } from '@/components/ui/Pagination';
-
+import DetalleView, { type Estado, type Categoria } from '@/components/admin/DetalleView';
+import { type HardwareItem } from '@/types';
+import { registrarLog } from '@/lib/logger';
+import { colorClasses } from '@/lib/colorMaps';
 
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
@@ -37,6 +40,10 @@ export default function AdminScannerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage);
   const [totalItems, setTotalItems] = useState(0);
+
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [detalleItem, setDetalleItem] = useState<HardwareItem | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -99,52 +106,98 @@ export default function AdminScannerPage() {
             if (data) setSelectedItem(data);
           });
       }
-    }, [selectedItem]),
+      if (detalleItem?.sku) {
+        supabase
+          .from('hardware')
+          .select('*')
+          .eq('sku', detalleItem.sku)
+          .single()
+          .then(({ data }) => {
+            if (data) setDetalleItem(data as HardwareItem);
+          });
+      }
+    }, [selectedItem, detalleItem]),
   });
+
+  // ── Fetch inicial de metadata ──
+  useEffect(() => {
+    const fetchMeta = async () => {
+      const [{ data: cats }, { data: ests }] = await Promise.all([
+        supabase.from('categorias').select('*'),
+        supabase.from('estados').select('*'),
+      ]);
+      if (cats) setCategorias(cats);
+      if (ests) setEstados(ests);
+    };
+    fetchMeta();
+  }, []);
 
   useEffect(() => {
     if (isScanning && !selectedItem) {
-      const timer = setTimeout(() => inputRef.current?.focus(), 150);
-      return () => clearTimeout(timer);
+      inputRef.current?.focus();
     }
   }, [isScanning, selectedItem]);
 
-  useEffect(() => {
-    const skuValido = /^[A-Z0-9]{2,5}-\d{4}$/i.test(manualSku.trim());
-    if (skuValido) {
-      const timer = setTimeout(() => processSku(manualSku.trim().toUpperCase()), 150);
-      return () => clearTimeout(timer);
-    }
-  }, [manualSku]);
-
   const processSku = async (sku: string) => {
     if (!sku) return;
-    inputRef.current?.blur();
     setLoading(true);
-    setStatusMsg(null);
 
-    const { data: items, error } = await supabase
+    const { data: item, error } = await supabase
       .from('hardware')
       .select('*')
-      .or(`sku.eq.${sku},numero_serie.eq.${sku}`)
-      .limit(1);
-
-    const item = items?.[0];
+      .eq('sku', sku.trim())
+      .single();
 
     if (error || !item) {
       setStatusMsg({ type: 'error', text: 'Equipo no encontrado en inventario.' });
       setSelectedItem(null);
     } else {
       if (scanMode === 'SEARCH') {
-        router.push(`/admin/inventario?sku=${item.sku}&from=escaner`);
+        setDetalleItem(item as HardwareItem);
         return;
       }
       setSelectedItem(item);
       setIsScanning(false);
     }
-
     setManualSku('');
     setLoading(false);
+  };
+  const getBadgeClass = useCallback((estadoNombre: string) => {
+    const est = estados.find(e => e.nombre === estadoNombre);
+    return colorClasses[est?.color ?? 'slate'] ?? colorClasses.slate;
+  }, [estados]);
+
+  const handleMoveStock = async (item: HardwareItem, tipo: 'SALIDA' | 'INGRESO') => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const nuevoEstado = tipo === 'SALIDA' ? 'EN_USO' : 'DISPONIBLE';
+
+    // 1. Registrar transacción
+    const { error: transError } = await supabase
+      .from('transacciones')
+      .insert([{
+        sku: item.sku,
+        hardware_id: item.id,
+        operador_id: user.id,
+        tipo: tipo,
+        timestamp: new Date().toISOString()
+      }]);
+
+    // 2. Actualizar hardware
+    const { error: hwError } = await supabase
+      .from('hardware')
+      .update({ estado: nuevoEstado })
+      .eq('id', item.id);
+
+    if (!transError && !hwError) {
+      await registrarLog(tipo, 'HARDWARE', item.id, {
+        sku: item.sku,
+        modelo: item.modelo,
+        notas: `Movimiento realizado desde el Escáner. Nuevo estado: ${nuevoEstado}`
+      });
+      // El estado se refresca solo vía RealtimeTable onRefresh que ya configuramos
+    }
   };
 
   const registrarMovimiento = async (tipo: 'INGRESO' | 'SALIDA') => {
@@ -216,6 +269,22 @@ export default function AdminScannerPage() {
       />
     );
   };
+
+  if (detalleItem) {
+    return (
+      <div className="max-w-4xl mx-auto py-2">
+        <DetalleView
+          item={detalleItem}
+          estados={estados}
+          categorias={categorias}
+          onBack={() => setDetalleItem(null)}
+          getBadgeClass={getBadgeClass}
+          onMoveStock={handleMoveStock}
+          backText="Volver al Escáner"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-3 pt-2 sm:pt-4 pb-16">
