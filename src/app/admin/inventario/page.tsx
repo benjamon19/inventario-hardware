@@ -343,6 +343,7 @@ export default function InventarioPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage);
+  const [navigationOrigin, setNavigationOrigin] = useState<string | null>(null);
 
   const topRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -467,11 +468,13 @@ export default function InventarioPage() {
     if (items.length > 0 && typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const skuToOpen = params.get('sku');
+      const fromParam = params.get('from');
 
       if (skuToOpen) {
         const foundItem = items.find(i => i.sku === skuToOpen);
         if (foundItem) {
           setDetalleItem(foundItem);
+          if (fromParam) setNavigationOrigin(fromParam);
           window.history.replaceState(null, '', '/admin/inventario');
         }
       }
@@ -699,12 +702,12 @@ export default function InventarioPage() {
           estados={estados}
           categorias={categorias}
           onBack={() => {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('from') === 'escaner') {
+            if (navigationOrigin === 'escaner') {
               router.push('/admin/escaner');
             } else {
               setDetalleItem(null);
             }
+            setNavigationOrigin(null);
           }}
           onEdit={openEdit}
           onDelete={(item) => { setDeleteItem(item); }}
