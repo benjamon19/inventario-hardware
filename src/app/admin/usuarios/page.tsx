@@ -74,17 +74,10 @@ export default function UsuariosPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
+
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setItemsPerPage(6);
-      } else {
-        const availableHeight = window.innerHeight - 300;
-        const estimatedCardHeight = 150;
-        const rows = Math.floor(availableHeight / estimatedCardHeight);
-        const cols = window.innerWidth >= 1024 ? 3 : 2;
-        setItemsPerPage(Math.max(6, rows * cols));
-      }
+      setItemsPerPage(window.innerWidth >= 768 ? 12 : 6);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -392,7 +385,7 @@ export default function UsuariosPage() {
               >
                 {/* Banner */}
                 {(!inactivo) && (
-                  <div className={`relative h-14 bg-gradient-to-br ${perfil.id === currentUserId ? myBannerGradient : (perfil.banner_gradient || 'from-slate-100 to-slate-200')}`}>
+                  <div className={`relative h-14 bg-linear-to-br ${perfil.id === currentUserId ? myBannerGradient : (perfil.banner_gradient || 'from-slate-100 to-slate-200')}`}>
                     {(perfil.id === currentUserId ? myBannerPattern : (perfil.banner_pattern || 'none')) !== 'none' && (
                       <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-overlay" style={{ backgroundImage: patternCSS(BANNER_PATTERNS.find(p => p.id === (perfil.id === currentUserId ? myBannerPattern : perfil.banner_pattern))?.svg || ''), backgroundRepeat: 'repeat' }} />
                     )}
@@ -404,7 +397,7 @@ export default function UsuariosPage() {
                   <div className={`${!inactivo ? '-mt-8 relative z-10 mb-2' : 'mb-2'}`}>
                     <div className="relative inline-block shrink-0">
                       <div
-                        className={`flex ${!inactivo ? 'h-12 w-12 border-2 border-white shadow-md rounded-[1.1rem]' : 'h-10 w-10 border border-slate-300 rounded-xl bg-slate-200 text-slate-500'} items-center justify-center font-black text-xl bg-gradient-to-br ${inactivo
+                        className={`flex ${!inactivo ? 'h-12 w-12 border-2 border-white shadow-md rounded-[1.1rem]' : 'h-10 w-10 border border-slate-300 rounded-xl bg-slate-200 text-slate-500'} items-center justify-center font-black text-xl bg-linear-to-br ${inactivo
                           ? ''
                           : perfil.id === currentUserId
                             ? `${myAvatarGradient} text-white`
@@ -558,12 +551,12 @@ export default function UsuariosPage() {
 
       {/* Modal creación */}
       <Transition show={isModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-[100]" onClose={() => !isCreating && setIsModalOpen(false)}>
+        <Dialog as="div" className="relative z-100" onClose={() => !isCreating && setIsModalOpen(false)}>
           <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px]" />
           </Transition.Child>
 
-          <div className="fixed inset-0 z-[101] overflow-y-auto">
+          <div className="fixed inset-0 z-101 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
                 <Dialog.Panel id="tour-modal-nuevo-usuario" className="relative transform overflow-hidden rounded-3xl bg-slate-50 px-6 pb-8 pt-6 text-left shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:p-8 border border-slate-100">

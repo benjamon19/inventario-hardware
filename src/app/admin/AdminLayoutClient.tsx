@@ -63,24 +63,25 @@ export default function AdminLayoutClient({
 
   const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
     <div className="flex h-full flex-col bg-slate-50">
-      <div className="flex shrink-0 items-center gap-2 px-4 pt-5 pb-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-          <Package className="h-4 w-4" />
+      {/* Header del Sidebar - Más compacto en notebooks */}
+      <div className="flex shrink-0 items-center gap-2 px-4 md:px-3 lg:px-4 pt-5 md:pt-4 lg:pt-5 pb-3 md:pb-2 lg:pb-3">
+        <div className="flex h-7 w-7 md:h-6 md:w-6 lg:h-7 lg:w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+          <Package className="h-4 w-4 md:h-3.5 md:w-3.5 lg:h-4 lg:w-4" />
         </div>
         <div className={`flex flex-col min-w-0 transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'flex-1 opacity-100'}`}>
-          <span className="font-extrabold tracking-tight text-sm leading-none text-slate-900 whitespace-nowrap">
+          <span className="font-extrabold tracking-tight text-sm md:text-xs lg:text-sm leading-none text-slate-900 whitespace-nowrap">
             Wall <span className="text-slate-400 font-medium ml-0.5">| Inventario</span>
           </span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 whitespace-nowrap">
+          <span className="text-[0.625rem] font-bold text-slate-400 uppercase tracking-widest mt-0.5 whitespace-nowrap">
             Sistema de Gestión
           </span>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col justify-between overflow-y-auto mt-2">
-        <nav className="space-y-1 px-3 py-3">
-          <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'max-h-0 opacity-0' : 'max-h-7 opacity-100'}`}>
-            <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <div className="flex flex-1 flex-col justify-between overflow-y-auto mt-2 md:mt-1 lg:mt-2">
+        <nav className="space-y-1 md:space-y-0.5 lg:space-y-1 px-3 md:px-2 lg:px-3 py-3 md:py-2 lg:py-3">
+          <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'max-h-0 opacity-0' : 'max-h-7 md:max-h-6 lg:max-h-7 opacity-100'}`}>
+            <p className="px-2 pb-2 md:pb-1 lg:pb-2 text-[10px] md:text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400">
               Menú Principal
             </p>
           </div>
@@ -94,13 +95,13 @@ export default function AdminLayoutClient({
                 href={item.href}
                 id={item.id}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 ${isActive
+                className={`flex items-center gap-2.5 md:gap-2 lg:gap-2.5 rounded-xl px-3 py-2.5 md:px-2 md:py-1.5 lg:px-3 lg:py-2.5 transition-all duration-200 ${isActive
                   ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className={`text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+                <Icon className="h-4 w-4 md:h-3.5 md:w-3.5 lg:h-4 lg:w-4 shrink-0" />
+                <span className={`text-xs md:text-[11px] lg:text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
                   }`}>
                   {item.name}
                 </span>
@@ -109,31 +110,31 @@ export default function AdminLayoutClient({
           })}
         </nav>
 
-        <div className="px-3 pb-5">
+        <div className="px-3 md:px-2 lg:px-3 pb-5 md:pb-3 lg:pb-5">
           <Link
             href="/admin/configuracion"
             id="tour-configuracion"
             onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200 mb-3 ${pathname === '/admin/configuracion'
+            className={`flex items-center gap-2.5 md:gap-2 lg:gap-2.5 rounded-xl px-3 py-2.5 md:px-2 md:py-1.5 lg:px-3 lg:py-2.5 transition-all duration-200 mb-3 md:mb-2 lg:mb-3 ${pathname === '/admin/configuracion'
               ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
               : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
           >
-            <Settings className="h-4 w-4 shrink-0" />
-            <span className={`text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+            <Settings className="h-4 w-4 md:h-3.5 md:w-3.5 lg:h-4 lg:w-4 shrink-0" />
+            <span className={`text-xs md:text-[11px] lg:text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
               }`}>
               Configuración
             </span>
           </Link>
 
-          <div className="border-t border-slate-100 pt-3">
+          <div className="border-t border-slate-100 pt-3 md:pt-2 lg:pt-3">
             <button
               id="tour-cerrar-sesion"
               onClick={() => { setShowLogoutModal(true); setIsMobileMenuOpen(false); }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors group cursor-pointer text-red-500 hover:bg-red-50"
+              className="flex w-full items-center gap-2.5 md:gap-2 lg:gap-2.5 rounded-xl px-3 py-2.5 md:px-2 md:py-1.5 lg:px-3 lg:py-2.5 transition-colors group cursor-pointer text-red-500 hover:bg-red-50"
             >
-              <LogOut className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-              <span className={`text-xs font-bold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
+              <LogOut className="h-4 w-4 md:h-3.5 md:w-3.5 lg:h-4 lg:w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
+              <span className={`text-xs md:text-[11px] lg:text-xs font-bold whitespace-nowrap overflow-hidden transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'
                 }`}>
                 Cerrar Sesión
               </span>
@@ -147,7 +148,7 @@ export default function AdminLayoutClient({
   return (
     <div className="flex min-h-screen w-full bg-slate-100 transition-colors duration-300">
 
-      {/* Sidebar móvil */}
+      {/* Sidebar móvil - Intacto, asume 64px de ancho */}
       <Transition show={isMobileMenuOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50 md:hidden" onClose={setIsMobileMenuOpen}>
           <Transition.Child
@@ -175,26 +176,26 @@ export default function AdminLayoutClient({
         </Dialog>
       </Transition>
 
-      {/* Sidebar escritorio */}
+      {/* Sidebar escritorio - Aquí controlamos w-48 para md y w-52 para lg */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 hidden md:flex flex-col border-r border-slate-200 bg-slate-50
-        ${isSidebarExpanded ? 'w-52' : 'w-16'}
+        ${isSidebarExpanded ? 'md:w-48 lg:w-52' : 'md:w-14 lg:w-16'}
         transition-all duration-300 ease-in-out overflow-hidden print:hidden
       `}>
         <SidebarContent collapsed={!isSidebarExpanded} />
       </aside>
 
-      {/* Contenido principal */}
+      {/* Contenido principal - Se ajusta al margen del sidebar (md:pl-48 vs lg:pl-52) */}
       <div className={`
-        flex flex-1 flex-col min-w-0 ${isSidebarExpanded ? 'md:pl-52' : 'md:pl-16'}
+        flex flex-1 flex-col min-w-0 ${isSidebarExpanded ? 'md:pl-48 lg:pl-52' : 'md:pl-14 lg:pl-16'}
         transition-all duration-300 ease-in-out print:pl-0
       `}>
 
-        {/* Header */}
-        <header className="sticky top-0 z-40 flex items-center border-b border-slate-200 bg-slate-50/80 backdrop-blur-md px-3 sm:px-5 h-14 2xl:h-16 print:hidden">
+        {/* Header - Achicado en md:h-12 para dar más espacio vertical en notebooks */}
+        <header className="sticky top-0 z-40 flex items-center border-b border-slate-200 bg-slate-50/80 backdrop-blur-md px-3 sm:px-5 md:px-4 lg:px-5 h-14 md:h-12 lg:h-14 2xl:h-16 print:hidden">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer text-slate-500 hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-md p-1.5 md:p-1 lg:p-1.5 transition-colors cursor-pointer text-slate-500 hover:bg-slate-50"
             onClick={() => {
               if (window.innerWidth < MOBILE_BREAKPOINT) {
                 setIsMobileMenuOpen(true);
@@ -203,11 +204,11 @@ export default function AdminLayoutClient({
               }
             }}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5 md:h-4 md:w-4 lg:h-5 lg:w-5" />
           </button>
 
           <div className="flex flex-1 items-center justify-between ml-3 min-w-0">
-            <h2 id="tour-header-title" className="text-xs font-bold uppercase tracking-widest truncate pr-4 text-slate-400">
+            <h2 id="tour-header-title" className="text-xs md:text-[11px] lg:text-xs font-bold uppercase tracking-widest truncate pr-4 text-slate-400">
               {pathname === '/admin/configuracion'
                 ? 'Configuración'
                 : pathname === '/admin/perfil'
@@ -223,7 +224,7 @@ export default function AdminLayoutClient({
                 title="Ver mi perfil"
                 className="rounded-full focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
               >
-                <div className={`flex h-8 w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs shadow-sm select-none transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 bg-gradient-to-br ${avatarGradient} text-white`}>
+                <div className={`flex h-8 w-8 md:h-7 md:w-7 lg:h-8 lg:w-8 2xl:h-9 2xl:w-9 items-center justify-center rounded-full font-bold text-xs md:text-[10px] lg:text-xs shadow-sm select-none transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 bg-linear-to-br ${avatarGradient} text-white`}>
                   {initials}
                 </div>
               </Link>
@@ -233,12 +234,13 @@ export default function AdminLayoutClient({
           </div>
         </header>
 
-        <main id="tour-main-content" className="p-4 sm:p-5 2xl:p-8 print:p-0">
+        {/* El padding principal también se encoge un poco en notebooks */}
+        <main id="tour-main-content" className="p-4 sm:p-5 md:p-3 lg:p-5 2xl:p-8 print:p-0">
           {children}
         </main>
       </div>
 
-      {/* Modal Logout */}
+      {/* Modal Logout - Como se abre centrado, no es tan crítico achicarlo para md, pero igual lo ajustamos por seguridad */}
       <Transition show={showLogoutModal} as={Fragment}>
         <Dialog as="div" className="relative z-100" onClose={() => setShowLogoutModal(false)}>
           <Transition.Child
@@ -260,34 +262,34 @@ export default function AdminLayoutClient({
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="relative transform overflow-hidden rounded-[2.5rem] p-10 text-center shadow-2xl w-full max-w-sm border border-slate-100 bg-slate-50 min-h-[440px] flex flex-col justify-between">
+                <Dialog.Panel className="relative transform overflow-hidden rounded-[2.5rem] md:rounded-3xl lg:rounded-[2.5rem] p-10 md:p-6 lg:p-10 text-center shadow-2xl w-full max-w-sm border border-slate-100 bg-slate-50 min-h-110 md:min-h-96 lg:min-h-110 flex flex-col justify-between">
                   <div className="flex flex-col items-center justify-center flex-1">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner mb-6 shrink-0">
-                      <LogOut className="h-10 w-10" />
+                    <div className="flex h-20 w-20 md:h-16 md:w-16 lg:h-20 lg:w-20 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner mb-6 md:mb-4 lg:mb-6 shrink-0">
+                      <LogOut className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10" />
                     </div>
 
-                    <div className="space-y-3">
-                      <Dialog.Title as="h3" className="text-2xl font-black tracking-tight text-slate-900">
+                    <div className="space-y-3 md:space-y-2 lg:space-y-3">
+                      <Dialog.Title as="h3" className="text-2xl md:text-xl lg:text-2xl font-black tracking-tight text-slate-900">
                         ¿Nos vemos luego?
                       </Dialog.Title>
-                      <p className="text-sm font-medium text-slate-500 leading-relaxed px-2">
+                      <p className="text-sm md:text-xs lg:text-sm font-medium text-slate-500 leading-relaxed px-2">
                         Tu sesión se cerrará de forma segura. <br /> Asegúrate de haber terminado tus tareas.
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-8 grid grid-cols-1 gap-3 shrink-0">
+                  <div className="mt-8 md:mt-6 lg:mt-8 grid grid-cols-1 gap-3 md:gap-2 lg:gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full rounded-2xl bg-red-600 py-4 text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-red-200/50 hover:bg-red-700 hover:shadow-xl active:scale-[0.98]"
+                      className="w-full rounded-2xl md:rounded-xl lg:rounded-2xl bg-red-600 py-4 md:py-3 lg:py-4 text-sm md:text-xs lg:text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-red-200/50 hover:bg-red-700 hover:shadow-xl active:scale-[0.98]"
                     >
                       Cerrar Sesión
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowLogoutModal(false)}
-                      className="w-full rounded-2xl bg-white py-4 text-sm font-bold transition-all cursor-pointer text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
+                      className="w-full rounded-2xl md:rounded-xl lg:rounded-2xl bg-white py-4 md:py-3 lg:py-4 text-sm md:text-xs lg:text-sm font-bold transition-all cursor-pointer text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
                     >
                       Volver al Panel
                     </button>

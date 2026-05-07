@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Fragment, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import {
@@ -277,11 +278,11 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, onMo
           </div>
         </div>
 
-        <div className="border-t border-slate-100 px-6 sm:px-8 py-4 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
-          <p className="text-[11px] text-slate-400 font-mono">
+        <div className="border-t border-slate-100 px-4 sm:px-8 py-4 bg-slate-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <p className="text-[11px] text-slate-400 font-mono text-center sm:text-left">
             Última actualización: {formatDate(item.updated_at)}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
             <button
               onClick={() => onMoveStock(item, 'SALIDA')}
               disabled={item.estado === 'EN_USO'}
@@ -326,10 +327,11 @@ function DetalleView({ item, estados, categorias, onBack, onEdit, onDelete, onMo
 // Calcula el valor correcto ANTES del primer render para evitar doble fetch
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
-  return window.innerWidth >= 1350 ? 12 : 6;
+  return window.innerWidth >= 768 ? 12 : 6;
 };
 
 export default function InventarioPage() {
+  const router = useRouter();
   const [items, setItems] = useState<HardwareItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -454,7 +456,7 @@ export default function InventarioPage() {
     const handleResize = () => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
+        setItemsPerPage(window.innerWidth >= 768 ? 12 : 6);
       });
     };
     window.addEventListener('resize', handleResize);
@@ -696,7 +698,14 @@ export default function InventarioPage() {
           item={detalleItem}
           estados={estados}
           categorias={categorias}
-          onBack={() => setDetalleItem(null)}
+          onBack={() => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('from') === 'escaner') {
+              router.push('/admin/escaner');
+            } else {
+              setDetalleItem(null);
+            }
+          }}
           onEdit={openEdit}
           onDelete={(item) => { setDeleteItem(item); }}
           onMoveStock={handleMoveStock}
@@ -731,11 +740,10 @@ export default function InventarioPage() {
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-all text-sm"
           />
         </div>
-
         {loading ? (
           <SkeletonFilterRow count={6} height="h-8" />
         ) : sortedCategorias.length > 0 ? (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap pt-1">
             <button onClick={() => setFilterCategoria('')} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
             {sortedCategorias.map(cat => (
               <button key={cat.id} onClick={() => setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre)} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
@@ -746,7 +754,7 @@ export default function InventarioPage() {
         {loading ? (
           <SkeletonFilterRow count={5} />
         ) : sortedEstados.length > 0 ? (
-          <div className="flex items-center gap-2 flex-wrap px-1">
+          <div className="flex items-center gap-2 flex-wrap pt-1 px-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
             {sortedEstados.map(est => {
               const dot = colorDotClasses[est.color] ?? 'bg-slate-400';

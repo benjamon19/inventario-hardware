@@ -19,7 +19,7 @@ import { Pagination } from '@/components/ui/Pagination';
 
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
-  return window.innerWidth >= 1350 ? 12 : 6;
+  return window.innerWidth >= 768 ? 12 : 6;
 };
 
 export default function AdminScannerPage() {
@@ -42,7 +42,7 @@ export default function AdminScannerPage() {
 
   useEffect(() => {
     const handleResize = () => {
-      setItemsPerPage(window.innerWidth >= 1350 ? 12 : 6);
+      setItemsPerPage(window.innerWidth >= 768 ? 12 : 6);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -135,6 +135,10 @@ export default function AdminScannerPage() {
       setStatusMsg({ type: 'error', text: 'Equipo no encontrado en inventario.' });
       setSelectedItem(null);
     } else {
+      if (scanMode === 'SEARCH') {
+        router.push(`/admin/inventario?sku=${item.sku}&from=escaner`);
+        return;
+      }
       setSelectedItem(item);
       setIsScanning(false);
     }

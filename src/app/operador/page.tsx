@@ -18,9 +18,17 @@ import { usePresence } from '@/hooks/usePresence';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { registrarLog } from '@/lib/logger';
 
-const ITEMS_PER_PAGE = 5;
-
 export default function OperatorPage() {
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setItemsPerPage(window.innerWidth >= 768 ? 12 : 6);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const router = useRouter();
   const [manualSku, setManualSku] = useState('');
   const [isScanning, setIsScanning] = useState(true);
@@ -72,8 +80,8 @@ export default function OperatorPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const start = page * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE - 1;
+    const start = page * itemsPerPage;
+    const end = start + itemsPerPage - 1;
 
     const { data, count } = await supabase
       .from('transacciones')

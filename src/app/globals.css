@@ -2,13 +2,23 @@
 
 html {
   /* Forzamos a que no herede nada del sistema */
-  background-color: #f1f5f9; /* bg-slate-100 */
-  color: #0f172a; /* text-slate-900 */
+  background-color: #f1f5f9;
+  /* bg-slate-100 */
+  color: #0f172a;
+  /* text-slate-900 */
+}
+
+/* Achicamos la escala global para pantallas de notebooks/medias */
+@media (min-width: 768px) and (max-width: 1536px) {
+  html {
+    font-size: 12px;
+  }
 }
 
 /* Forzar el cursor de texto (caret) a ser siempre oscuro en los inputs */
-input, textarea {
-  caret-color: #0f172a !important; 
+input,
+textarea {
+  caret-color: #0f172a !important;
   color: #0f172a !important;
 }
 
@@ -17,12 +27,13 @@ input, textarea {
    ========================================= */
 
 /* Para Firefox: oculta solo en el body/html */
-html, body {
+html,
+body {
   scrollbar-width: none !important;
 }
 
 /* Para Chrome, Edge, Safari y otros basados en WebKit: oculta solo en body/html */
-html::-webkit-scrollbar, 
+html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none !important;
 }

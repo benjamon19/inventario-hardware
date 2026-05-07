@@ -39,7 +39,7 @@ const SkeletonQRCard = () => (
   </div>
 );
 
-type Estado    = { id: string; nombre: string; color: string };
+type Estado = { id: string; nombre: string; color: string };
 type Categoria = { id: string; nombre: string; prefijo: string };
 type Ubicacion = { id: string; nombre: string };
 
@@ -48,41 +48,50 @@ type Ubicacion = { id: string; nombre: string };
 // --- INICIALIZADOR DE PAGINACIÓN ---
 const getInitialItemsPerPage = () => {
   if (typeof window === 'undefined') return 12;
-  if (window.innerWidth >= 1350) return 12;
-  if (window.innerWidth >= 768)  return 8;
-  return 4;
+  if (window.innerWidth >= 768) return 12;
+  return 6;
 };
 
 export default function GenerarQRPage() {
-  const [sku,         setSku]         = useState('');
-  const [item,        setItem]        = useState<any>(null);
-  
+  const [sku, setSku] = useState('');
+  const [item, setItem] = useState<any>(null);
+
   // Disponibles ahora guardará solo los equipos de la PÁGINA ACTUAL
   const [disponibles, setDisponibles] = useState<any[]>([]);
-  const [totalItems,  setTotalItems]  = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const [categorias,  setCategorias]  = useState<Categoria[]>([]);
-  const [estados,     setEstados]     = useState<Estado[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [searchTerm,      setSearchTerm]      = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
-  const [filterEstado,    setFilterEstado]    = useState('');
+  const [filterEstado, setFilterEstado] = useState('');
   const [filterUbicacion, setFilterUbicacion] = useState('');
-  
-  const [currentPage,     setCurrentPage]     = useState(1);
-  const [itemsPerPage,    setItemsPerPage]    = useState(getInitialItemsPerPage);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage);
   const skuInputRef = useRef<HTMLInputElement>(null);
 
-  const [refreshTrigger,  setRefreshTrigger]  = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const [multiMode,   setMultiMode]   = useState(false);
+  const [multiMode, setMultiMode] = useState(false);
   // Cambiamos el Set por un Map para guardar el objeto completo del equipo seleccionado 
   // y así no perder los datos al cambiar de página
   const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, any>>(new Map());
   const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
   const [showMobileToast, setShowMobileToast] = useState(false);
+  const [isMedium, setIsMedium] = useState(false);
+
+  useEffect(() => {
+    const checkSize = () => {
+      setIsMedium(window.innerWidth >= 768 && window.innerWidth <= 1536);
+    };
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
+  }, []);
 
   const triggerPrintMenu = () => {
     if (window.innerWidth < 1024) {
@@ -104,8 +113,8 @@ export default function GenerarQRPage() {
 
 
   // Listas ordenadas alfabéticamente
-  const sortedCategorias  = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
-  const sortedEstados     = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
+  const sortedCategorias = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
+  const sortedEstados = useMemo(() => [...estados].sort((a, b) => a.nombre.localeCompare(b.nombre)), [estados]);
   const sortedUbicaciones = useMemo(() => [...ubicaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)), [ubicaciones]);
 
   // Lookup O(1) para badge de estado
@@ -130,8 +139,8 @@ export default function GenerarQRPage() {
         supabase.from('estados').select('*').order('nombre'),
         supabase.from('ubicacion').select('*').order('nombre'),
       ]);
-      if (cats)  setCategorias(cats);
-      if (ests)  setEstados(ests);
+      if (cats) setCategorias(cats);
+      if (ests) setEstados(ests);
       if (ubics) setUbicaciones(ubics);
     };
     fetchMeta();
@@ -148,7 +157,7 @@ export default function GenerarQRPage() {
         query = query.or(`modelo.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,numero_serie.ilike.%${searchTerm}%`);
       }
       if (filterCategoria) query = query.eq('categoria', filterCategoria);
-      if (filterEstado)    query = query.eq('estado', filterEstado);
+      if (filterEstado) query = query.eq('estado', filterEstado);
       if (filterUbicacion) query = query.eq('ubicacion', filterUbicacion);
 
       // Calcular inicio y fin para la página actual
@@ -161,7 +170,7 @@ export default function GenerarQRPage() {
       const { data, count } = await query;
       if (data) setDisponibles(data);
       if (count !== null) setTotalItems(count);
-      
+
       setLoading(false);
     };
 
@@ -194,7 +203,7 @@ export default function GenerarQRPage() {
   // Manejar parámetro en URL
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const params   = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
     const skuParam = params.get('sku');
     if (skuParam) {
       setSku(skuParam);
@@ -225,7 +234,8 @@ export default function GenerarQRPage() {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         const w = window.innerWidth;
-        setItemsPerPage(w >= 1350 ? 12 : w >= 768 ? 8 : 4);
+        if (w >= 768) setItemsPerPage(12);
+        else setItemsPerPage(6);
       });
     };
     handleResize();
@@ -255,10 +265,10 @@ export default function GenerarQRPage() {
     };
     window.addEventListener('keydown', handleKey);
 
-    return () => { 
-      window.removeEventListener('resize', handleResize); 
+    return () => {
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKey);
-      cancelAnimationFrame(rafId); 
+      cancelAnimationFrame(rafId);
     };
   }, [toggleMultiMode, isPrintMenuOpen, item]);
 
@@ -299,19 +309,19 @@ export default function GenerarQRPage() {
   }, [disponibles]);
 
   const deseleccionarTodos = useCallback(() => setSelectedItemsMap(new Map()), []);
-  
+
   const imprimir = useCallback(async (settings?: any) => {
     if (settings) setPrintSettings(settings);
-    
+
     const lista = multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : []);
     for (const eq of lista) {
-      await registrarLog('ETIQUETA', 'HARDWARE', eq.id, { 
-        sku: eq.sku, 
+      await registrarLog('ETIQUETA', 'HARDWARE', eq.id, {
+        sku: eq.sku,
         modelo: eq.modelo,
-        detalle: 'Impresión de etiqueta QR personalizada' 
+        detalle: 'Impresión de etiqueta QR personalizada'
       });
     }
-    
+
     setTimeout(() => {
       window.print();
     }, 200);
@@ -345,9 +355,9 @@ export default function GenerarQRPage() {
   const listaImpresion = multiMode ? Array.from(selectedItemsMap.values()) : (item ? [item] : []);
 
   const firstItem = listaImpresion[0];
-  const firstItemSettings = (firstItem && printSettings?.items && printSettings.items[firstItem.id]) || { 
-    width: 5, 
-    height: 2.5 
+  const firstItemSettings = (firstItem && printSettings?.items && printSettings.items[firstItem.id]) || {
+    width: 5,
+    height: 2.5
   };
 
   return (
@@ -404,10 +414,10 @@ export default function GenerarQRPage() {
       {listaImpresion.length > 0 && (
         <div className="print-only">
           {listaImpresion.map((eq) => {
-            const s = (printSettings?.items && printSettings.items[eq.id]) || { 
-              width: 5, 
-              height: 2.5, 
-              fontSize: 12, 
+            const s = (printSettings?.items && printSettings.items[eq.id]) || {
+              width: 5,
+              height: 2.5,
+              fontSize: 12,
               wrapText: true,
               text: `${eq.sku}\n${eq.modelo}\n${eq.categoria}${eq.numero_serie ? `\nSN: ${eq.numero_serie}` : ''}`
             };
@@ -421,17 +431,17 @@ export default function GenerarQRPage() {
                   </div>
                   <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
 
-                    <p style={{ 
-                        color: 'black', 
-                        fontSize: `${s.fontSize}px`, 
-                        fontWeight: 900, 
-                        margin: 0, 
-                        lineHeight: 1.1, 
-                        whiteSpace: s.wrapText ? 'pre-wrap' : 'nowrap', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis' 
+                    <p style={{
+                      color: 'black',
+                      fontSize: `${s.fontSize}px`,
+                      fontWeight: 900,
+                      margin: 0,
+                      lineHeight: 1.1,
+                      whiteSpace: s.wrapText ? 'pre-wrap' : 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
                     }}>
-                        {s.text}
+                      {s.text}
                     </p>
 
                   </div>
@@ -479,12 +489,17 @@ export default function GenerarQRPage() {
           <div id="tour-qr-preview" className="grid md:grid-cols-2 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex flex-col items-center justify-center gap-6">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vista previa</p>
-              <div id="tour-qr-code-only" className="w-48 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm text-center">
+              <div id="tour-qr-code-only" className={`${isMedium ? 'w-40 p-5' : 'w-48 p-6'} rounded-2xl border border-slate-200 bg-slate-50 shadow-sm text-center transition-all`}>
                 <div className="flex justify-center mb-5">
-                  <QRCodeSVG value={item.sku} size={120} level="H" includeMargin={false} />
+                  <QRCodeSVG value={item.sku} size={isMedium ? 90 : 120} level="H" includeMargin={false} />
                 </div>
-                <p className="text-slate-900 text-base font-black tracking-widest">{item.sku}</p>
-                {item.numero_serie && <p className="text-slate-500 text-xs font-bold tracking-widest mt-1">SN: {item.numero_serie}</p>}
+                <p className={`${isMedium ? 'text-sm' : 'text-base'} text-slate-900 font-black tracking-widest`}>{item.sku}</p>
+                {item.numero_serie && (
+                  <p className="text-slate-500 text-[10px] font-bold tracking-widest mt-1 flex items-center justify-center gap-2">
+                    <span className="opacity-20 text-slate-400">|</span>
+                    SN: {item.numero_serie}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex flex-col justify-center gap-4">
@@ -524,11 +539,10 @@ export default function GenerarQRPage() {
             </div>
             <button
               onClick={toggleMultiMode}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
-                multiMode
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all cursor-pointer ${multiMode
                   ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
                   : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600'
-              }`}
+                }`}
             >
               <Layers className="h-4 w-4" />
               {multiMode ? 'Cancelar selección' : 'Selección múltiple'}
@@ -586,8 +600,8 @@ export default function GenerarQRPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
               {sortedEstados.map(est => {
-                const dot    = colorDotClasses[est.color] ?? 'bg-slate-400';
-                const badge  = colorClasses[est.color]    ?? colorClasses.slate;
+                const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
+                const badge = colorClasses[est.color] ?? colorClasses.slate;
                 const active = filterEstado === est.nombre;
                 return (
                   <button key={est.id} onClick={() => { setFilterEstado(active ? '' : est.nombre); setCurrentPage(1); }} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`}`}>
@@ -640,11 +654,10 @@ export default function GenerarQRPage() {
                     key={equipo.id}
                     id={index === 0 ? "tour-qr-item-0" : undefined}
                     onClick={() => seleccionarEquipo(equipo)}
-                    className={`group w-full text-left rounded-2xl border p-4 transition-all cursor-pointer flex items-center gap-4 ${
-                      multiMode
+                    className={`group w-full text-left rounded-2xl border p-4 transition-all cursor-pointer flex items-center gap-4 ${multiMode
                         ? isSelected ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-200' : 'border-slate-200 bg-slate-50 hover:border-violet-200 hover:bg-violet-50/40'
-                        : isSelected ? 'border-slate-400 bg-slate-100 ring-2 ring-slate-200'       : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/40'
-                    }`}
+                        : isSelected ? 'border-slate-400 bg-slate-100 ring-2 ring-slate-200' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/40'
+                      }`}
                   >
                     {multiMode ? (
                       <div className={`shrink-0 rounded-xl p-2.5 transition-colors ${isSelected ? 'bg-violet-100 text-violet-600' : 'bg-slate-100 text-slate-400 group-hover:bg-violet-100 group-hover:text-violet-500'}`}>
@@ -670,11 +683,10 @@ export default function GenerarQRPage() {
                         )}
                       </div>
                     </div>
-                    <QrCode className={`h-4 w-4 shrink-0 transition-colors ${
-                      multiMode
+                    <QrCode className={`h-4 w-4 shrink-0 transition-colors ${multiMode
                         ? isSelected ? 'text-violet-400' : 'text-slate-200 group-hover:text-violet-300'
-                        : isSelected ? 'text-slate-900'   : 'text-slate-200 group-hover:text-slate-300'
-                    }`} />
+                        : isSelected ? 'text-slate-900' : 'text-slate-200 group-hover:text-slate-300'
+                      }`} />
                   </button>
                 );
               })}
@@ -714,21 +726,21 @@ export default function GenerarQRPage() {
             </div>
             <div className="w-px h-8 bg-slate-200 shrink-0" />
             <div className="flex items-center gap-1 sm:gap-2">
-              <button 
-                onClick={triggerPrintMenu} 
+              <button
+                onClick={triggerPrintMenu}
                 className="flex items-center gap-2 bg-violet-600 text-white px-4 sm:px-6 py-2.5 rounded-full font-bold hover:bg-violet-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer text-sm whitespace-nowrap"
               >
 
-                  <Printer className="h-4 w-4" /> 
-                  <span className="hidden sm:inline">Imprimir todas</span>
-                  <span className="sm:hidden">Imprimir</span>
-                </button>
+                <Printer className="h-4 w-4" />
+                <span className="hidden sm:inline">Imprimir todas</span>
+                <span className="sm:hidden">Imprimir</span>
+              </button>
 
 
 
-              <button 
-                onClick={deseleccionarTodos} 
-                title="Limpiar selección" 
+              <button
+                onClick={deseleccionarTodos}
+                title="Limpiar selección"
                 className="p-2 sm:p-2.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -749,7 +761,7 @@ export default function GenerarQRPage() {
 
       {/* Toast de advertencia Mobile */}
       <Transition show={showMobileToast} as={Fragment} enter="transition ease-out duration-300 transform" enterFrom="opacity-0 translate-y-10 scale-95" enterTo="opacity-100 translate-y-0 scale-100" leave="transition ease-in duration-200 transform" leaveFrom="opacity-100 translate-y-0 scale-100" leaveTo="opacity-0 translate-y-10 scale-95">
-        <div className="fixed bottom-0 left-0 right-0 z-[100] p-6 flex justify-center pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 z-100 p-6 flex justify-center pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-3 bg-white px-6 py-3.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-red-100">
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600">
               <MonitorOff className="h-4 w-4" />

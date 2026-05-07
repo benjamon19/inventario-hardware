@@ -60,16 +60,6 @@ export default function ActividadPage() {
     fetchUsuarios();
   }, []);
 
-  useEffect(() => {
-    const calcularItemsPorPagina = () => {
-      const altoDisponible = window.innerHeight - 380;
-      const itemsCalculados = Math.floor(altoDisponible / 85);
-      setItemsPerPage(Math.max(5, itemsCalculados));
-    };
-    calcularItemsPorPagina();
-    window.addEventListener('resize', calcularItemsPorPagina);
-    return () => window.removeEventListener('resize', calcularItemsPorPagina);
-  }, []);
 
   // ── Realtime: INSERT en auditoria_logs ──
   useRealtimeTable({
@@ -82,6 +72,15 @@ export default function ActividadPage() {
   });
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterTipo, filterUsuario]);
+
+  useEffect(() => {
+    const calcularItemsPorPagina = () => {
+      setItemsPerPage(window.innerWidth >= 768 ? 12 : 6);
+    };
+    calcularItemsPorPagina();
+    window.addEventListener('resize', calcularItemsPorPagina);
+    return () => window.removeEventListener('resize', calcularItemsPorPagina);
+  }, []);
 
   useEffect(() => {
     const fetchActividad = async () => {

@@ -13,13 +13,25 @@ import {
 import { InventoryTransaction } from '@/types';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 
+const COLORS_CATEGORIAS = [
+  '#6366f1', // Indigo
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#f59e0b', // Amber
+  '#10b981', // Emerald
+  '#06b6d4', // Cyan
+  '#3b82f6', // Blue
+  '#84cc16', // Lime
+  '#f97316'  // Orange
+];
+
 const COLORS_ESTADOS = {
   'DISPONIBLE': '#10b981', 
   'EN_USO': '#3b82f6',     
   'EN_MANTENCION': '#f59e0b',
   'DADO_DE_BAJA': '#ef4444'  
 };
-const COLORS_CATEGORIAS = ['#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bae6fd'];
 
 // --- Componentes Skeleton Internos ---
 const Skeleton = ({ className }: { className: string }) => (
@@ -27,30 +39,30 @@ const Skeleton = ({ className }: { className: string }) => (
 );
 
 const KpiSkeleton = () => (
-  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-    <div className="flex flex-col items-start gap-3">
-      <Skeleton className="h-9 w-9 rounded-lg" />
-      <div className="w-full space-y-2">
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-7 w-12" />
+  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 md:p-3 lg:p-5 shadow-sm">
+    <div className="flex flex-col items-start gap-3 md:gap-2 lg:gap-3">
+      <Skeleton className="h-9 w-9 md:h-7 md:w-7 lg:h-9 lg:w-9 rounded-lg" />
+      <div className="w-full space-y-2 md:space-y-1 lg:space-y-2">
+        <Skeleton className="h-3 w-20 md:w-16 lg:w-20" />
+        <Skeleton className="h-7 w-12 md:h-5 lg:h-7" />
       </div>
     </div>
   </div>
 );
 
 const PieSkeleton = () => (
-  <div className="flex flex-col items-center gap-5">
+  <div className="flex flex-col items-center gap-5 md:gap-3 lg:gap-5">
     {/* Donut placeholder */}
     <div className="relative flex items-center justify-center">
-      <Skeleton className="h-44 w-44 rounded-full" />
-      <div className="absolute h-24 w-24 rounded-full bg-slate-50" />
+      <Skeleton className="h-44 w-44 md:h-36 md:w-36 lg:h-44 lg:w-44 rounded-full" />
+      <div className="absolute h-24 w-24 md:h-20 md:w-20 lg:h-24 lg:w-24 rounded-full bg-slate-50" />
     </div>
     {/* Legend */}
-    <div className="flex flex-wrap justify-center gap-3">
+    <div className="flex flex-wrap justify-center gap-3 md:gap-2 lg:gap-3">
       {Array(4).fill(0).map((_, i) => (
         <div key={i} className="flex items-center gap-1.5">
           <Skeleton className="h-2.5 w-2.5 rounded-full" />
-          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-16 md:w-12 lg:w-16" />
         </div>
       ))}
     </div>
@@ -59,6 +71,17 @@ const PieSkeleton = () => (
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
+  const [isMedium, setIsMedium] = useState(false);
+
+  useEffect(() => {
+    const checkSize = () => {
+      setIsMedium(window.innerWidth >= 768 && window.innerWidth <= 1536);
+    };
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
+  }, []);
+
   const [recentTransactions, setRecentTransactions] = useState<InventoryTransaction[]>([]);
   const [distribucionData, setDistribucionData] = useState<any[]>([]);
   const [estadoData, setEstadoData] = useState<any[]>([]);
@@ -215,25 +238,25 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 md:space-y-4 lg:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Panel de Control de Inventario</h1>
-        <p className="text-slate-500 text-sm">Estado actual de la bodega y equipos desplegados.</p>
+        <h1 className="text-2xl md:text-xl lg:text-2xl font-bold text-slate-900">Panel de Control de Inventario</h1>
+        <p className="text-slate-500 text-sm md:text-xs lg:text-sm">Estado actual de la bodega y equipos desplegados.</p>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:gap-3 lg:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {loading 
           ? Array(6).fill(0).map((_, i) => <KpiSkeleton key={i} />)
           : stats.map((stat) => (
-            <div key={stat.name} className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex flex-col items-start gap-3">
-                <div className={`rounded-lg p-2 ${stat.bg} w-fit`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+            <div key={stat.name} className="rounded-xl border border-slate-200 bg-slate-50 p-5 md:p-3 lg:p-5 shadow-sm transition-all hover:shadow-md">
+              <div className="flex flex-col items-start gap-3 md:gap-2 lg:gap-3">
+                <div className={`rounded-lg p-2 md:p-1.5 lg:p-2 ${stat.bg} w-fit`}>
+                  <stat.icon className={`h-5 w-5 md:h-4 md:w-4 lg:h-5 lg:w-5 ${stat.color}`} />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.name}</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-0.5">{stat.value}</p>
+                  <p className="text-xs md:text-[10px] lg:text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.name}</p>
+                  <p className="text-2xl md:text-xl lg:text-2xl font-bold text-slate-900 mt-0.5">{stat.value}</p>
                 </div>
               </div>
             </div>
@@ -242,17 +265,18 @@ export default function AdminDashboard() {
       </div>
 
       {/* Fila 1 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm min-h-95">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Distribución de Estados por Categoría</h2>
+      <div className="grid grid-cols-1 gap-6 md:gap-4 lg:gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-6 md:p-4 lg:p-6 shadow-sm min-h-95 md:min-h-64 2xl:min-h-95">
+          <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800 mb-4 md:mb-2 lg:mb-4">Distribución de Estados por Categoría</h2>
           <div className="w-full">
             {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-62.5 w-full" />
+              <div className="space-y-4 md:space-y-2 lg:space-y-4">
+                <Skeleton className="h-62.5 md:h-44 2xl:h-62.5 w-full" />
                 <div className="flex justify-center gap-4"><Skeleton className="h-3 w-20" /><Skeleton className="h-3 w-20" /></div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
+              // En notebooks (md/lg/xl) bajamos un poco la altura del gráfico para que no coma tanta pantalla
+              <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1536 ? 220 : 300}>
                 <BarChart data={distribucionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
@@ -269,20 +293,21 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm min-h-95">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Estado General</h2>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 md:p-4 lg:p-6 shadow-sm min-h-95 md:min-h-64 2xl:min-h-95">
+          <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800 mb-4 md:mb-2 lg:mb-4">Estado General</h2>
           <div className="w-full flex justify-center">
             {loading ? (
               <div className="flex flex-col items-center gap-5 pt-4">
                 <PieSkeleton />
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1536 ? 220 : 300}>
                 <PieChart>
                   <Pie 
                     data={estadoData} 
                     cx="50%" cy="50%" 
-                    innerRadius={60} outerRadius={90} 
+                    innerRadius={isMedium ? 45 : 60} 
+                    outerRadius={isMedium ? 75 : 90} 
                     paddingAngle={5} 
                     dataKey="value"
                     label={({ percent = 0 }) => `${(percent * 100).toFixed(0)}%`}
@@ -301,16 +326,16 @@ export default function AdminDashboard() {
       </div>
 
       {/* Fila 2 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm min-h-100">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Equipos por Categoría</h2>
+      <div className="grid grid-cols-1 gap-6 md:gap-4 lg:gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 md:p-4 lg:p-6 shadow-sm min-h-100 md:min-h-72 2xl:min-h-100">
+          <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800 mb-4 md:mb-2 lg:mb-4">Equipos por Categoría</h2>
           <div className="w-full">
             {loading ? (
-              <div className="space-y-4">
-                {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+              <div className="space-y-4 md:space-y-2 lg:space-y-4">
+                {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-8 md:h-6 lg:h-8 w-full" />)}
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1536 ? 250 : 350}>
                 <BarChart data={categoriaData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
@@ -327,21 +352,21 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm h-full flex flex-col relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-            <AlertTriangle className="w-32 h-32" />
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 md:p-4 lg:p-6 shadow-sm h-full flex flex-col relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 md:p-2 lg:p-4 opacity-5 pointer-events-none">
+            <AlertTriangle className="w-32 h-32 md:w-20 md:h-20 lg:w-32 lg:h-32" />
           </div>
-          <div className="flex items-center gap-2 mb-6 relative z-10">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            <h2 className="text-lg font-semibold text-slate-800">Alertas de Stock Crítico</h2>
+          <div className="flex items-center gap-2 mb-6 md:mb-4 lg:mb-6 relative z-10">
+            <AlertTriangle className="h-5 w-5 md:h-4 md:w-4 lg:h-5 lg:w-5 text-red-500" />
+            <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800">Alertas de Stock Crítico</h2>
           </div>
           
-          <div className="flex-1 flex flex-col justify-start gap-5 relative z-10">
+          <div className="flex-1 flex flex-col justify-start gap-5 md:gap-3 lg:gap-5 relative z-10">
             {loading ? (
-               <div className="space-y-6">
+               <div className="space-y-6 md:space-y-4 lg:space-y-6">
                  {Array(3).fill(0).map((_, i) => (
-                   <div key={i} className="space-y-2">
-                     <div className="flex justify-between"><Skeleton className="h-3 w-24" /><Skeleton className="h-3 w-16" /></div>
+                   <div key={i} className="space-y-2 md:space-y-1 lg:space-y-2">
+                     <div className="flex justify-between"><Skeleton className="h-3 md:h-2 lg:h-3 w-24" /><Skeleton className="h-3 md:h-2 lg:h-3 w-16" /></div>
                      <Skeleton className="h-2 w-full" />
                    </div>
                  ))}
@@ -349,15 +374,15 @@ export default function AdminDashboard() {
             ) : stockCritico.length > 0 ? (
               stockCritico.map(item => (
                 <div key={item.name}>
-                  <div className="flex justify-between text-sm mb-2">
+                  <div className="flex justify-between text-sm md:text-xs lg:text-sm mb-2 md:mb-1 lg:mb-2">
                     <span className="font-medium text-slate-700">{item.name}</span>
                     <span className={`font-bold ${item.disponible === 0 ? 'text-red-600' : 'text-orange-600'}`}>
                       {item.disponible} disponibles
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-slate-100 rounded-full h-2 md:h-1.5 lg:h-2 overflow-hidden">
                     <div 
-                      className={`h-2 rounded-full transition-all duration-1000 ease-out ${
+                      className={`h-2 md:h-1.5 lg:h-2 rounded-full transition-all duration-1000 ease-out ${
                         item.disponible === 0 ? 'bg-red-600' : 
                         item.disponible <= 2 ? 'bg-orange-500' : 
                         'bg-amber-400'
@@ -370,16 +395,16 @@ export default function AdminDashboard() {
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-2 opacity-50" />
-                  <p className="text-slate-500 font-medium text-sm">Inventario Saludable</p>
-                  <p className="text-slate-400 text-xs mt-1">Ninguna categoría tiene menos de 5 unidades.</p>
+                  <CheckCircle2 className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-emerald-400 mx-auto mb-2 md:mb-1 lg:mb-2 opacity-50" />
+                  <p className="text-slate-500 font-medium text-sm md:text-xs lg:text-sm">Inventario Saludable</p>
+                  <p className="text-slate-400 text-xs md:text-[10px] lg:text-xs mt-1 md:mt-0.5 lg:mt-1">Ninguna categoría tiene menos de 5 unidades.</p>
                 </div>
               </div>
             )}
             
-            <div className="mt-auto pt-4 border-t border-slate-100">
-              <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                <Info className="h-4 w-4 shrink-0" /> 
+            <div className="mt-auto pt-4 md:pt-3 lg:pt-4 border-t border-slate-100">
+              <p className="text-xs md:text-[10px] lg:text-xs text-slate-500 flex items-center gap-1.5 md:gap-1 lg:gap-1.5">
+                <Info className="h-4 w-4 md:h-3 md:w-3 lg:h-4 lg:w-4 shrink-0" /> 
                 Se muestran las categorías con menos de 5 equipos listos para ser asignados.
               </p>
             </div>
