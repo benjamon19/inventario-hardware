@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Joyride, EventData, STATUS, Step, EVENTS, ACTIONS, TooltipRenderProps } from 'react-joyride';
+import { Sparkles, Camera, Search, CheckCircle } from 'lucide-react';
 import wallIco from '@/app/wall-ico.svg';
 import { supabase } from '@/lib/supabase';
 
@@ -172,7 +173,7 @@ function CustomTooltip({ backProps, primaryProps, skipProps, tooltipProps, index
           <div className="ti-nav">
             {index > 0 && <button className="ti-back" {...backProps} title="Atrás">←</button>}
             <button className={`ti-next${isLastStep ? ' last' : ''}`} {...primaryProps}>
-              {isLastStep ? '¡Listo! 🎉' : 'Siguiente →'}
+              {isLastStep ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>¡Listo! <CheckCircle size={14} /></span> : 'Siguiente →'}
             </button>
           </div>
         </div>
@@ -265,7 +266,7 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
   const sT = (id: string) => isMobile ? 'body' : id;
   const sP = (p: Step['placement']) => (isMobile ? C : p) as Step['placement'];
 
-  return [
+  const baseSteps: Step[] = [
     {
       target: '#tour-main-content', title: <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><img src={wallIcoSrc} alt="" width={20} height={20} style={{ objectFit: 'contain' }} />¡Bienvenido a Wall!</div>,
       content: '¡Hola! Soy Wall, tu asistente virtual. He preparado este breve recorrido para mostrarte cómo funciona mi sistema de inventario y ayudarte a gestionar tus equipos.',
@@ -287,28 +288,51 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
       placement: 'bottom', skipBeacon: true, data: { route: '/admin/inventario' }
     },
     {
-      target: '#tour-modal-nuevo-equipo', title: 'Formulario de registro',
+      target: '#tour-modal-nuevo-equipo-ghost', title: 'Formulario de registro',
       content: 'Completa el modelo, categoría, estado y ubicación para registrar un equipo nuevo.',
       placement: sP('left'), skipBeacon: true, skipScroll: true, data: { route: '/admin/inventario', action: 'open_modal_nuevo_equipo' }
     },
+    {
+      target: sT('#tour-enhance-btn'),
+      title: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Sparkles size={16} className="text-amber-500" /> Auto-relleno con IA</span>,
+      content: 'Escribe una descripción corta y pulsa «Mejorar con Wall» — la IA de Wall completará y enriquecerá el texto automáticamente para que el inventario quede más detallado.',
+      placement: sP('left'), skipBeacon: true, skipScroll: true,
+      data: { route: '/admin/inventario', action: 'open_modal_nuevo_equipo' }
+    },
+    {
+      target: isMobile ? '#tour-camera-btn' : 'body',
+      title: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Camera size={16} /> Cámara inteligente</span>,
+      content: isMobile
+        ? 'En móvil verás este botón «Cámara» junto al título. Ábrelo y apunta a cualquier etiqueta o código QR del equipo — Wall usará IA para extraer el modelo y número de serie automáticamente.'
+        : 'Cuando entres desde tu celular, verás un botón «Cámara» en este formulario. Podrás apuntar a la etiqueta de cualquier equipo y Wall extraerá el modelo y N° de serie con IA, ¡sin escribir nada!',
+      placement: isMobile ? 'bottom' : C, skipBeacon: true, skipScroll: true,
+      data: { route: '/admin/inventario', action: 'open_modal_nuevo_equipo' }
+    },
+    {
+      target: 'body',
+      title: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Search size={16} /> Dos modos de escaneo</span>,
+      content: 'La cámara móvil tiene dos modos: «QR» detecta códigos instantáneamente, y «Foto» captura la imagen para que la IA lea y procese el texto del equipo (OCR). ¡Todo automatizado!',
+      placement: C, skipBeacon: true, skipScroll: true,
+      data: { route: '/admin/inventario', action: 'open_modal_nuevo_equipo' }
+    },
+    // Condicionales de móvil se insertan más abajo (si hubieran más)
     {
       target: '#tour-generar-qr-general', title: 'Generar QR',
       content: 'Busca cualquier equipo y obtén su etiqueta QR lista para imprimir y pegar al activo físico.',
       placement: 'bottom', skipBeacon: true, skipScroll: true, data: { route: '/admin/generar-qr' }
     },
-    // Step 6 — target: '#tour-qr-item-0', el spotlight real lo maneja useManualSpotlight
     {
       target: '#tour-qr-item-0', title: 'Seleccionar equipo',
       content: 'Pulsa el botón siguiente para generar su código QR al instante.',
       placement: 'top', skipBeacon: true, skipScroll: true,
-      data: { route: '/admin/generar-qr', manualSpotlight: 'tour-qr-item-0' }
+      data: { id: 'qr-item', route: '/admin/generar-qr', manualSpotlight: 'tour-qr-item-0' }
     },
     {
       target: isMobile ? 'body' : '#tour-qr-code-only',
       title: 'Previsualización QR',
       content: 'Aquí tienes la etiqueta generada, lista para imprimir y adherir al equipo (la función de impresión no está disponible en móviles).',
       placement: isMobile ? C : 'right', skipBeacon: true, skipScroll: true,
-      data: { route: '/admin/generar-qr', action: 'click_qr_item' }
+      data: { id: 'qr-preview', route: '/admin/generar-qr', action: 'click_qr_item' }
     },
     {
       target: '#tour-scanner-view', title: 'Escáner QR',
@@ -341,9 +365,9 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
       placement: 'bottom', skipBeacon: true, data: { route: '/admin/usuarios' }
     },
     {
-      target: '#tour-modal-nuevo-usuario', title: 'Formulario de registro',
+      target: '#tour-modal-nuevo-usuario-ghost', title: 'Formulario de registro',
       content: 'Ingresa el correo y asigna una contraseña inicial. Por defecto, los usuarios nuevos tendrán rol de OPERADOR.',
-      placement: sP('right'), skipBeacon: true, skipScroll: true, data: { route: '/admin/usuarios', action: 'open_modal_nuevo_usuario' }
+      placement: sP('right'), skipBeacon: true, skipScroll: true, data: { id: 'nuevo-usuario', route: '/admin/usuarios', action: 'open_modal_nuevo_usuario' }
     },
     {
       target: sT('#tour-configuracion'), title: 'Configuración',
@@ -361,6 +385,8 @@ function buildSteps(isMobile: boolean, isSmall: boolean, wallIcoSrc: string): St
       placement: sP('right'), skipBeacon: true, skipScroll: true, data: { route: '/admin/perfil' }
     },
   ];
+
+  return baseSteps;
 }
 
 /* ─── Componente principal ─── */
@@ -430,7 +456,7 @@ export default function OnboardingTour() {
           .single();
 
         const localDone = localStorage.getItem('wall_tour_completed');
-        
+
         if (perfil?.ha_visto_tour === true || localDone === 'true') {
           setIsDone(true);
           if (localDone !== 'true' && perfil?.ha_visto_tour === true) {
@@ -453,7 +479,7 @@ export default function OnboardingTour() {
 
   // ── Scroll manual al QR item ──
   useEffect(() => {
-    if (stepIndex !== 6 || pathname !== '/admin/generar-qr') {
+    if (steps[stepIndex]?.data?.id !== 'qr-item' || pathname !== '/admin/generar-qr') {
       qrScrolledRef.current = false;
       return;
     }
@@ -484,7 +510,7 @@ export default function OnboardingTour() {
 
   // ── Scroll QR preview ──
   useEffect(() => {
-    if (stepIndex !== 7 || pathname !== '/admin/generar-qr') {
+    if (steps[stepIndex]?.data?.id !== 'qr-preview' || pathname !== '/admin/generar-qr') {
       qrPreviewScrolledRef.current = false;
       return;
     }
@@ -504,12 +530,12 @@ export default function OnboardingTour() {
     tryWaitAndScroll();
   }, [stepIndex, pathname, isMounted, run, isDone]);
 
-  // ── Scroll al top en paso 13 (#tour-nuevo-usuario) en móvil ──
+  // ── Scroll al top en #tour-nuevo-usuario en móvil ──
   // El botón "Crear Usuario" suele quedar en la parte superior de la página,
   // pero si el usuario hizo scroll previo, el tooltip placement:bottom puede
   // quedar cortado. Forzamos scroll al top para que encaje bien.
   useEffect(() => {
-    if (stepIndex !== 13 || pathname !== '/admin/usuarios') {
+    if (steps[stepIndex]?.data?.id !== 'nuevo-usuario' || pathname !== '/admin/usuarios') {
       nuevoUsuarioScrolledRef.current = false;
       return;
     }

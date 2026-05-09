@@ -27,15 +27,16 @@ import MenuImpresion from './MenuImpresion';
 const SkeletonQRCard = () => (
   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-4">
     <Sk className="h-10 w-10 rounded-xl shrink-0" />
-    <div className="flex-1 flex flex-col gap-2">
-      <Sk className="h-4 w-32" />
+    <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+      <Sk className="h-4 w-3/4 max-w-[160px]" />
       <Sk className="h-3 w-20" />
-      <div className="flex gap-2 mt-0.5">
+      <Sk className="h-2.5 w-28" />
+      <div className="flex items-center gap-2 mt-1">
         <Sk className="h-4 w-16 rounded-full" />
-        <Sk className="h-4 w-16 rounded" />
+        <Sk className="h-4 w-20 rounded" />
       </div>
     </div>
-    <Sk className="h-4 w-4 rounded shrink-0" />
+    <Sk className="h-5 w-5 rounded shrink-0" />
   </div>
 );
 
@@ -338,7 +339,7 @@ export default function GenerarQRPage() {
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   const getPaginationEl = (posicion: 'top' | 'bottom') => {
-    if (loading || totalItems <= itemsPerPage) return null;
+    if (totalItems <= itemsPerPage) return null;
     return (
       <Pagination
         currentPage={currentPage}
@@ -638,7 +639,7 @@ export default function GenerarQRPage() {
           {/* Grid */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {Array(6).fill(0).map((_, i) => <SkeletonQRCard key={i} />)}
+              {Array(itemsPerPage).fill(0).map((_, i) => <SkeletonQRCard key={i} />)}
             </div>
           ) : disponibles.length === 0 ? (
             <div className="py-16 text-center text-slate-500">

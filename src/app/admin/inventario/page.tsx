@@ -32,15 +32,23 @@ const SkeletonTableRow = () => (
   <tr className="border-b border-slate-100">
     <td className="px-6 py-4">
       <div className="flex items-center gap-3">
-        <Sk className="h-8 w-8 rounded-xl" />
-        <Sk className="h-4 w-32" />
+        <Sk className="h-9 w-9 rounded-xl" />
+        <div className="flex flex-col gap-1.5">
+          <Sk className="h-4 w-32" />
+          <Sk className="h-3 w-48" />
+        </div>
       </div>
     </td>
-    <td className="px-6 py-4"><Sk className="h-4 w-20" /></td>
+    <td className="px-6 py-4">
+      <div className="flex flex-col gap-1.5">
+        <Sk className="h-4 w-20" />
+        <Sk className="h-3 w-24" />
+      </div>
+    </td>
     <td className="px-6 py-4"><Sk className="h-4 w-24" /></td>
-    <td className="px-6 py-4"><Sk className="h-4 w-20" /></td>
-    <td className="px-6 py-4"><Sk className="h-5 w-20 rounded-full" /></td>
-    <td className="px-6 py-4 text-right"><Sk className="h-7 w-7 rounded-lg ml-auto" /></td>
+    <td className="px-6 py-4"><Sk className="h-4 w-28" /></td>
+    <td className="px-6 py-4"><Sk className="h-6 w-24 rounded-full" /></td>
+    <td className="px-6 py-4 text-right"><Sk className="h-8 w-8 rounded-lg ml-auto" /></td>
   </tr>
 );
 
@@ -48,20 +56,20 @@ const SkeletonMobileCard = () => (
   <div className="p-4 border-b border-slate-100">
     <div className="flex justify-between items-start gap-3 mb-3">
       <div className="flex items-start gap-3 flex-1">
-        <Sk className="h-9 w-9 rounded-xl shrink-0" />
+        <Sk className="h-10 w-10 rounded-xl shrink-0" />
         <div className="flex flex-col gap-2 flex-1">
-          <Sk className="h-4 w-40" />
+          <Sk className="h-5 w-40" />
           <div className="flex gap-2">
-            <Sk className="h-3 w-20" />
-            <Sk className="h-3 w-16" />
+            <Sk className="h-4 w-20" />
+            <Sk className="h-4 w-24" />
           </div>
         </div>
       </div>
-      <Sk className="h-7 w-7 rounded-lg shrink-0" />
+      <Sk className="h-8 w-8 rounded-lg shrink-0" />
     </div>
-    <div className="flex items-center justify-between pl-12">
-      <Sk className="h-5 w-20 rounded-full" />
-      <Sk className="h-3 w-16" />
+    <div className="flex items-center justify-between pl-13">
+      <Sk className="h-5 w-24 rounded-full" />
+      <Sk className="h-3 w-20" />
     </div>
   </div>
 );
@@ -491,7 +499,7 @@ export default function InventarioPage() {
     setCurrentPage(newPage);
   };
 
-  const paginationEl = !loading && totalItems > itemsPerPage ? (
+  const paginationEl = totalItems > itemsPerPage ? (
     <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemsPerPage={itemsPerPage} onPageChange={handlePageChange} />
   ) : null;
 
@@ -625,7 +633,7 @@ export default function InventarioPage() {
         {/* Vista Móvil */}
         <div className="block md:hidden divide-y divide-slate-100">
           {loading ? (
-            Array(6).fill(0).map((_, i) => <SkeletonMobileCard key={i} />)
+            Array(itemsPerPage).fill(0).map((_, i) => <SkeletonMobileCard key={i} />)
           ) : items.length === 0 ? (
             <div className="py-20 text-center text-slate-500 font-medium">No se encontraron equipos</div>
           ) : (
@@ -700,7 +708,7 @@ export default function InventarioPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                Array(6).fill(0).map((_, i) => <SkeletonTableRow key={i} />)
+                Array(itemsPerPage).fill(0).map((_, i) => <SkeletonTableRow key={i} />)
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-20 text-center text-slate-500 font-medium">No se encontraron equipos</td>

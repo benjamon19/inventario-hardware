@@ -576,6 +576,9 @@ export default function NuevoEquipoModal({
   return (
     <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-[100]" onClose={onClose}>
+        {/* Ghost target for Joyride: instant final position without animation */}
+        <div id="tour-modal-nuevo-equipo-ghost" className="fixed inset-y-0 right-0 w-screen sm:max-w-[400px] lg:max-w-md pointer-events-none" />
+
         <Transition.Child
           as={Fragment}
           enter="transition-opacity ease-linear duration-300" enterFrom="opacity-0" enterTo="opacity-100"
@@ -596,13 +599,14 @@ export default function NuevoEquipoModal({
                   <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
 
                     {/* ── Cabecera ── */}
-                    <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <div id="tour-modal-header" className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-2">
                         <Dialog.Title as="h3" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                           Registrar Equipo
                         </Dialog.Title>
                         <div className="sm:hidden ml-1">
                           <button
+                            id="tour-camera-btn"
                             type="button"
                             onClick={() => {
                               if (scanMode !== 'off') {
@@ -635,7 +639,7 @@ export default function NuevoEquipoModal({
 
                     {/* ── Panel de cámara — solo mobile ── */}
                     {scanMode !== 'off' && (
-                      <div className="sm:hidden w-full border-b border-slate-200">
+                      <div id="tour-camera-panel" className="sm:hidden w-full border-b border-slate-200">
                         {/* Tabs QR / Texto */}
                         <div className="flex border-b border-slate-100 bg-white">
                           <button
@@ -943,6 +947,7 @@ export default function NuevoEquipoModal({
                                 <div className="flex items-center justify-between">
                                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
                                   <button
+                                    id={index === 0 ? 'tour-enhance-btn' : undefined}
                                     type="button"
                                     disabled={!eq.descripcion.trim() || enhanceLoading.has(eq.id)}
                                     onClick={() => enhanceDescription(eq.id, eq.descripcion)}

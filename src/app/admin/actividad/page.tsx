@@ -15,22 +15,25 @@ import { Sk } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 
 const SkeletonLogRow = () => (
-  <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 shadow-sm">
-    <Sk className="h-9 w-9 rounded-xl shrink-0" />
-    <div className="flex-1 flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Sk className="h-4 w-28" />
-        <Sk className="h-3.5 w-16 rounded-full" />
-      </div>
-      <Sk className="h-3 w-48" />
-      <div className="flex gap-1.5">
-        <Sk className="h-4 w-20 rounded-full" />
-        <Sk className="h-4 w-16 rounded-full" />
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 shadow-sm w-full">
+    <div className="flex items-center gap-3 w-full min-w-0">
+      <Sk className="h-9 w-9 rounded-xl shrink-0" />
+      <div className="flex-1 min-w-0 w-full flex flex-col gap-1.5">
+        <div className="flex items-center gap-2 mb-0.5">
+          <Sk className="h-4 w-28" />
+          <Sk className="h-4 w-16 rounded border border-slate-200" />
+          <Sk className="sm:hidden h-4 w-16 rounded border border-slate-200 ml-auto" />
+        </div>
+        <Sk className="h-3 w-48" />
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          <Sk className="h-5 w-24 rounded-lg" />
+          <Sk className="h-5 w-24 rounded-lg" />
+        </div>
       </div>
     </div>
-    <div className="shrink-0 text-right flex flex-col gap-1.5">
-      <Sk className="h-3 w-20 ml-auto" />
-      <Sk className="h-5 w-14 rounded-full ml-auto" />
+    <div className="sm:text-right shrink-0 flex flex-row sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 border-slate-50 pt-2 sm:pt-0 w-full sm:w-auto gap-1.5">
+      <Sk className="h-3 w-20" />
+      <Sk className="hidden sm:inline-block h-4 w-16 rounded border border-slate-200" />
     </div>
   </div>
 );
@@ -190,7 +193,7 @@ export default function ActividadPage() {
     }
   };
 
-  const paginationEl = !loading && totalItems > itemsPerPage ? (
+  const paginationEl = totalItems > itemsPerPage ? (
     <Pagination
       currentPage={currentPage}
       totalPages={totalPages}
@@ -256,7 +259,7 @@ export default function ActividadPage() {
       <div className="space-y-3 w-full">
         {loading ? (
           <div className="flex flex-col gap-3">
-            {Array(5).fill(0).map((_, i) => <SkeletonLogRow key={i} />)}
+            {Array(itemsPerPage).fill(0).map((_, i) => <SkeletonLogRow key={i} />)}
           </div>
         ) : movimientos.length === 0 ? (
           <div className="py-20 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">

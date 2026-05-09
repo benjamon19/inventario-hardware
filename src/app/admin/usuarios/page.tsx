@@ -23,21 +23,27 @@ import { Sk } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 
 const SkeletonUserCard = () => (
-  <div className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:p-4 shadow-sm gap-3">
-    <div className="flex flex-col gap-3">
-      <Sk className="h-12 w-12 rounded-[1.1rem] shrink-0" />
-      <div className="flex flex-col gap-2 flex-1">
-        <Sk className="h-4 w-40" />
-        <Sk className="h-3.5 w-24" />
+  <div className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50 shadow-sm overflow-hidden">
+    <Sk className="h-14 w-full rounded-none shrink-0" />
+    <div className="flex flex-col p-3 sm:p-4 relative">
+      <div className="-mt-8 relative z-10 mb-2">
+        <Sk className="h-12 w-12 rounded-[1.1rem] border-2 border-white shadow-md" />
       </div>
-    </div>
-    <div className="flex items-center gap-2 mt-1">
-      <Sk className="h-5 w-16 rounded-full" />
-      <Sk className="h-5 w-14 rounded-full" />
-    </div>
-    <div className="flex gap-2 pt-1 border-t border-slate-100">
-      <Sk className="h-7 flex-1 rounded-lg" />
-      <Sk className="h-7 flex-1 rounded-lg" />
+      <div className="flex flex-col gap-2">
+        <Sk className="h-4 w-40" />
+        <div className="flex gap-1.5 mt-0.5">
+          <Sk className="h-4 w-16 rounded" />
+          <Sk className="h-4 w-12 rounded" />
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
+        <div className="flex flex-col gap-1.5"><Sk className="h-2.5 w-12" /><Sk className="h-3 w-8" /></div>
+        <div className="flex flex-col gap-1.5 border-l border-slate-200 pl-2"><Sk className="h-2.5 w-12" /><Sk className="h-3 w-16" /></div>
+      </div>
+      <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-3">
+        <Sk className="h-3 w-20" />
+        <div className="flex gap-1.5"><Sk className="h-6 w-14 rounded-lg" /><Sk className="h-6 w-14 rounded-lg" /></div>
+      </div>
     </div>
   </div>
 );
@@ -276,7 +282,7 @@ export default function UsuariosPage() {
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const handlePageChange = (newPage: number) => setCurrentPage(newPage);
 
-  const paginationEl = !loading && totalItems > itemsPerPage ? (
+  const paginationEl = totalItems > itemsPerPage ? (
     <Pagination
       currentPage={currentPage}
       totalPages={totalPages}
@@ -362,7 +368,7 @@ export default function UsuariosPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {loading ? (
           <>
-            {Array(6).fill(0).map((_, i) => <SkeletonUserCard key={i} />)}
+            {Array(itemsPerPage).fill(0).map((_, i) => <SkeletonUserCard key={i} />)}
           </>
         ) : usuarios.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
@@ -552,6 +558,9 @@ export default function UsuariosPage() {
       {/* Modal creación */}
       <Transition show={isModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-100" onClose={() => !isCreating && setIsModalOpen(false)}>
+          {/* Ghost target for Joyride: instant final position without animation */}
+          <div id="tour-modal-nuevo-usuario-ghost" className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-full sm:max-w-md h-[460px] pointer-events-none" />
+
           <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-[2px]" />
           </Transition.Child>

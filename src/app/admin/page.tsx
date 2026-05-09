@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { 
-  Box, CheckCircle2, MonitorPlay, Wrench, Trash2, 
-  ArrowRightLeft, AlertTriangle, Info 
+import {
+  Box, CheckCircle2, MonitorPlay, Wrench, Trash2,
+  ArrowRightLeft, AlertTriangle, Info, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
@@ -27,10 +27,10 @@ const COLORS_CATEGORIAS = [
 ];
 
 const COLORS_ESTADOS = {
-  'DISPONIBLE': '#10b981', 
-  'EN_USO': '#3b82f6',     
+  'DISPONIBLE': '#10b981',
+  'EN_USO': '#3b82f6',
   'EN_MANTENCION': '#f59e0b',
-  'DADO_DE_BAJA': '#ef4444'  
+  'DADO_DE_BAJA': '#ef4444'
 };
 
 // --- Componentes Skeleton Internos ---
@@ -51,11 +51,11 @@ const KpiSkeleton = () => (
 );
 
 const PieSkeleton = () => (
-  <div className="flex flex-col items-center gap-5 md:gap-3 lg:gap-5">
+  <div className="flex flex-col items-center gap-5 md:gap-3 lg:gap-5 w-full h-[300px] md:h-[220px] 2xl:h-[300px] justify-center">
     {/* Donut placeholder */}
     <div className="relative flex items-center justify-center">
-      <Skeleton className="h-44 w-44 md:h-36 md:w-36 lg:h-44 lg:w-44 rounded-full" />
-      <div className="absolute h-24 w-24 md:h-20 md:w-20 lg:h-24 lg:w-24 rounded-full bg-slate-50" />
+      <Skeleton className="h-[200px] w-[200px] md:h-[150px] md:w-[150px] lg:h-[200px] lg:w-[200px] rounded-full" />
+      <div className="absolute h-[120px] w-[120px] md:h-[90px] md:w-[90px] lg:h-[120px] lg:w-[120px] rounded-full bg-slate-50" />
     </div>
     {/* Legend */}
     <div className="flex flex-wrap justify-center gap-3 md:gap-2 lg:gap-3">
@@ -101,122 +101,122 @@ export default function AdminDashboard() {
     try {
       const hoy = new Date().toISOString().split('T')[0];
 
-        // 1. Obtener conteos generales y transacciones recientes
-        const [
-          { count: totalHardware },
-          { count: disponibles },
-          { count: enUso },
-          { count: enReparacion },
-          { count: deBaja },
-          { count: movsHoyCount },
-          { data: ultimasTx },
-          { data: categoriasData }
-        ] = await Promise.all([
-          supabase.from('hardware').select('*', { count: 'estimated', head: true }),
-          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DISPONIBLE'),
-          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_USO'),
-          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_MANTENCION'),
-          supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DADO_DE_BAJA'),
-          supabase.from('transacciones').select('*', { count: 'exact', head: true }).gte('timestamp', `${hoy}T00:00:00Z`),
-          supabase.from('transacciones').select('*').order('timestamp', { ascending: false }).limit(8),
-          supabase.from('categorias').select('nombre')
-        ]);
+      // 1. Obtener conteos generales y transacciones recientes
+      const [
+        { count: totalHardware },
+        { count: disponibles },
+        { count: enUso },
+        { count: enReparacion },
+        { count: deBaja },
+        { count: movsHoyCount },
+        { data: ultimasTx },
+        { data: categoriasData }
+      ] = await Promise.all([
+        supabase.from('hardware').select('*', { count: 'estimated', head: true }),
+        supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DISPONIBLE'),
+        supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_USO'),
+        supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'EN_MANTENCION'),
+        supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('estado', 'DADO_DE_BAJA'),
+        supabase.from('transacciones').select('*', { count: 'exact', head: true }).gte('timestamp', `${hoy}T00:00:00Z`),
+        supabase.from('transacciones').select('*').order('timestamp', { ascending: false }).limit(8),
+        supabase.from('categorias').select('nombre')
+      ]);
 
-        setStats([
-          { name: 'Total Equipos', value: String(totalHardware || 0), icon: Box, color: 'text-slate-600', bg: 'bg-slate-50' },
-          { name: 'Disponibles', value: String(disponibles || 0), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { name: 'En Uso', value: String(enUso || 0), icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { name: 'En Mantención', value: String(enReparacion || 0), icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { name: 'Dados de Baja', value: String(deBaja || 0), icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
-          { name: 'Movimientos Hoy', value: String(movsHoyCount || 0), icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
-        ]);
+      setStats([
+        { name: 'Total Equipos', value: String(totalHardware || 0), icon: Box, color: 'text-slate-600', bg: 'bg-slate-50' },
+        { name: 'Disponibles', value: String(disponibles || 0), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { name: 'En Uso', value: String(enUso || 0), icon: MonitorPlay, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { name: 'En Mantención', value: String(enReparacion || 0), icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { name: 'Dados de Baja', value: String(deBaja || 0), icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
+        { name: 'Movimientos Hoy', value: String(movsHoyCount || 0), icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50' },
+      ]);
 
-        if (ultimasTx) setRecentTransactions(ultimasTx);
+      if (ultimasTx) setRecentTransactions(ultimasTx);
 
-        // 2. Construir datos de categorías dinámicamente SIN descargar todo el hardware
-        const categoriasNombres = categoriasData ? categoriasData.map(c => c.nombre) : [];
-        categoriasNombres.push(null); // Para items 'Sin Categoría'
+      // 2. Construir datos de categorías dinámicamente SIN descargar todo el hardware
+      const categoriasNombres = categoriasData ? categoriasData.map(c => c.nombre) : [];
+      categoriasNombres.push(null); // Para items 'Sin Categoría'
 
-        const catPromises = categoriasNombres.map(async (catName) => {
-          const catLabel = catName || 'Sin Categoría';
-          
-          const qCat = catName 
-            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName)
-            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null);
+      const catPromises = categoriasNombres.map(async (catName) => {
+        const catLabel = catName || 'Sin Categoría';
 
-          const qDisp = catName 
-            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'DISPONIBLE')
-            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'DISPONIBLE');
-            
-          const qUso = catName 
-            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'EN_USO')
-            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'EN_USO');
-            
-          const qMant = catName 
-            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'EN_MANTENCION')
-            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'EN_MANTENCION');
-            
-          const qBaja = catName 
-            ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'DADO_DE_BAJA')
-            : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'DADO_DE_BAJA');
+        const qCat = catName
+          ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName)
+          : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null);
 
-          const [t, d, u, m, b] = await Promise.all([qCat, qDisp, qUso, qMant, qBaja]);
+        const qDisp = catName
+          ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'DISPONIBLE')
+          : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'DISPONIBLE');
 
-          return {
-            name: catLabel,
-            total: t.count || 0,
-            DISPONIBLE: d.count || 0,
-            EN_USO: u.count || 0,
-            EN_MANTENCION: m.count || 0,
-            DADO_DE_BAJA: b.count || 0
-          };
-        });
+        const qUso = catName
+          ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'EN_USO')
+          : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'EN_USO');
 
-        const catStatsArray = await Promise.all(catPromises);
+        const qMant = catName
+          ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'EN_MANTENCION')
+          : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'EN_MANTENCION');
 
-        const conteoCategorias: Record<string, number> = {};
-        const distribucionCat: Record<string, any> = {};
-        const stockPorCategoria: Record<string, { total: number, disponible: number }> = {};
+        const qBaja = catName
+          ? supabase.from('hardware').select('*', { count: 'estimated', head: true }).eq('categoria', catName).eq('estado', 'DADO_DE_BAJA')
+          : supabase.from('hardware').select('*', { count: 'estimated', head: true }).is('categoria', null).eq('estado', 'DADO_DE_BAJA');
 
-        catStatsArray.forEach(stat => {
-          if (stat.total === 0) return; // Ignorar categorías vacías para no ensuciar gráficos
-          
-          conteoCategorias[stat.name] = stat.total;
-          distribucionCat[stat.name] = { 
-            name: stat.name, 
-            DISPONIBLE: stat.DISPONIBLE, 
-            EN_USO: stat.EN_USO, 
-            EN_MANTENCION: stat.EN_MANTENCION, 
-            DADO_DE_BAJA: stat.DADO_DE_BAJA 
-          };
-          stockPorCategoria[stat.name] = { total: stat.total, disponible: stat.DISPONIBLE };
-        });
+        const [t, d, u, m, b] = await Promise.all([qCat, qDisp, qUso, qMant, qBaja]);
 
-        setEstadoData([
-          { name: 'DISPONIBLE', value: disponibles || 0 },
-          { name: 'EN_USO', value: enUso || 0 },
-          { name: 'EN_MANTENCION', value: enReparacion || 0 },
-          { name: 'DADO_DE_BAJA', value: deBaja || 0 }
-        ]);
+        return {
+          name: catLabel,
+          total: t.count || 0,
+          DISPONIBLE: d.count || 0,
+          EN_USO: u.count || 0,
+          EN_MANTENCION: m.count || 0,
+          DADO_DE_BAJA: b.count || 0
+        };
+      });
 
-        setCategoriaData(Object.entries(conteoCategorias)
-          .map(([name, value]) => ({ name, value }))
-          .sort((a, b) => b.value - a.value)
-        );
-        
-        setDistribucionData(Object.values(distribucionCat));
+      const catStatsArray = await Promise.all(catPromises);
 
-        const alertas = Object.entries(stockPorCategoria)
-          .map(([name, stats]) => ({
-            name,
-            disponible: stats.disponible,
-            porcentaje: stats.total > 0 ? (stats.disponible / stats.total) * 100 : 0
-          }))
-          .filter(item => item.disponible < 5)
-          .sort((a, b) => a.disponible - b.disponible)
-          .slice(0, 4);
+      const conteoCategorias: Record<string, number> = {};
+      const distribucionCat: Record<string, any> = {};
+      const stockPorCategoria: Record<string, { total: number, disponible: number }> = {};
 
-        setStockCritico(alertas);
+      catStatsArray.forEach(stat => {
+        if (stat.total === 0) return; // Ignorar categorías vacías para no ensuciar gráficos
+
+        conteoCategorias[stat.name] = stat.total;
+        distribucionCat[stat.name] = {
+          name: stat.name,
+          DISPONIBLE: stat.DISPONIBLE,
+          EN_USO: stat.EN_USO,
+          EN_MANTENCION: stat.EN_MANTENCION,
+          DADO_DE_BAJA: stat.DADO_DE_BAJA
+        };
+        stockPorCategoria[stat.name] = { total: stat.total, disponible: stat.DISPONIBLE };
+      });
+
+      setEstadoData([
+        { name: 'DISPONIBLE', value: disponibles || 0 },
+        { name: 'EN_USO', value: enUso || 0 },
+        { name: 'EN_MANTENCION', value: enReparacion || 0 },
+        { name: 'DADO_DE_BAJA', value: deBaja || 0 }
+      ]);
+
+      setCategoriaData(Object.entries(conteoCategorias)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+      );
+
+      setDistribucionData(Object.values(distribucionCat));
+
+      const alertas = Object.entries(stockPorCategoria)
+        .map(([name, stats]) => ({
+          name,
+          disponible: stats.disponible,
+          porcentaje: stats.total > 0 ? (stats.disponible / stats.total) * 100 : 0
+        }))
+        .filter(item => item.disponible < 5)
+        .sort((a, b) => a.disponible - b.disponible)
+        .slice(0, 4);
+
+      setStockCritico(alertas);
 
     } finally {
       setLoading(false);
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="space-y-8 md:space-y-4 lg:space-y-8">
+    <div className="space-y-8 md:space-y-4 lg:space-y-8 relative pb-2 min-h-[calc(100vh-6rem)] flex flex-col">
       <div>
         <h1 className="text-2xl md:text-xl lg:text-2xl font-bold text-slate-900">Panel de Control de Inventario</h1>
         <p className="text-slate-500 text-sm md:text-xs lg:text-sm">Estado actual de la bodega y equipos desplegados.</p>
@@ -246,7 +246,7 @@ export default function AdminDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 md:gap-3 lg:gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        {loading 
+        {loading
           ? Array(6).fill(0).map((_, i) => <KpiSkeleton key={i} />)
           : stats.map((stat) => (
             <div key={stat.name} className="rounded-xl border border-slate-200 bg-slate-50 p-5 md:p-3 lg:p-5 shadow-sm transition-all hover:shadow-md">
@@ -270,9 +270,9 @@ export default function AdminDashboard() {
           <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800 mb-4 md:mb-2 lg:mb-4">Distribución de Estados por Categoría</h2>
           <div className="w-full">
             {loading ? (
-              <div className="space-y-4 md:space-y-2 lg:space-y-4">
-                <Skeleton className="h-62.5 md:h-44 2xl:h-62.5 w-full" />
-                <div className="flex justify-center gap-4"><Skeleton className="h-3 w-20" /><Skeleton className="h-3 w-20" /></div>
+              <div className="space-y-4 md:space-y-2 lg:space-y-4 w-full h-[300px] md:h-[220px] 2xl:h-[300px] flex flex-col justify-end">
+                <Skeleton className="h-full w-full" />
+                <div className="flex justify-center gap-4 mt-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-3 w-20" /></div>
               </div>
             ) : (
               // En notebooks (md/lg/xl) bajamos un poco la altura del gráfico para que no coma tanta pantalla
@@ -303,12 +303,12 @@ export default function AdminDashboard() {
             ) : (
               <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1536 ? 220 : 300}>
                 <PieChart>
-                  <Pie 
-                    data={estadoData} 
-                    cx="50%" cy="50%" 
-                    innerRadius={isMedium ? 45 : 60} 
-                    outerRadius={isMedium ? 75 : 90} 
-                    paddingAngle={5} 
+                  <Pie
+                    data={estadoData}
+                    cx="50%" cy="50%"
+                    innerRadius={isMedium ? 45 : 60}
+                    outerRadius={isMedium ? 75 : 90}
+                    paddingAngle={5}
                     dataKey="value"
                     label={({ percent = 0 }) => `${(percent * 100).toFixed(0)}%`}
                   >
@@ -331,8 +331,8 @@ export default function AdminDashboard() {
           <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800 mb-4 md:mb-2 lg:mb-4">Equipos por Categoría</h2>
           <div className="w-full">
             {loading ? (
-              <div className="space-y-4 md:space-y-2 lg:space-y-4">
-                {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-8 md:h-6 lg:h-8 w-full" />)}
+              <div className="space-y-4 md:space-y-2 lg:space-y-4 w-full h-[350px] md:h-[250px] 2xl:h-[350px] flex flex-col justify-between py-4">
+                {Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-8 md:h-6 lg:h-8 w-full" />)}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1536 ? 250 : 350}>
@@ -360,17 +360,17 @@ export default function AdminDashboard() {
             <AlertTriangle className="h-5 w-5 md:h-4 md:w-4 lg:h-5 lg:w-5 text-red-500" />
             <h2 className="text-lg md:text-base lg:text-lg font-semibold text-slate-800">Alertas de Stock Crítico</h2>
           </div>
-          
+
           <div className="flex-1 flex flex-col justify-start gap-5 md:gap-3 lg:gap-5 relative z-10">
             {loading ? (
-               <div className="space-y-6 md:space-y-4 lg:space-y-6">
-                 {Array(3).fill(0).map((_, i) => (
-                   <div key={i} className="space-y-2 md:space-y-1 lg:space-y-2">
-                     <div className="flex justify-between"><Skeleton className="h-3 md:h-2 lg:h-3 w-24" /><Skeleton className="h-3 md:h-2 lg:h-3 w-16" /></div>
-                     <Skeleton className="h-2 w-full" />
-                   </div>
-                 ))}
-               </div>
+              <div className="space-y-6 md:space-y-4 lg:space-y-6">
+                {Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="space-y-2 md:space-y-1 lg:space-y-2">
+                    <div className="flex justify-between"><Skeleton className="h-3 md:h-2 lg:h-3 w-24" /><Skeleton className="h-3 md:h-2 lg:h-3 w-16" /></div>
+                    <Skeleton className="h-2 w-full" />
+                  </div>
+                ))}
+              </div>
             ) : stockCritico.length > 0 ? (
               stockCritico.map(item => (
                 <div key={item.name}>
@@ -381,12 +381,11 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 md:h-1.5 lg:h-2 overflow-hidden">
-                    <div 
-                      className={`h-2 md:h-1.5 lg:h-2 rounded-full transition-all duration-1000 ease-out ${
-                        item.disponible === 0 ? 'bg-red-600' : 
-                        item.disponible <= 2 ? 'bg-orange-500' : 
-                        'bg-amber-400'
-                      }`} 
+                    <div
+                      className={`h-2 md:h-1.5 lg:h-2 rounded-full transition-all duration-1000 ease-out ${item.disponible === 0 ? 'bg-red-600' :
+                          item.disponible <= 2 ? 'bg-orange-500' :
+                            'bg-amber-400'
+                        }`}
                       style={{ width: `${Math.max(item.porcentaje, 5)}%` }}
                     ></div>
                   </div>
@@ -401,10 +400,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
-            
+
             <div className="mt-auto pt-4 md:pt-3 lg:pt-4 border-t border-slate-100">
               <p className="text-xs md:text-[10px] lg:text-xs text-slate-500 flex items-center gap-1.5 md:gap-1 lg:gap-1.5">
-                <Info className="h-4 w-4 md:h-3 md:w-3 lg:h-4 lg:w-4 shrink-0" /> 
+                <Info className="h-4 w-4 md:h-3 md:w-3 lg:h-4 lg:w-4 shrink-0" />
                 Se muestran las categorías con menos de 5 equipos listos para ser asignados.
               </p>
             </div>
