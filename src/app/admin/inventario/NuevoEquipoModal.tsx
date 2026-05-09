@@ -42,7 +42,10 @@ async function processScan(mode: 'qr' | 'ocr', payload: string): Promise<ScanRes
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode, payload }),
   });
-  if (!response.ok) throw new Error('Error al analizar con IA');
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || 'Error al analizar con IA');
+  }
   return await response.json() as ScanResult;
 }
 
@@ -436,7 +439,8 @@ export default function NuevoEquipoModal({
         updateEquipo(equipoId, 'descripcion', data.descripcion);
       }
     } catch (err) {
-      console.error('Error enhance:', err);
+      const msg = err instanceof Error ? err.message : 'Error al mejorar la descripción. Intenta de nuevo.';
+      setScanError(msg);
     } finally {
       setEnhanceLoading(prev => { const s = new Set(prev); s.delete(equipoId); return s; });
     }
@@ -462,8 +466,8 @@ export default function NuevoEquipoModal({
       const extracted = await processScan('qr', scannedText);
       setScanResult(extracted);
     } catch (err) {
-      console.error('Error Gemini QR:', err);
-      setScanError('No se pudo analizar el QR. Intenta de nuevo.');
+      const msg = err instanceof Error ? err.message : 'No se pudo analizar el QR. Intenta de nuevo.';
+      setScanError(msg);
     } finally {
       setIsIALoading(false);
     }
@@ -496,8 +500,8 @@ export default function NuevoEquipoModal({
       const extracted = await processScan('ocr', base64);
       setScanResult(extracted);
     } catch (err) {
-      console.error('Error Gemini Vision:', err);
-      setScanError('No se pudo leer la imagen. Intenta con mejor iluminación.');
+      const msg = err instanceof Error ? err.message : 'No se pudo leer la imagen. Intenta con mejor iluminación.';
+      setScanError(msg);
     } finally {
       setIsIALoading(false);
       // Cerrar el panel de cámara solo cuando ya terminó
@@ -681,8 +685,8 @@ export default function NuevoEquipoModal({
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                               {!isIALoading && (
                                 <>
-                                  <div className="h-28 w-28 border-2 border-dashed border-slate-400 rounded-2xl animate-pulse flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
-                                    <ScanLine className="h-8 w-8 text-slate-500 drop-shadow-sm" />
+                                  <div className="h-28 w-28 border-2 border-dashed border-slate-900 rounded-2xl animate-pulse flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
+                                    <ScanLine className="h-8 w-8 text-slate-900 drop-shadow-sm" />
                                   </div>
                                   <p className="mt-3 text-[11px] font-bold bg-white/90 border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-900 shadow-sm backdrop-blur-md">
                                     Enfoca el QR
@@ -709,8 +713,8 @@ export default function NuevoEquipoModal({
                             )}
                             {!isIALoading && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <div className="h-28 w-44 border-2 border-dashed border-slate-400 rounded-2xl flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
-                                  <Type className="h-8 w-8 text-slate-500 drop-shadow-sm opacity-60" />
+                                <div className="h-28 w-44 border-2 border-dashed border-slate-900 rounded-2xl flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
+                                  <Type className="h-8 w-8 text-slate-900 drop-shadow-sm opacity-60" />
                                 </div>
                                 <div className="mt-3 pointer-events-auto flex flex-col items-center gap-1.5">
                                   <button

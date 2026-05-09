@@ -29,14 +29,45 @@ REGLAS:
 - Si la nota menciona una acción (ingreso, mantención, baja, préstamo), inclúyela con contexto
 - Responde ÚNICAMENTE con el texto de la descripción, sin comillas ni formato extra`;
 
+// ── Helper: clasifica el error de Gemini ───────────────────
+function classifyGeminiError(error: unknown): { status: number; code: string; message: string } {
+  const msg = error instanceof Error ? error.message : String(error);
+
+  if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) {
+    return { status: 429, code: 'QUOTA_EXCEEDED', message: 'Límite de uso de IA alcanzado. Intenta en unos minutos.' };
+  }
+  if (msg.includes('403') || msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('permission')) {
+    return { status: 403, code: 'AUTH_ERROR', message: 'Error de autenticación con el servicio de IA.' };
+  }
+  if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+    return { status: 503, code: 'NETWORK_ERROR', message: 'Sin conexión al servicio de IA. Verifica tu conexión.' };
+  }
+  return { status: 500, code: 'IA_ERROR', message: 'Error interno del servicio de IA.' };
+}
+
 export async function POST(request: Request) {
+  // ── Validar que la API key esté configurada ────────────────
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json(
+      { error: 'Servicio de IA no configurado.', code: 'NO_API_KEY' },
+      { status: 503 }
+    );
+  }
+
+  let body: { mode?: string; payload?: string };
   try {
-    const { mode, payload } = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Payload JSON inválido.', code: 'BAD_REQUEST' }, { status: 400 });
+  }
 
-    if (!mode || !payload) {
-      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
-    }
+  const { mode, payload } = body;
 
+  if (!mode || !payload || typeof payload !== 'string' || payload.trim().length === 0) {
+    return NextResponse.json({ error: 'Faltan parámetros requeridos.', code: 'BAD_REQUEST' }, { status: 400 });
+  }
+
+  try {
     // ── Modo enhance: mejora una descripción corta ──────────
     if (mode === 'enhance') {
       const model = genAI.getGenerativeModel({
@@ -46,6 +77,11 @@ export async function POST(request: Request) {
       });
       const result = await model.generateContent(`Nota original: "${payload}"`);
       const text = result.response.text().trim().replace(/^["']|["']$/g, '');
+
+      if (!text) {
+        return NextResponse.json({ error: 'La IA no generó una respuesta.', code: 'EMPTY_RESPONSE' }, { status: 502 });
+      }
+
       return NextResponse.json({ descripcion: text.substring(0, 200) });
     }
 
@@ -54,40 +90,39 @@ export async function POST(request: Request) {
       model: 'gemini-2.5-flash',
       systemInstruction: SYSTEM_PROMPT,
       generationConfig: {
-        responseMimeType: "application/json",
+        responseMimeType: 'application/json',
         temperature: 0.1,
       }
     });
 
     let result;
 
-    // Ejecutamos la petición dependiendo de si es texto (QR) o imagen (OCR)
     if (mode === 'qr') {
       result = await model.generateContent(`Texto escaneado: ${payload}`);
     } else if (mode === 'ocr') {
-      const imageParts = [
-        {
-          inlineData: {
-            data: payload,
-            mimeType: 'image/jpeg'
-          }
-        }
-      ];
-      result = await model.generateContent(["Analiza esta imagen y extrae los datos solicitados en formato JSON.", ...imageParts]);
+      const imageParts = [{ inlineData: { data: payload, mimeType: 'image/jpeg' } }];
+      result = await model.generateContent(['Analiza esta imagen y extrae los datos solicitados en formato JSON.', ...imageParts]);
     } else {
-      return NextResponse.json({ error: 'Modo no soportado' }, { status: 400 });
+      return NextResponse.json({ error: 'Modo no soportado.', code: 'BAD_REQUEST' }, { status: 400 });
     }
 
-    const response = await result.response;
-    const text = response.text();
+    const text = result.response.text();
+    if (!text) {
+      return NextResponse.json({ error: 'La IA no generó una respuesta.', code: 'EMPTY_RESPONSE' }, { status: 502 });
+    }
 
-    // Doble validación para limpiar el JSON por si Gemini añade formato Markdown
     const cleanJSON = text.replace(/```json|```/g, '').trim();
 
-    return NextResponse.json(JSON.parse(cleanJSON));
+    try {
+      return NextResponse.json(JSON.parse(cleanJSON));
+    } catch {
+      console.error(`[scan/${mode}] JSON inválido de Gemini:`, cleanJSON);
+      return NextResponse.json({ error: 'Respuesta de IA con formato inválido.', code: 'PARSE_ERROR' }, { status: 502 });
+    }
 
   } catch (error) {
-    console.error('Error procesando scan con Gemini:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    const { status, code, message } = classifyGeminiError(error);
+    console.error(`[scan/${mode}] ${code}:`, error);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }

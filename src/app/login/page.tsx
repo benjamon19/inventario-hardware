@@ -80,13 +80,13 @@ export default function LoginPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_-100px,#38bdf815,transparent)]"></div>
-        
+
         {/* Luces de fondo (Nebulosas) */}
         <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full bg-amber-400/10 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
         <div className="absolute top-1/2 -right-32 w-[500px] h-[500px] rounded-full bg-sky-400/10 blur-[100px] animate-[pulse_10s_ease-in-out_infinite_1s]" />
         <div className="absolute -bottom-32 left-1/4 w-[500px] h-[500px] rounded-full bg-indigo-400/10 blur-[110px] animate-[pulse_12s_ease-in-out_infinite_2s]" />
         <div className="absolute top-1/4 left-1/2 w-[400px] h-[400px] rounded-full bg-rose-400/5 blur-[90px] animate-[pulse_15s_ease-in-out_infinite_3s]" />
-        
+
         {/* Partículas variadas y abundantes */}
         <div className="absolute top-[15%] left-[10%] w-2 h-2 bg-sky-400/60 rounded-full blur-[1px] animate-[ping_3s_infinite]" />
         <div className="absolute top-[25%] right-[20%] w-3 h-3 bg-amber-400/50 rounded-full blur-[2px] animate-[ping_4s_infinite_1s]" />
@@ -109,7 +109,7 @@ export default function LoginPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0 pointer-events-none z-[-1]">
           {/* Aro Exterior Extra */}
           <div className="absolute top-10 left-1/2 -translate-x-1/2 w-48 h-48 md:w-56 md:h-56 rounded-full border border-slate-200/5 animate-[spin_20s_linear_infinite]" />
-          
+
           <div className="absolute top-10 left-1/2 -translate-x-1/2 w-32 h-32 md:w-40 md:h-40 rounded-full border border-amber-300/30 animate-[spin_10s_linear_infinite]">
             <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_12px_3px_rgba(251,191,36,0.6)]" />
           </div>
@@ -129,8 +129,8 @@ export default function LoginPage() {
 
           {/* Header */}
           <div className="flex flex-col items-center justify-center gap-1 border-b border-slate-100 pt-10 pb-4 md:pt-12 md:pb-5 rounded-t-3xl bg-slate-50/50">
-            <h1 className="text-base md:text-lg font-bold text-slate-900">Sistema Inventario</h1>
-            <p className="text-[9px] md:text-[10px] font-medium uppercase tracking-widest text-slate-500">Bodega Informática</p>
+            <h1 className="text-base md:text-lg font-bold text-slate-900">Wall | Sistema de Inventario</h1>
+            <p className="text-[9px] md:text-[10px] font-medium uppercase tracking-widest text-slate-500">Potenciado con IA</p>
           </div>
 
           {/* Formulario */}
@@ -238,7 +238,7 @@ export default function LoginPage() {
                 <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-7 shadow-2xl transition-all border border-slate-100">
                   <Dialog.Title as="h3" className="text-lg font-bold text-slate-900 mb-1.5 tracking-tight">Recuperar Contraseña</Dialog.Title>
                   <p className="text-xs md:text-sm text-slate-500 mb-6 font-medium leading-relaxed">Ingresa el correo asociado a tu cuenta. Te enviaremos un enlace para que puedas restablecerla.</p>
-                  
+
                   {recoveryMsg && (
                     <div className={`mb-5 p-3.5 rounded-xl text-xs md:text-sm font-bold text-center ${recoveryMsg.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                       {recoveryMsg.text}

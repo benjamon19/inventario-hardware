@@ -302,7 +302,7 @@ export default function AdminScannerPage() {
         <button
           id="tour-buscar-detalles"
           onClick={() => { setScanMode('SEARCH'); setSelectedItem(null); setIsScanning(true); }}
-          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'SEARCH' ? 'bg-slate-50 text-violet-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
+          className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${scanMode === 'SEARCH' ? 'bg-slate-50 text-slate-900 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'
             }`}
         >
           <Search className="h-4 w-4" /> Buscar Detalles
@@ -322,10 +322,10 @@ export default function AdminScannerPage() {
               sound={false}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-white/40 backdrop-blur-[1px] ${scanMode === 'SEARCH' ? 'border-violet-600' : 'border-slate-900'
+              <div className={`h-28 w-28 border-2 border-dashed rounded-2xl animate-pulse flex items-center justify-center bg-white/40 backdrop-blur-[1px] ${scanMode === 'SEARCH' ? 'border-slate-900' : 'border-slate-900'
                 }`}>
                 {scanMode === 'SEARCH'
-                  ? <Search className="h-8 w-8 text-violet-600 drop-shadow-sm" />
+                  ? <Search className="h-8 w-8 text-slate-900 drop-shadow-sm" />
                   : <Camera className="h-8 w-8 text-slate-900 drop-shadow-sm" />
                 }
               </div>
@@ -395,7 +395,7 @@ export default function AdminScannerPage() {
               ) : (
                 <button
                   onClick={() => { setIsScanning(true); setSelectedItem(null); setManualSku(''); }}
-                  className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-violet-50 p-3 text-violet-700 border border-violet-100 hover:bg-violet-100 transition-all cursor-pointer shadow-sm"
+                  className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-slate-100 p-3 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-all cursor-pointer shadow-sm"
                 >
                   <Camera className="h-5 w-5" />
                   <span className="text-xs font-bold uppercase tracking-wider">Escanear otro equipo</span>
