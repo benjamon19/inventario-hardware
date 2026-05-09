@@ -19,6 +19,16 @@ REGLAS IMPORTANTES:
 Responde ESTRICTAMENTE con JSON válido con esta estructura exacta, sin backticks:
 {"modelo": "string o null", "numero_serie": "string o null", "confianza": 90, "razonamiento": "string"}`;
 
+const ENHANCE_PROMPT = `Eres un asistente de gestión de inventario de hardware TI. 
+Tu tarea es convertir una nota breve en una descripción profesional y clara para el registro de un equipo.
+
+REGLAS:
+- Máximo 200 caracteres en la respuesta
+- Usa lenguaje técnico-administrativo formal en español
+- No inventes datos que no estén en la nota original, solo expándela
+- Si la nota menciona una acción (ingreso, mantención, baja, préstamo), inclúyela con contexto
+- Responde ÚNICAMENTE con el texto de la descripción, sin comillas ni formato extra`;
+
 export async function POST(request: Request) {
   try {
     const { mode, payload } = await request.json();
@@ -27,7 +37,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
     }
 
-    // Usamos el modelo estable y configuramos para que devuelva JSON
+    // ── Modo enhance: mejora una descripción corta ──────────
+    if (mode === 'enhance') {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        systemInstruction: ENHANCE_PROMPT,
+        generationConfig: { temperature: 0.4 }
+      });
+      const result = await model.generateContent(`Nota original: "${payload}"`);
+      const text = result.response.text().trim().replace(/^["']|["']$/g, '');
+      return NextResponse.json({ descripcion: text.substring(0, 200) });
+    }
+
+    // ── Modos QR / OCR ──────────────────────────────────────
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: SYSTEM_PROMPT,

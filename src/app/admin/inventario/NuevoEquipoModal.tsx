@@ -289,6 +289,7 @@ export default function NuevoEquipoModal({
   const [isIALoading, setIsIALoading] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [enhanceLoading, setEnhanceLoading] = useState<Set<number>>(new Set());
 
   // Evitar que el QR scanner dispare múltiples veces seguidas
   const lastScannedRef = useRef<string>('');
@@ -417,6 +418,28 @@ export default function NuevoEquipoModal({
       setEquipos(prev => prev.map((eq, i) => i === 0 ? { ...eq, numero_serie: serie.substring(0, 100) } : eq));
     }
     setScanResult(null);
+  };
+
+  // ── Mejorar descripción con IA ──────────────────────────
+
+  const enhanceDescription = async (equipoId: number, texto: string) => {
+    if (!texto.trim() || enhanceLoading.has(equipoId)) return;
+    setEnhanceLoading(prev => new Set(prev).add(equipoId));
+    try {
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'enhance', payload: texto }),
+      });
+      const data = await res.json();
+      if (data.descripcion) {
+        updateEquipo(equipoId, 'descripcion', data.descripcion);
+      }
+    } catch (err) {
+      console.error('Error enhance:', err);
+    } finally {
+      setEnhanceLoading(prev => { const s = new Set(prev); s.delete(equipoId); return s; });
+    }
   };
 
   // ── QR Scanner con Gemini ───────────────────────────────
@@ -913,13 +936,27 @@ export default function NuevoEquipoModal({
                                 />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
+                                  <button
+                                    type="button"
+                                    disabled={!eq.descripcion.trim() || enhanceLoading.has(eq.id)}
+                                    onClick={() => enhanceDescription(eq.id, eq.descripcion)}
+                                    className="flex items-center gap-1 text-[10px] font-bold text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Mejorar con Wall IA"
+                                  >
+                                    {enhanceLoading.has(eq.id)
+                                      ? <><div className="flex h-3 w-3 items-center justify-center"><TailChase size="12" speed="1.75" color="#0f172a" /></div> Mejorando...</>
+                                      : <><Sparkles className="h-3 w-3" /> Mejorar con Wall</>
+                                    }
+                                  </button>
+                                </div>
                                 <textarea
                                   maxLength={255}
                                   value={eq.descripcion}
                                   onChange={(e) => updateEquipo(eq.id, 'descripcion', e.target.value)}
-                                  placeholder={cantidad > 1 ? 'Número de serie o detalle...' : 'Motivo de ingreso, estado de mantención...'}
-                                  rows={2}
+                                  placeholder={cantidad > 1 ? 'Número de serie o detalle...' : 'Ej: Entró por mejoras, estado de mantención...'}
+                                  rows={3}
                                   className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all resize-none text-slate-700"
                                 />
                               </div>
