@@ -13,6 +13,13 @@ html {
   html {
     font-size: 12px;
   }
+  
+  /* Los loaders de ldrs (TailChase) usan píxeles fijos y no heredan el font-size base.
+     Los escalamos proporcionalmente (12/16 = 0.75) para evitar que se vean gigantes. */
+  uib-tail-chase {
+    transform: scale(0.75);
+    transform-origin: center;
+  }
 }
 
 /* Forzar el cursor de texto (caret) a ser siempre oscuro en los inputs */
@@ -20,6 +27,12 @@ input,
 textarea {
   caret-color: #0f172a !important;
   color: #0f172a !important;
+}
+
+/* Ocultar el ícono de revelar contraseña nativo de Edge/IE */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
 }
 
 /* =========================================

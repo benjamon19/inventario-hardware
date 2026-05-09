@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import GlobalLoading from '@/app/loading';
 
 export default function ActualizarPasswordPage() {
@@ -14,6 +14,8 @@ export default function ActualizarPasswordPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -241,7 +243,7 @@ export default function ActualizarPasswordPage() {
                       style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
                     />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       disabled={!!successMsg || isUpdating}
                       value={password}
@@ -253,7 +255,7 @@ export default function ActualizarPasswordPage() {
                         border: '1px solid #e2e8f0',
                         borderRadius: '12px',
                         backgroundColor: '#f8fafc',
-                        padding: '11px 14px 11px 36px',
+                        padding: '11px 40px 11px 36px',
                         fontSize: 14,
                         color: '#0f172a',
                         outline: 'none',
@@ -268,6 +270,27 @@ export default function ActualizarPasswordPage() {
                         e.target.style.backgroundColor = '#f8fafc';
                       }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={!!successMsg || isUpdating}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: !!successMsg || isUpdating ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: !!successMsg || isUpdating ? 0.5 : 1,
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} color="#94a3b8" /> : <Eye size={16} color="#94a3b8" />}
+                    </button>
                   </div>
                 </div>
 
@@ -283,7 +306,7 @@ export default function ActualizarPasswordPage() {
                       style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
                     />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       required
                       disabled={!!successMsg || isUpdating}
                       value={confirmPassword}
@@ -295,7 +318,7 @@ export default function ActualizarPasswordPage() {
                         border: '1px solid #e2e8f0',
                         borderRadius: '12px',
                         backgroundColor: '#f8fafc',
-                        padding: '11px 14px 11px 36px',
+                        padding: '11px 40px 11px 36px',
                         fontSize: 14,
                         color: '#0f172a',
                         outline: 'none',
@@ -310,6 +333,27 @@ export default function ActualizarPasswordPage() {
                         e.target.style.backgroundColor = '#f8fafc';
                       }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={!!successMsg || isUpdating}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: !!successMsg || isUpdating ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: !!successMsg || isUpdating ? 0.5 : 1,
+                      }}
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} color="#94a3b8" /> : <Eye size={16} color="#94a3b8" />}
+                    </button>
                   </div>
                 </div>
 

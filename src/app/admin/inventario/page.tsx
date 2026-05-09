@@ -861,15 +861,13 @@ export default function InventarioPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
-                        <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">N° de Serie (Opcional)</label>
-                        <input type="text" maxLength={100} spellCheck="false" autoComplete="off" value={editFormData.numero_serie} onChange={e => setEditFormData({ ...editFormData, numero_serie: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" placeholder="Ej: SN-123456" />
-                      </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">SKU <span className="text-red-500">*</span></label>
+                      <input required type="text" maxLength={50} spellCheck="false" autoComplete="off" value={editFormData.sku} onChange={e => setEditFormData({ ...editFormData, sku: e.target.value.trim().toUpperCase() })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">N° de Serie (Opcional)</label>
+                      <input type="text" maxLength={100} spellCheck="false" autoComplete="off" value={editFormData.numero_serie} onChange={e => setEditFormData({ ...editFormData, numero_serie: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all font-mono font-bold tracking-wider" placeholder="Ej: SN-123456" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción</label>

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, Fragment, useMemo } from 'react';
+import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Pencil, Plus, Minus, Check, Trash2, MapPin } from 'lucide-react';
+import { X, Pencil, Plus, Minus, Check, Trash2, MapPin, Camera, Type, Search } from 'lucide-react';
 import { TailChase } from 'ldrs/react';
 import 'ldrs/react/TailChase.css';
 import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import Tesseract from 'tesseract.js';
 
 // --- Tipos ---
 type Categoria = { id: string; nombre: string; prefijo: string };
@@ -169,6 +171,21 @@ export default function NuevoEquipoModal({
   const [showCatEditor, setShowCatEditor] = useState(false);
   const [showEstEditor, setShowEstEditor] = useState(false);
   const [showUbicEditor, setShowUbicEditor] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [showOcrCamera, setShowOcrCamera] = useState(false);
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopOcrCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowOcrCamera(false);
+  };
 
   // Listas ordenadas alfabéticamente
   const sortedCategorias = useMemo(() => [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre)), [categorias]);
@@ -193,6 +210,10 @@ export default function NuevoEquipoModal({
       setShowCatEditor(false);
       setShowEstEditor(false);
       setShowUbicEditor(false);
+      setShowScanner(false);
+      stopOcrCamera();
+    } else {
+      stopOcrCamera();
     }
   }, [isOpen, categorias, estados]);
 
@@ -245,6 +266,117 @@ export default function NuevoEquipoModal({
   const handleAddUbicacion = async (nombre: string) => {
     await addUbicacion(nombre);
     setFormData(prev => ({ ...prev, ubicacion: nombre }));
+  };
+
+  const startOcrCamera = async () => {
+    setShowScanner(false);
+    setShowOcrCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error('Error al acceder a la cámara:', err);
+      alert('No se pudo acceder a la cámara para capturar texto.');
+      setShowOcrCamera(false);
+    }
+  };
+
+  const captureAndOcr = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    setIsOcrLoading(true);
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      setIsOcrLoading(false);
+      return;
+    }
+
+    // Dibujar frame del video
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    stopOcrCamera(); // Cerramos la cámara luego de capturar
+
+    // Preprocesamiento para mejorar el OCR:
+    // Convertir a escala de grises y aumentar contraste
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      // Luminancia (escala de grises perceptual)
+      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      // Umbral de contraste alto (128): si es más claro lo hace blanco, si no negro
+      const bw = gray > 128 ? 255 : 0;
+      data[i] = bw;
+      data[i + 1] = bw;
+      data[i + 2] = bw;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    try {
+      const result = await Tesseract.recognize(dataUrl, 'spa', {
+        logger: () => {} // silenciar logs internos
+      });
+      const text = result.data.text.trim();
+      if (text) {
+        setEquipos(prev => {
+          const newEquipos = [...prev];
+          newEquipos[0].descripcion = text.substring(0, 255);
+          return newEquipos;
+        });
+        if (!formData.modelo && text.length < 150) {
+           setFormData(prev => ({ ...prev, modelo: text.split('\n')[0].substring(0, 150) }));
+        }
+      } else {
+        alert('No se pudo reconocer texto en la imagen. Intenta con mejor iluminación y texto grande.');
+      }
+    } catch (err) {
+      console.error('Error al procesar la imagen:', err);
+      alert('Hubo un error al procesar la imagen para extraer texto.');
+    }
+    setIsOcrLoading(false);
+  };
+
+  const handleScan = (result: any) => {
+    if (result && result.length > 0) {
+      const scannedText: string = result[0].rawValue;
+      if (!scannedText) return; // ignorar valores vacíos
+      try {
+        const data = JSON.parse(scannedText);
+        
+        if (data.modelo) setFormData(prev => ({ ...prev, modelo: data.modelo }));
+        
+        if (data.numero_serie || data.sku || data.descripcion || data.sn) {
+          setEquipos(prev => {
+            const newEquipos = [...prev];
+            if (data.numero_serie) newEquipos[0].numero_serie = data.numero_serie;
+            if (data.sn) newEquipos[0].numero_serie = data.sn;
+            if (data.sku) newEquipos[0].sku = data.sku;
+            if (data.descripcion) newEquipos[0].descripcion = data.descripcion;
+            return newEquipos;
+          });
+        }
+      } catch (e) {
+        // No es JSON: heurística para adivinar qué campo rellenar
+        setEquipos(prev => {
+          const newEquipos = [...prev];
+          // Regex para detectar patrones comunes de número de serie/código de producto
+          if (/^[A-Za-z0-9_\-\.]{3,30}$/.test(scannedText.trim())) {
+            newEquipos[0].numero_serie = scannedText.trim();
+          } else {
+            newEquipos[0].descripcion = scannedText.substring(0, 255);
+          }
+          return newEquipos;
+        });
+      }
+      setShowScanner(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -328,11 +460,90 @@ export default function NuevoEquipoModal({
                   <div className="flex h-full w-full flex-col bg-white shadow-2xl overflow-hidden">
                     {/* Cabecera */}
                     <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
-                      <Dialog.Title as="h3" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Registrar Equipo</Dialog.Title>
+                      <div className="flex items-center gap-2">
+                        <Dialog.Title as="h3" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Registrar Equipo</Dialog.Title>
+                        <div className="sm:hidden flex items-center gap-1.5 ml-1">
+                          <button 
+                            type="button"
+                            onClick={() => { stopOcrCamera(); setShowScanner(v => !v); }} 
+                            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors ${showScanner ? 'bg-violet-600 text-white border-violet-700' : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100'}`}
+                            title="Escanear QR"
+                          >
+                            <Camera className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">QR</span>
+                            <span className="text-[8px] font-black uppercase tracking-wider bg-violet-200 text-violet-800 px-1 py-0.5 rounded-md leading-none">Beta</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => showOcrCamera ? stopOcrCamera() : startOcrCamera()} 
+                            disabled={isOcrLoading}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors disabled:opacity-50 ${showOcrCamera ? 'bg-blue-600 text-white border-blue-700' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100'}`}
+                            title="Extraer texto de foto"
+                          >
+                            {isOcrLoading ? <div className="h-3.5 w-3.5 flex items-center justify-center"><TailChase size="10" speed="1.75" color={showOcrCamera ? 'white' : '#1d4ed8'} /></div> : <Type className="h-3.5 w-3.5" />}
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Texto</span>
+                            <span className="text-[8px] font-black uppercase tracking-wider bg-blue-200 text-blue-800 px-1 py-0.5 rounded-md leading-none">Beta</span>
+                          </button>
+                        </div>
+                      </div>
                       <button onClick={onClose} className="rounded-full p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors cursor-pointer">
                         <X className="h-4 w-4 sm:h-5 sm:w-5" />
                       </button>
                     </div>
+
+                    {showScanner && (
+                      <div className="sm:hidden relative h-44 bg-slate-100 w-full overflow-hidden border-b border-slate-200">
+                        <Scanner
+                          onScan={handleScan}
+                          components={{ finder: false }}
+                          sound={false}
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <div className="h-28 w-28 border-2 border-dashed border-violet-600 rounded-2xl animate-pulse flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
+                            <Search className="h-8 w-8 text-violet-600 drop-shadow-sm" />
+                          </div>
+                          <p className="mt-3 text-[11px] font-bold bg-white/90 border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-900 shadow-sm backdrop-blur-md">
+                            Enfoca un QR para autocompletar
+                          </p>
+                        </div>
+                        {/* Badge Beta en esquina */}
+                        <div className="absolute top-2 right-2 bg-violet-600 text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shadow">
+                          Beta
+                        </div>
+                      </div>
+                    )}
+
+                    {showOcrCamera && (
+                      <div className="sm:hidden relative h-44 bg-slate-100 w-full overflow-hidden border-b border-slate-200">
+                        <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <div className="h-28 w-44 border-2 border-dashed border-blue-600 rounded-2xl flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
+                            <Type className="h-8 w-8 text-blue-600 drop-shadow-sm opacity-50" />
+                          </div>
+                          
+                          <div className="mt-3 pointer-events-auto">
+                            <button
+                              type="button"
+                              onClick={captureAndOcr}
+                              disabled={isOcrLoading}
+                              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-900 px-4 py-1.5 rounded-full text-[11px] font-bold shadow-sm backdrop-blur-md hover:bg-slate-50 transition-colors disabled:opacity-50"
+                            >
+                              {isOcrLoading ? (
+                                <><TailChase size="14" speed="1.75" color="#0f172a" /> Analizando texto...</>
+                              ) : (
+                                <><Camera className="h-3.5 w-3.5" /> Capturar texto</>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        {/* Badge Beta en esquina */}
+                        <div className="absolute top-2 right-2 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shadow">
+                          Beta
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
                       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 pb-6 sm:pb-8">
@@ -484,36 +695,34 @@ export default function NuevoEquipoModal({
                                   {index + 1}
                                 </div>
                               )}
-                              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                <div className="space-y-1">
-                                  <div className="flex justify-between items-end">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
-                                    <span className="text-[10px] text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Auto-generado</span>
-                                  </div>
-                                  <input
-                                    required
-                                    type="text"
-                                    maxLength={50}
-                                    spellCheck="false"
-                                    autoComplete="off"
-                                    value={eq.sku}
-                                    onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
-                                  />
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-end">
+                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Código SKU <span className="text-red-500">*</span></label>
+                                  <span className="text-[10px] text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Auto-generado</span>
                                 </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">N° Serie <span className="font-normal text-[10px] ml-1 normal-case">(Opcional)</span></label>
-                                  <input
-                                    type="text"
-                                    maxLength={100}
-                                    spellCheck="false"
-                                    autoComplete="off"
-                                    value={eq.numero_serie}
-                                    onChange={(e) => updateEquipo(eq.id, 'numero_serie', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
-                                    placeholder="Ej: SN-123"
-                                  />
-                                </div>
+                                <input
+                                  required
+                                  type="text"
+                                  maxLength={50}
+                                  spellCheck="false"
+                                  autoComplete="off"
+                                  value={eq.sku}
+                                  onChange={(e) => updateEquipo(eq.id, 'sku', e.target.value.trim().toUpperCase())}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">N° Serie <span className="font-normal text-[10px] ml-1 normal-case">(Opcional)</span></label>
+                                <input
+                                  type="text"
+                                  maxLength={100}
+                                  spellCheck="false"
+                                  autoComplete="off"
+                                  value={eq.numero_serie}
+                                  onChange={(e) => updateEquipo(eq.id, 'numero_serie', e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm outline-none focus:border-slate-900 transition-all font-mono text-slate-700 font-bold tracking-wider"
+                                  placeholder="Ej: SN-123"
+                                />
                               </div>
                               <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción / Notas</label>
