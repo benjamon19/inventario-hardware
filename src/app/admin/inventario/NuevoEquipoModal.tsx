@@ -168,23 +168,23 @@ function ScanResultToast({
   onDismiss: () => void;
 }) {
   const confColor =
-    result.confianza >= 80 ? 'text-emerald-600 bg-emerald-50 border-emerald-200' :
-      result.confianza >= 50 ? 'text-amber-600 bg-amber-50 border-amber-200' :
-        'text-red-600 bg-red-50 border-red-200';
+    result.confianza >= 80 ? 'text-slate-700 bg-slate-100 border-slate-300' :
+      result.confianza >= 50 ? 'text-slate-500 bg-slate-50 border-slate-200' :
+        'text-slate-400 bg-white border-slate-200';
 
   return (
-    <div className="mx-4 sm:mx-6 mb-3 rounded-2xl border border-violet-100 bg-violet-50 p-3 space-y-2.5">
+    <div className="mx-4 sm:mx-6 mt-3 mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2.5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-violet-600" />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-violet-700">Claude detectó</span>
+          <Sparkles className="h-3.5 w-3.5 text-slate-500" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Wall detectó</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${confColor}`}>
             {result.confianza}% confianza
           </span>
-          <button onClick={onDismiss} className="p-0.5 rounded-md text-violet-400 hover:text-violet-700 cursor-pointer">
+          <button onClick={onDismiss} className="p-0.5 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -194,18 +194,18 @@ function ScanResultToast({
       <div className="space-y-1.5">
         {result.modelo && (
           <div className="flex items-start gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-500 mt-0.5 shrink-0 w-12">Modelo</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">Modelo</span>
             <span className="text-xs font-semibold text-slate-800 leading-snug">{result.modelo}</span>
           </div>
         )}
         {result.numero_serie && (
           <div className="flex items-start gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-500 mt-0.5 shrink-0 w-12">N° Serie</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">N° Serie</span>
             <span className="text-xs font-mono font-bold text-slate-700">{result.numero_serie}</span>
           </div>
         )}
         {!result.modelo && !result.numero_serie && (
-          <div className="flex items-center gap-1.5 text-amber-700">
+          <div className="flex items-center gap-1.5 text-slate-500">
             <AlertCircle className="h-3.5 w-3.5" />
             <span className="text-xs">No se detectó información de hardware útil.</span>
           </div>
@@ -214,7 +214,7 @@ function ScanResultToast({
 
       {/* Razonamiento */}
       {result.razonamiento && (
-        <p className="text-[11px] text-violet-600 leading-snug border-t border-violet-100 pt-2">
+        <p className="text-[11px] text-slate-500 leading-snug border-t border-slate-200 pt-2">
           {result.razonamiento}
         </p>
       )}
@@ -224,13 +224,13 @@ function ScanResultToast({
         <div className="flex gap-2 pt-0.5">
           <button
             onClick={() => onApply(result.modelo ?? '', result.numero_serie ?? '')}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-violet-600 py-1.5 text-[11px] font-bold text-white hover:bg-violet-700 transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-1.5 text-[11px] font-bold text-white hover:bg-black transition-colors cursor-pointer"
           >
             <Check className="h-3 w-3" /> Aplicar al formulario
           </button>
           <button
             onClick={onDismiss}
-            className="rounded-xl border border-violet-200 px-3 py-1.5 text-[11px] font-bold text-violet-600 hover:bg-violet-100 transition-colors cursor-pointer"
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             Descartar
           </button>
@@ -314,6 +314,14 @@ export default function NuevoEquipoModal({
     }
     setScanMode('off');
     setIsIALoading(false);
+  };
+
+  // Para el stream de video sin cerrar el panel (usado durante la captura OCR)
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   };
 
   const startOcrCamera = async () => {
@@ -455,7 +463,8 @@ export default function NuevoEquipoModal({
     if (!ctx) { setIsIALoading(false); return; }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    stopCamera();
+    // Solo para el stream; el panel OCR permanece visible con el spinner
+    stopCameraStream();
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     const base64 = dataUrl.split(',')[1];
@@ -468,6 +477,8 @@ export default function NuevoEquipoModal({
       setScanError('No se pudo leer la imagen. Intenta con mejor iluminación.');
     } finally {
       setIsIALoading(false);
+      // Cerrar el panel de cámara solo cuando ya terminó
+      setScanMode('off');
     }
   };
 
@@ -578,14 +589,14 @@ export default function NuevoEquipoModal({
                               }
                             }}
                             className={`relative flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors ${scanMode !== 'off'
-                                ? 'bg-violet-600 text-white border-violet-700'
-                                : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100'
+                                ? 'bg-slate-900 text-white border-slate-900'
+                                : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                               }`}
                             title="Cámara inteligente"
                           >
                             <Camera className="h-3.5 w-3.5" />
                             <span className="text-[10px] font-bold uppercase tracking-wider">Cámara</span>
-                            <span className={`absolute -top-1.5 -right-1.5 text-[7px] font-black uppercase tracking-widest px-1 py-px rounded-full leading-none shadow ${scanMode !== 'off' ? 'bg-white text-violet-700' : 'bg-violet-600 text-white'
+                            <span className={`absolute -top-1.5 -right-1.5 text-[7px] font-black uppercase tracking-widest px-1 py-px rounded-full leading-none shadow ${scanMode !== 'off' ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'
                               }`}>Beta</span>
                           </button>
                         </div>
@@ -606,7 +617,7 @@ export default function NuevoEquipoModal({
                               if (scanMode === 'ocr') { stopCamera(); setScanMode('qr'); }
                               setScanResult(null); setScanError(null);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${scanMode === 'qr' ? 'text-violet-700 border-b-2 border-violet-600' : 'text-slate-400 hover:text-slate-600'
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${scanMode === 'qr' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'
                               }`}
                           >
                             <ScanLine className="h-3.5 w-3.5" /> QR
@@ -620,7 +631,7 @@ export default function NuevoEquipoModal({
                                 await startOcrCamera();
                               }
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${scanMode === 'ocr' ? 'text-blue-700 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${scanMode === 'ocr' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'
                               }`}
                           >
                             <Type className="h-3.5 w-3.5" /> Foto
@@ -641,14 +652,14 @@ export default function NuevoEquipoModal({
                             {/* Spinner minimalista mientras IA procesa */}
                             {isIALoading && (
                               <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
-                                <TailChase size="22" speed="1.75" color="#7c3aed" />
+                                <TailChase size="22" speed="1.75" color="#cbd5e1" />
                               </div>
                             )}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                               {!isIALoading && (
                                 <>
-                                  <div className="h-28 w-28 border-2 border-dashed border-violet-500 rounded-2xl animate-pulse flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
-                                    <ScanLine className="h-8 w-8 text-violet-500 drop-shadow-sm" />
+                                  <div className="h-28 w-28 border-2 border-dashed border-slate-400 rounded-2xl animate-pulse flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
+                                    <ScanLine className="h-8 w-8 text-slate-500 drop-shadow-sm" />
                                   </div>
                                   <p className="mt-3 text-[11px] font-bold bg-white/90 border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-900 shadow-sm backdrop-blur-md">
                                     Enfoca el QR
@@ -664,19 +675,30 @@ export default function NuevoEquipoModal({
 
                         {/* Modo OCR / Foto */}
                         {scanMode === 'ocr' && (
-                          <div className="relative h-48 bg-slate-100 w-full overflow-hidden">
-                            <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
-                            <canvas ref={canvasRef} className="hidden" />
-                            {/* Spinner minimalista mientras IA procesa */}
+                          <div className="relative h-48 bg-slate-900 w-full overflow-hidden">
+                            {/* Video en vivo (oculto durante el loading) */}
+                            <video
+                              ref={videoRef}
+                              autoPlay
+                              playsInline
+                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isIALoading ? 'opacity-0' : 'opacity-100'}`}
+                            />
+                            {/* Canvas con la foto capturada (visible durante el loading) */}
+                            <canvas
+                              ref={canvasRef}
+                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isIALoading ? 'opacity-100' : 'opacity-0'}`}
+                            />
+                            {/* Spinner + texto mientras IA procesa */}
                             {isIALoading && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
-                                <TailChase size="22" speed="1.75" color="#2563eb" />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10 gap-2">
+                                <TailChase size="22" speed="1.75" color="#cbd5e1" />
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Analizando imagen...</p>
                               </div>
                             )}
                             {!isIALoading && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <div className="h-28 w-44 border-2 border-dashed border-blue-500 rounded-2xl flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
-                                  <Type className="h-8 w-8 text-blue-500 drop-shadow-sm opacity-60" />
+                                <div className="h-28 w-44 border-2 border-dashed border-slate-400 rounded-2xl flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
+                                  <Type className="h-8 w-8 text-slate-500 drop-shadow-sm opacity-60" />
                                 </div>
                                 <div className="mt-3 pointer-events-auto flex flex-col items-center gap-1.5">
                                   <button
