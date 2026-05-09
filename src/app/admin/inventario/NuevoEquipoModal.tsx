@@ -677,22 +677,11 @@ export default function NuevoEquipoModal({
                         {scanMode === 'ocr' && (
                           <div className="relative h-48 bg-slate-900 w-full overflow-hidden">
                             {/* Video en vivo (oculto durante el loading) */}
-                            <video
-                              ref={videoRef}
-                              autoPlay
-                              playsInline
-                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isIALoading ? 'opacity-0' : 'opacity-100'}`}
-                            />
-                            {/* Canvas con la foto capturada (visible durante el loading) */}
-                            <canvas
-                              ref={canvasRef}
-                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isIALoading ? 'opacity-100' : 'opacity-0'}`}
-                            />
-                            {/* Spinner + texto mientras IA procesa */}
+                            <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
+                            <canvas ref={canvasRef} className="hidden" />
                             {isIALoading && (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10 gap-2">
+                              <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
                                 <TailChase size="22" speed="1.75" color="#cbd5e1" />
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Analizando imagen...</p>
                               </div>
                             )}
                             {!isIALoading && (
