@@ -4,20 +4,19 @@ import { NextResponse } from 'next/server';
 // Inicializa el cliente con la variable de entorno
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const SYSTEM_PROMPT = `Eres un experto extractor de datos de hardware informático. Analiza el contenido entregado y extrae:
-1. El modelo exacto del equipo (laptop, monitor, impresora, etc.)
-2. El número de serie si está presente
-3. Tu nivel de confianza del 0 al 100
-4. Una breve explicación de tu análisis (máx 100 chars)
+const SYSTEM_PROMPT = `Eres un experto extractor de datos. Analiza el contenido entregado (texto de QR, código de barras o imagen) y extrae la información más relevante para registrar el elemento en un inventario:
+1. Un título o nombre del elemento (modelo, nombre del producto, etc.). Si no es hardware, usa el nombre más descriptivo posible.
+2. El número de serie, código identificador, o cualquier número de referencia si está presente.
+3. Una descripción detallada con cualquier otro dato relevante encontrado (color, características, marca, dimensiones, etc.).
+4. Una breve explicación de tu análisis (máx 100 chars).
 
 REGLAS IMPORTANTES:
-- Si el input es una URL, analiza su ruta para deducir el equipo. NO devuelvas la URL.
-- Limpia el modelo: Marca + Línea + Referencia (ej: "Lenovo ThinkPad T14").
-- Busca números de serie bajo S/N, Serial, SN.
-- Si no puedes identificar un modelo ni serie, retorna null para ambos.
+- Si el input es una URL, analiza su ruta para deducir de qué elemento se trata. NO devuelvas la URL como nombre.
+- Limpia el nombre/modelo para que sea profesional y claro.
+- Si no puedes identificar el elemento, retorna null para el nombre.
 
 Responde ESTRICTAMENTE con JSON válido con esta estructura exacta, sin backticks:
-{"modelo": "string o null", "numero_serie": "string o null", "confianza": 90, "razonamiento": "string"}`;
+{"modelo": "string o null", "numero_serie": "string o null", "descripcion": "string o null", "razonamiento": "string"}`;
 
 const ENHANCE_PROMPT = `Eres un asistente de gestión de inventario de hardware TI. 
 Tu tarea es convertir una nota breve en una descripción profesional y clara para el registro de un equipo.

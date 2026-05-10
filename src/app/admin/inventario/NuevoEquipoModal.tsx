@@ -18,7 +18,7 @@ type Ubicacion = { id: string; nombre: string };
 type ScanResult = {
   modelo: string | null;
   numero_serie: string | null;
-  confianza: number;
+  descripcion: string | null;
   razonamiento: string;
 };
 
@@ -167,14 +167,9 @@ function ScanResultToast({
   onDismiss,
 }: {
   result: ScanResult;
-  onApply: (modelo: string, serie: string) => void;
+  onApply: (modelo: string, serie: string, descripcion: string) => void;
   onDismiss: () => void;
 }) {
-  const confColor =
-    result.confianza >= 80 ? 'text-slate-700 bg-slate-100 border-slate-300' :
-      result.confianza >= 50 ? 'text-slate-500 bg-slate-50 border-slate-200' :
-        'text-slate-400 bg-white border-slate-200';
-
   return (
     <div className="mx-4 sm:mx-6 mt-3 mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2.5">
       {/* Header */}
@@ -184,9 +179,6 @@ function ScanResultToast({
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Wall detectó</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${confColor}`}>
-            {result.confianza}% confianza
-          </span>
           <button onClick={onDismiss} className="p-0.5 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer">
             <X className="h-3.5 w-3.5" />
           </button>
@@ -197,20 +189,26 @@ function ScanResultToast({
       <div className="space-y-1.5">
         {result.modelo && (
           <div className="flex items-start gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">Modelo</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">Nombre</span>
             <span className="text-xs font-semibold text-slate-800 leading-snug">{result.modelo}</span>
           </div>
         )}
         {result.numero_serie && (
           <div className="flex items-start gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">N° Serie</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">N° Serie/ID</span>
             <span className="text-xs font-mono font-bold text-slate-700">{result.numero_serie}</span>
           </div>
         )}
-        {!result.modelo && !result.numero_serie && (
+        {result.descripcion && (
+          <div className="flex items-start gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5 shrink-0 w-12">Detalles</span>
+            <span className="text-xs font-medium text-slate-600 leading-snug">{result.descripcion}</span>
+          </div>
+        )}
+        {!result.modelo && !result.numero_serie && !result.descripcion && (
           <div className="flex items-center gap-1.5 text-slate-500">
             <AlertCircle className="h-3.5 w-3.5" />
-            <span className="text-xs">No se detectó información de hardware útil.</span>
+            <span className="text-xs">No se detectó información útil.</span>
           </div>
         )}
       </div>
@@ -223,10 +221,10 @@ function ScanResultToast({
       )}
 
       {/* Acciones */}
-      {(result.modelo || result.numero_serie) && (
+      {(result.modelo || result.numero_serie || result.descripcion) && (
         <div className="flex gap-2 pt-0.5">
           <button
-            onClick={() => onApply(result.modelo ?? '', result.numero_serie ?? '')}
+            onClick={() => onApply(result.modelo ?? '', result.numero_serie ?? '', result.descripcion ?? '')}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-1.5 text-[11px] font-bold text-white hover:bg-black transition-colors cursor-pointer"
           >
             <Check className="h-3 w-3" /> Aplicar al formulario
@@ -414,11 +412,15 @@ export default function NuevoEquipoModal({
 
   // ── Aplicar resultado de IA al formulario ───────────
 
-  const applyResult = (modelo: string, serie: string) => {
+  const applyResult = (modelo: string, serie: string, descripcion: string) => {
     if (modelo) setFormData(prev => ({ ...prev, modelo: modelo.substring(0, 150) }));
-    if (serie) {
-      // Aplicar el número de serie al primer equipo de la lista
-      setEquipos(prev => prev.map((eq, i) => i === 0 ? { ...eq, numero_serie: serie.substring(0, 100) } : eq));
+    if (serie || descripcion) {
+      // Aplicar el número de serie y la descripción al primer equipo de la lista
+      setEquipos(prev => prev.map((eq, i) => i === 0 ? { 
+        ...eq, 
+        numero_serie: serie ? serie.substring(0, 100) : eq.numero_serie,
+        descripcion: descripcion ? descripcion.substring(0, 255) : eq.descripcion
+      } : eq));
     }
     setScanResult(null);
   };
