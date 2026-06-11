@@ -3,7 +3,7 @@
 Un sistema de gestión de inventario de hardware moderno, rápido y en tiempo real, construido con **Next.js 14**, **Supabase** y **Tailwind CSS**. Está diseñado para equipos y departamentos de TI que necesitan mantener un control estricto de sus activos, generar etiquetas QR de forma masiva y escanear equipos para registrar entradas y salidas rápidamente.
 
 <div align="center">
-  <img src="./public/docs/1.png" alt="Login Wall" width="800" />
+  <img src="./public/docs/1.png?v=2" alt="Login Wall" width="800" />
 </div>
 
 ---
@@ -13,7 +13,7 @@ Un sistema de gestión de inventario de hardware moderno, rápido y en tiempo re
 ### 📊 Dashboard General
 Una visión global e instantánea del estado del inventario, con métricas clave y accesos directos.
 <div align="center">
-  <img src="./public/docs/2.png" alt="Dashboard General" width="800" />
+  <img src="./public/docs/2.png?v=2" alt="Dashboard General" width="800" />
 </div>
 
 ### 📦 Panel de Inventario en Tiempo Real 🔄
@@ -23,40 +23,40 @@ Gestiona todos tus activos tecnológicos. La tabla se actualiza en tiempo real g
 - **Control de Metadatos:** Añade nuevas Categorías, Estados o Ubicaciones dinámicamente desde el propio formulario.
 
 <div align="center">
-  <img src="./public/docs/3.png" alt="Vista Principal del Inventario" width="800" />
+  <img src="./public/docs/3.png?v=2" alt="Vista Principal del Inventario" width="800" />
 </div>
 
 #### Registro de Nuevos Equipos
 <div align="center">
-  <img src="./public/docs/4.png" alt="Registrar Nuevo Equipo" width="800" />
+  <img src="./public/docs/4.png?v=2" alt="Registrar Nuevo Equipo" width="800" />
 </div>
 
 #### Potenciado con Inteligencia Artificial 🧠
 El sistema integra **Gemini 2.5 Pro** para potenciar el análisis de datos. Toma una foto al equipo o al código de barras y la IA se encarga de extraer la información automáticamente.
 <div align="center">
-  <img src="./public/docs/5.png" alt="Potenciado con IA - Gemini 2.5" width="800" />
+  <img src="./public/docs/5.png?v=2" alt="Potenciado con IA - Gemini 2.5" width="800" />
 </div>
 
 ### 🖨️ Generación Masiva de Etiquetas QR
 Olvídate de crear QRs uno por uno. El sistema cuenta con un módulo dedicado para prepararlos y enviarlos directo a la impresora térmica.
 
 <div align="center">
-  <img src="./public/docs/6.png" alt="Generar QR Vista Principal" width="800" />
+  <img src="./public/docs/6.png?v=2" alt="Generar QR Vista Principal" width="800" />
 </div>
 
 <div align="center">
-  <img src="./public/docs/7.png" alt="Detalle QR Individual" width="800" />
+  <img src="./public/docs/7.png?v=2" alt="Detalle QR Individual" width="800" />
 </div>
 
 #### Modo de Selección Múltiple y Vista de Impresión
 Selecciona múltiples equipos simultáneamente para imprimir toda una tanda de etiquetas de una sola vez con formato optimizado.
 
 <div align="center">
-  <img src="./public/docs/8.png" alt="Selección Múltiple de Códigos QR" width="800" />
+  <img src="./public/docs/8.png?v=2" alt="Selección Múltiple de Códigos QR" width="800" />
 </div>
 <br/>
 <div align="center">
-  <img src="./public/docs/9.png" alt="Vista Optimizada para Imprimir" width="800" />
+  <img src="./public/docs/9.png?v=2" alt="Vista Optimizada para Imprimir" width="800" />
 </div>
 
 ### 📷 Escáner de Hardware Integrado
@@ -64,18 +64,18 @@ Agiliza las salidas o ingresos al almacén de forma impecable usando la cámara 
 - **Detección automática:** Identifica al instante el SKU escaneado.
 
 <div align="center">
-  <img src="./public/docs/10.png" alt="Escáner en funcionamiento" width="800" />
+  <img src="./public/docs/10.png?v=2" alt="Escáner en funcionamiento" width="800" />
 </div>
 
 #### Gestión de Movimientos
 Mueve el stock, busca detalles y cambia el estado del equipo con un solo toque (Ej: "Disponible" -> "En Uso").
 
 <div align="center">
-  <img src="./public/docs/11.png" alt="Vista Mover Stock" width="800" />
+  <img src="./public/docs/11.png?v=2" alt="Vista Mover Stock" width="800" />
 </div>
 <br/>
 <div align="center">
-  <img src="./public/docs/12.png" alt="Buscar Detalles" width="800" />
+  <img src="./public/docs/12.png?v=2" alt="Buscar Detalles" width="800" />
 </div>
 
 ### 📖 Registro de Actividad y Auditoría (Logs)
@@ -83,14 +83,14 @@ Mantén el control absoluto. Toda acción dentro del sistema queda registrada in
 - **Trazabilidad total:** Conoce quién, qué y cuándo ocurrió un movimiento.
 
 <div align="center">
-  <img src="./public/docs/13.png" alt="Historial de Actividad" width="800" />
+  <img src="./public/docs/13.png?v=2" alt="Historial de Actividad" width="800" />
 </div>
 
 ### ⚙️ Configuración y Perfil
 Personaliza tu experiencia de usuario, edita tu avatar y configura los parámetros del sistema.
 
 <div align="center">
-  <img src="./public/docs/14.png" alt="Configuración de Cuenta y Perfil" width="800" />
+  <img src="./public/docs/14.png?v=2" alt="Configuración de Cuenta y Perfil" width="800" />
 </div>
 
 ---
