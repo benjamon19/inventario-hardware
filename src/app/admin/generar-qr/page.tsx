@@ -587,10 +587,10 @@ export default function GenerarQRPage() {
           {loading ? (
             <SkeletonFilterRow count={6} height="h-8" />
           ) : sortedCategorias.length > 0 ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={() => { setFilterCategoria(''); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mask-fade-right w-full">
+              <button onClick={() => { setFilterCategoria(''); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${!filterCategoria ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'}`}>Todas</button>
               {sortedCategorias.map(cat => (
-                <button key={cat.id} onClick={() => { setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
+                <button key={cat.id} onClick={() => { setFilterCategoria(filterCategoria === cat.nombre ? '' : cat.nombre); setCurrentPage(1); }} className={`rounded-xl px-3 py-2 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${filterCategoria === cat.nombre ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{cat.nombre}</button>
               ))}
             </div>
           ) : null}
@@ -598,19 +598,19 @@ export default function GenerarQRPage() {
           {loading ? (
             <SkeletonFilterRow count={5} />
           ) : sortedEstados.length > 0 ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Estado:</span>
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mask-fade-right w-full">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">Estado:</span>
               {sortedEstados.map(est => {
                 const dot = colorDotClasses[est.color] ?? 'bg-slate-400';
                 const badge = colorClasses[est.color] ?? colorClasses.slate;
                 const active = filterEstado === est.nombre;
                 return (
-                  <button key={est.id} onClick={() => { setFilterEstado(active ? '' : est.nombre); setCurrentPage(1); }} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer ${active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`}`}>
+                  <button key={est.id} onClick={() => { setFilterEstado(active ? '' : est.nombre); setCurrentPage(1); }} className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${active ? `${badge} ring-2 ring-offset-1 ring-current` : `${badge} opacity-60 hover:opacity-100`}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />{est.nombre}
                   </button>
                 );
               })}
-              {filterEstado && <button onClick={() => { setFilterEstado(''); setCurrentPage(1); }} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer">Limpiar</button>}
+              {filterEstado && <button onClick={() => { setFilterEstado(''); setCurrentPage(1); }} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline cursor-pointer shrink-0 ml-1">Limpiar</button>}
             </div>
           ) : null}
 
