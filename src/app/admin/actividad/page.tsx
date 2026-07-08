@@ -95,6 +95,7 @@ export default function ActividadPage() {
       let query = supabase
         .from('auditoria_logs')
         .select(`*, perfiles:usuario_id (id, email)`, { count: 'estimated' })
+        .neq('entidad', 'SISTEMA')
         .order('created_at', { ascending: false })
         .range(from, to);
 
