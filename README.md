@@ -159,4 +159,6 @@ src/
 ---
 
 ## 🛡️ Licencia y Uso
-Wall | Inventario - Sistema diseñado y construido para gestión corporativa interna.
+
+**Wall | Inventario** - Sistema diseñado y construido para gestión corporativa interna.
+Este es un software de código cerrado (Closed Source) y propietario. Todos los derechos están reservados. Queda prohibida su copia, distribución o modificación sin autorización. Revisa el archivo `LICENSE` para más detalles.
